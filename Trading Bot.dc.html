@@ -685,6 +685,7 @@
             </div>
             <div class="trade-metrics" style="display:flex;gap:18px;flex-wrap:wrap;">
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Buy price</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.entryFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Invested</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.investedFmt }}</div></div>
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Now</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.ltpFmt }}</div></div>
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Sell target</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:var(--green);">{{ t.targetFmt }}</div></div>
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Gain / loss</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:{{ t.pnlCol }};">{{ t.pnlFmt }} <span style="font-weight:500;">{{ t.pctFmt }}</span></div></div>
@@ -1572,9 +1573,10 @@ class Component extends DCLogic {
       const invested = t.qty * t.entry, value = t.qty * t.ltp, pnl = value - invested;
       const pct = invested ? pnl / invested * 100 : 0;
       const prog = Math.max(3, Math.min(100, (t.ltp - t.entry) / (t.target - t.entry) * 100));
+      const targetPct = t.entry ? (t.target - t.entry) / t.entry * 100 : 0;
       const row = { ...t, investedFmt: fmt(invested), valueFmt: fmt(value),
         entryFmt: '₹' + t.entry.toFixed(2), ltpFmt: '₹' + t.ltp.toFixed(2),
-        targetFmt: '₹' + Math.round(t.target).toLocaleString('en-IN'),
+        targetFmt: '₹' + Math.round(t.target).toLocaleString('en-IN') + ' (' + (targetPct >= 0 ? '+' : '−') + Math.abs(targetPct).toFixed(1) + '%)',
         stopFmt: '₹' + (t.stopLoss || 0).toFixed(2),
         pnlFmt: signed(pnl), pctFmt: (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%',
         pnlCol: pnl>=0 ? 'var(--green)' : 'var(--red)', prog: prog.toFixed(0) + '%' };
