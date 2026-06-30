@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/config.js"></script>
 <script src="/support.js"></script>
 </head>
 <body>
@@ -927,8 +928,20 @@ class Component extends DCLogic {
     }
   }
 
+  _apiBase(){
+    let b = (typeof window !== 'undefined' && window.__API_BASE__) || '';
+    b = String(b).trim().replace(/\/$/, '');
+    if (b && !/^https?:\/\//i.test(b)) b = 'https://' + b;
+    return b;
+  }
+
+  _api(path){
+    const p = path.startsWith('/') ? path : '/' + path;
+    return this._apiBase() + p;
+  }
+
   _botPath(id, sub){
-    return '/api/bots/' + id + (sub ? '/' + sub : '');
+    return this._api('/api/bots/' + id + (sub ? '/' + sub : ''));
   }
 
   _preparePickModal(report){
@@ -1116,7 +1129,7 @@ class Component extends DCLogic {
   }
 
   async _loadBots(){
-    const res = await fetch('/api/bots');
+    const res = await fetch(this._api('/api/bots'));
     const bots = res.ok ? (await res.json()).bots : [];
     let activeBotId = this.state.activeBotId;
     if (!activeBotId && bots.length) activeBotId = bots[0].id;
@@ -1358,7 +1371,7 @@ class Component extends DCLogic {
     });
     this._startScanProgress(s.strategy, true);
     try {
-      const res = await fetch('/api/bots/deploy', {
+      const res = await fetch(this._api('/api/bots/deploy'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

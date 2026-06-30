@@ -2,6 +2,7 @@
 backend/cache/
 backend/bot.db
 backend/.venv/
+public/
 __pycache__/
 *.pyc
 .DS_Store

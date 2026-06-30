@@ -1,0 +1,7 @@
+{
+  "name": "stock-ai-ui",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-vercel.js"
+  }
+}
