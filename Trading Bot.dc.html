@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;overflow-x:hidden}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:var(--line2);outline:none;width:100%;max-width:100%}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--clay);border:3px solid #fff;box-shadow:0 0 0 1px var(--line2);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border:3px solid #fff;border-radius:50%;background:var(--clay);cursor:pointer}
+  button{font-family:inherit}
+  img,svg,video{max-width:100%;height:auto}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes pulse-ring{0%{transform:scale(0.92);opacity:0.55}50%{transform:scale(1.06);opacity:0.25}100%{transform:scale(0.92);opacity:0.55}}
+  @keyframes pulse-core{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  @keyframes step-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes modal-in{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .app-root{overflow-x:hidden;max-width:100vw}
+  .app-main{width:100%;max-width:100%}
+  .app-header-inner{width:100%}
+  .app-nav{max-width:100%}
+  .app-nav-btn{white-space:nowrap}
+  .bot-select{max-width:100%}
+  .toolbar-row{width:100%}
+  .toolbar-actions{max-width:100%}
+  .bot-card-btn{min-width:0;width:100%}
+  .bot-metrics{min-width:0}
+  .strategy-grid,.cands-grid,.mode-grid,.stats-grid,.modal-grid,.cand-metrics{width:100%;max-width:100%}
+  .trade-card{min-width:0;width:100%}
+  .trade-metrics,.trade-progress{min-width:0}
+  .deploy-footer,.budget-row,.guardrail-row,.page-header,.page-actions,.pending-card,.pending-actions,.footer-row,.banner-row{width:100%;max-width:100%}
+  .deploy-summary{min-width:0}
+  .mono-val{overflow-wrap:anywhere;word-break:break-word}
+  .cand-footer,.cand-actions{width:100%;max-width:100%}
+  .app-header-tools{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+  .modal-panel{max-width:100%}
+  .signal-row{min-width:0}
+  @media (max-width:720px){
+    .app-header-inner{flex-direction:column;align-items:stretch!important;gap:10px!important}
+    .app-header-brand{margin-right:0!important;width:100%}
+    .app-header-tools{display:flex;align-items:center;gap:8px;width:100%}
+    .app-header-tools .bot-select{flex:1;min-width:0!important;width:auto}
+    .app-nav{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap!important}
+    .app-nav::-webkit-scrollbar{display:none}
+    .app-nav-btn{flex:1 0 auto;padding:8px 11px!important;font-size:12px!important}
+    .app-main{padding-left:16px!important;padding-right:16px!important;padding-top:22px!important;padding-bottom:28px!important}
+    .toolbar-row{flex-direction:column;align-items:stretch!important;gap:12px!important}
+    .toolbar-actions{margin-left:0!important;width:100%;justify-content:stretch}
+    .toolbar-actions button{width:100%;justify-content:center}
+    .bot-card-wrap{min-width:0;width:100%}
+    .bot-card-btn{padding:14px!important}
+    .bot-card-body{flex-direction:column!important;align-items:stretch!important;gap:12px!important}
+    .bot-metrics{width:100%;gap:10px 14px!important}
+    .bot-metrics>div{flex:1 1 calc(50% - 8px);min-width:0}
+    .strategy-grid{grid-template-columns:1fr!important}
+    .mode-grid{grid-template-columns:1fr!important}
+    .cands-grid{grid-template-columns:1fr!important}
+    .cand-metrics{grid-template-columns:1fr!important}
+    .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    .stats-grid>div{min-width:0;padding:14px!important}
+    .stats-grid .mono-val{font-size:18px!important}
+    .trade-card{flex-direction:column!important;align-items:stretch!important;gap:14px!important;padding:14px!important}
+    .trade-block{width:100%;min-width:0!important}
+    .trade-metrics{width:100%;gap:10px 14px!important}
+    .trade-metrics>div{flex:1 1 calc(50% - 8px);min-width:0}
+    .trade-progress{max-width:100%!important;width:100%!important;flex:none!important}
+    .deploy-footer{flex-direction:column;align-items:stretch!important}
+    .deploy-footer button{width:100%;justify-content:center}
+    .deploy-summary{min-width:0!important;width:100%}
+    .budget-row{flex-direction:column;align-items:stretch!important}
+    .budget-row>div:last-child{min-width:0!important;width:100%;flex:1 1 100%}
+    .guardrail-row{flex-direction:column;align-items:flex-start!important;gap:8px!important}
+    .page-header{flex-direction:column;align-items:stretch!important}
+    .page-actions{width:100%;justify-content:stretch}
+    .page-actions button{flex:1;justify-content:center}
+    .pending-card{flex-direction:column;align-items:stretch!important}
+    .pending-actions{width:100%}
+    .pending-actions button{flex:1}
+    .banner-row{flex-direction:column;align-items:flex-start!important}
+    .banner-row>span:last-child{max-width:100%!important}
+    .footer-row{flex-direction:column;text-align:center;gap:8px!important}
+    .meta-row{flex-direction:column;gap:6px!important;align-items:flex-start!important}
+    .modal-grid{grid-template-columns:1fr!important}
+    .cand-footer{flex-direction:column!important;align-items:stretch!important}
+    .cand-actions{margin-left:0!important;width:100%;flex-direction:column!important;align-items:stretch!important}
+    .cand-actions button{width:100%;justify-content:center}
+    .level-row{padding:12px 14px!important}
+    .level-row>div{min-width:0}
+  }
+  @media (max-width:400px){
+    .app-nav-btn{padding:8px 9px!important;font-size:11px!important;gap:5px!important}
+    .stats-grid{grid-template-columns:1fr!important}
+    .bot-metrics>div,.trade-metrics>div{flex:1 1 100%}
+  }
+</style>
+</helmet>
+<div class="app-root" style="--paper:#FAF9F5;--panel:#FFFFFF;--ink:#23221C;--ink2:#6E6C61;--line:#E8E5DA;--line2:#D9D5C8;--clay:#C2613F;--green:#3E7A52;--red:#B4453A;--mono:'Geist Mono',ui-monospace,'SF Mono',monospace;font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
+
+  <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,249,245,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+    <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--clay);display:flex;align-items:center;justify-content:center;color:#fff;flex:none;"><i class="ti ti-chart-candle" style="font-size:17px;"></i></div>
+        <span style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">NSE value bot</span>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:0.04em;color:var(--ink2);border:1px solid var(--line2);padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
+      </div>
+      <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
+        <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
+        <button class="app-nav-btn" onClick="{{ goto.setup }}" style="{{ nav.setup }}"><i class="ti ti-rocket" style="font-size:15px;"></i>Deploy</button>
+        <button class="app-nav-btn" onClick="{{ goto.shortlist }}" style="{{ nav.shortlist }}"><i class="ti ti-list-search" style="font-size:15px;"></i>Shortlist</button>
+        <button class="app-nav-btn" onClick="{{ goto.tracker }}" style="{{ nav.tracker }}"><i class="ti ti-report-money" style="font-size:15px;"></i>Tracker</button>
+        <button class="app-nav-btn" onClick="{{ goto.activity }}" style="{{ nav.activity }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
+      </nav>
+      <div class="app-header-tools">
+      <sc-if value="{{ hasActiveBot }}" hint-placeholder-val="{{ false }}">
+        <select class="bot-select" onChange="{{ onBotSwitch }}" value="{{ activeBotId }}" style="{{ botSelectStyle }}">
+          <sc-for list="{{ botOptions }}" as="o" hint-placeholder-count="1">
+            <option value="{{ o.id }}">{{ o.label }}</option>
+          </sc-for>
+        </select>
+      </sc-if>
+      <sc-if value="{{ showPauseBtn }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ togglePause }}" style="{{ pauseBtnStyle }}" title="{{ pauseBtnTitle }}"><i class="{{ pauseIcon }}" style="font-size:15px;"></i></button>
+      </sc-if>
+      </div>
+    </div>
+  </header>
+
+  <!-- Global status banner -->
+  <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1080px;margin:0 auto;padding:10px clamp(16px,4vw,32px) 0;">
+    <div class="banner-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-radius:11px;padding:12px 16px;background:{{ bannerBg }};border:1px solid {{ bannerBorder }};">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="{{ bannerIcon }}" style="font-size:20px;color:{{ bannerCol }};"></i>
+        <span style="font-size:14px;font-weight:600;color:{{ bannerCol }};">{{ bannerText }}</span>
+      </div>
+      <span style="font-size:13px;color:var(--ink2);max-width:48ch;line-height:1.4;">{{ behaviorSummary }}</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== HOME ===================== -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <main class="app-main" style="max-width:900px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Your bots</p>
+    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Dashboard</h1>
+    <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate bot with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
+
+    <sc-if value="{{ noBots }}" hint-placeholder-val="{{ true }}">
+      <div style="text-align:center;padding:56px 24px;background:var(--panel);border:1px dashed var(--line2);border-radius:16px;">
+        <i class="ti ti-robot" style="font-size:42px;color:var(--ink2);"></i>
+        <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No bots deployed yet</h2>
+        <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading bot.</p>
+        <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first bot</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasBots }}" hint-placeholder-val="{{ false }}">
+      <div class="toolbar-row" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button onClick="{{ toggleSelectAllBots }}" style="display:flex;align-items:center;gap:7px;background:var(--paper);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;padding:7px 11px;border-radius:8px;color:var(--ink);">
+            <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid {{ selectAllBorder }};background:{{ selectAllBg }};display:flex;align-items:center;justify-content:center;flex:none;">
+              <sc-if value="{{ allBotsSelected }}" hint-placeholder-val="{{ false }}"><i class="ti ti-check" style="font-size:10px;color:#fff;"></i></sc-if>
+              <sc-if value="{{ someBotsSelected }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:1.5px;background:var(--clay);border-radius:1px;"></span></sc-if>
+            </span>
+            {{ selectAllLabel }}
+          </button>
+          <sc-if value="{{ hasBotSelection }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:13px;color:var(--ink2);">{{ botSelectionCount }} selected</span>
+            <button onClick="{{ clearBotSelection }}" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink2);text-decoration:underline;padding:0;">Clear</button>
+          </sc-if>
+        </div>
+        <div class="toolbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
+          <sc-if value="{{ hasBotSelection }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ bulkPauseBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--ink);"><i class="ti ti-player-pause" style="font-size:16px;"></i>Pause selected</button>
+            <button onClick="{{ bulkTerminateBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid #E8C4BC;cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--red);"><i class="ti ti-trash" style="font-size:16px;"></i>Terminate selected</button>
+          </sc-if>
+          <button onClick="{{ goto.setup }}" style="display:flex;align-items:center;gap:7px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;"><i class="ti ti-plus" style="font-size:16px;"></i>Deploy another bot</button>
+        </div>
+      </div>
+      <sc-if value="{{ bulkActionMsg }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:14px;color:var(--ink2);">
+          <i class="ti ti-check" style="color:var(--green);"></i> {{ bulkActionMsg }}
+        </div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <sc-for list="{{ botCards }}" as="b" hint-placeholder-count="2">
+          <div class="bot-card-wrap" style="display:flex;gap:10px;align-items:center;min-width:0;width:100%;">
+            <button onClick="{{ b.onToggleSelect }}" title="Select bot" style="flex:none;width:16px;height:16px;min-width:16px;border-radius:4px;border:1.5px solid {{ b.selectBorder }};background:{{ b.selectBg }};cursor:pointer;display:flex;align-items:center;justify-content:center;color:{{ b.selectCol }};padding:0;line-height:1;">
+              <sc-if value="{{ b.selected }}" hint-placeholder-val="{{ false }}"><i class="ti ti-check" style="font-size:10px;line-height:1;"></i></sc-if>
+            </button>
+            <button onClick="{{ b.onSelect }}" class="bot-card-btn" style="flex:1;text-align:left;cursor:pointer;background:var(--panel);border:1px solid {{ b.cardBorder }};border-radius:14px;padding:16px 18px;color:inherit;font:inherit;min-width:0;">
+              <div class="bot-card-body" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;">
+                <div style="min-width:0;">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="font-weight:650;font-size:16px;">{{ b.name }}</span>
+                    <span style="font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;color:{{ b.statusCol }};background:{{ b.statusBg }};">{{ b.statusLabel }}</span>
+                  </div>
+                  <div style="font-size:13px;color:var(--ink2);margin-top:4px;">{{ b.strategyName }} · {{ b.modeLabel }}</div>
+                </div>
+                <div class="bot-metrics" style="display:flex;gap:20px;flex-wrap:wrap;">
+                  <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Allocation</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;">{{ b.allocationFmt }}</div></div>
+                  <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Ready to invest</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;">{{ b.cashFmt }}</div></div>
+                  <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Portfolio</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;color:{{ b.pnlCol }};">{{ b.valueFmt }}</div></div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <!-- ===================== SETUP / DEPLOY ===================== -->
+  <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 1 of 3 — Strategy</p>
+    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Deploy a new bot</h1>
+    <p style="color:var(--ink2);margin:0 0 22px;font-size:15px;line-height:1.5;max-width:54ch;">Pick a strategy and fund allocation. This creates a new bot instance — existing bots keep running separately.</p>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
+      <span style="font-size:13px;color:var(--ink2);">Card layout</span>
+      <div style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:3px;">
+        <button onClick="{{ on.layoutGrid }}" style="{{ tog.grid }}"><i class="ti ti-layout-grid" style="font-size:14px;"></i>Grid</button>
+        <button onClick="{{ on.layoutList }}" style="{{ tog.list }}"><i class="ti ti-layout-list" style="font-size:14px;"></i>List</button>
+      </div>
+    </div>
+
+    <!-- GRID layout -->
+    <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ true }}">
+    <div class="strategy-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,255px),1fr));gap:13px;">
+      <sc-for list="{{ strategyCards }}" as="st" hint-placeholder-count="2">
+        <div style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;">
+          <button onClick="{{ st.onSelect }}" style="width:100%;text-align:left;cursor:pointer;background:transparent;border:none;padding:18px 44px 18px 18px;display:flex;flex-direction:column;gap:13px;color:inherit;font:inherit;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="width:38px;height:38px;border-radius:10px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="{{ st.icon }}" style="font-size:20px;"></i></div>
+              <span style="font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;color:{{ st.horizonCol }};background:{{ st.horizonBg }};">{{ st.horizon }}</span>
+            </div>
+            <div>
+              <div style="font-weight:650;font-size:16px;margin-bottom:3px;">{{ st.name }} <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--clay);border:1px solid var(--clay);padding:1px 6px;border-radius:999px;vertical-align:middle;margin-left:4px;">LIVE</span></div>
+              <div style="font-size:13.5px;color:var(--ink2);line-height:1.45;">{{ st.summary }}</div>
+            </div>
+          </button>
+          <button onClick="{{ st.onInfo }}" title="How this strategy works" style="position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:999px;border:1px solid var(--line2);background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);padding:0;z-index:2;"><i class="ti ti-info-circle" style="font-size:15px;"></i></button>
+          <sc-if value="{{ st.selected }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div>
+            <div style="position:absolute;top:13px;right:44px;width:20px;height:20px;border-radius:50%;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;z-index:1;"><i class="ti ti-check" style="font-size:13px;"></i></div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <!-- LIST layout -->
+    <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <sc-for list="{{ strategyCards }}" as="st" hint-placeholder-count="2">
+        <div style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:13px;">
+          <button onClick="{{ st.onSelect }}" style="width:100%;text-align:left;cursor:pointer;background:transparent;border:none;padding:15px 48px 15px 16px;display:flex;align-items:center;gap:15px;color:inherit;font:inherit;">
+            <div style="width:40px;height:40px;flex:none;border-radius:10px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="{{ st.icon }}" style="font-size:20px;"></i></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+                <span style="font-weight:650;font-size:15.5px;">{{ st.name }}</span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;color:{{ st.horizonCol }};background:{{ st.horizonBg }};">{{ st.horizon }}</span>
+                <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--clay);border:1px solid var(--clay);padding:1px 6px;border-radius:999px;">LIVE</span>
+              </div>
+              <div style="font-size:13px;color:var(--ink2);line-height:1.4;margin-top:2px;">{{ st.summary }}</div>
+            </div>
+          </button>
+          <button onClick="{{ st.onInfo }}" title="How this strategy works" style="position:absolute;top:50%;right:14px;transform:translateY(-50%);width:26px;height:26px;border-radius:999px;border:1px solid var(--line2);background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);padding:0;z-index:2;"><i class="ti ti-info-circle" style="font-size:15px;"></i></button>
+          <sc-if value="{{ st.selected }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:13px;pointer-events:none;"></div>
+            <i class="ti ti-circle-check-filled" style="position:absolute;top:50%;right:48px;transform:translateY(-50%);font-size:22px;color:var(--clay);flex:none;z-index:1;"></i>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <!-- Step 2 budget -->
+    <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 2 of 3 — Allocation</p>
+      <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">Set fund allocation</h2>
+      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">This is the bot's cash pool. When positions sell, proceeds return here for reinvestment.</p>
+      <div class="budget-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;">
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:12px;padding:10px 15px;background:var(--panel);">
+          <span style="font-size:19px;color:var(--ink2);">₹</span>
+          <input value="{{ budget }}" onInput="{{ onBudgetChange }}" inputmode="numeric" style="border:none;outline:none;background:transparent;font-family:var(--mono);font-size:21px;font-weight:600;width:8.5ch;color:var(--ink);">
+        </div>
+        <div style="flex:1;min-width:220px;">
+          <input type="range" min="10000" max="1000000" step="1000" value="{{ budget }}" onInput="{{ onSlider }}" style="width:100%;">
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:7px;"><span>₹10,000</span><span>₹10,00,000</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 — Bot mode & guardrails -->
+    <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 3 of 3 — Bot mode</p>
+      <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">How should the bot behave?</h2>
+      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">Choose manual review or let the bot act on its own — with guardrails either way.</p>
+
+      <div class="mode-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:22px;">
+        <button onClick="{{ on.modeAdvisory }}" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;color:inherit;font:inherit;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="ti ti-eye" style="font-size:19px;"></i></div>
+            <span style="font-weight:650;font-size:15px;">Advisory</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Bot suggests picks. You review and log trades yourself.</p>
+          <sc-if value="{{ deployModeAdvisory }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
+        </button>
+        <button onClick="{{ on.modeAuto }}" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;color:inherit;font:inherit;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="ti ti-robot" style="font-size:19px;"></i></div>
+            <span style="font-weight:650;font-size:15px;">Autonomous</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Bot manages paper trades within your rules and budget.</p>
+          <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
+        </button>
+      </div>
+
+      <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:13px;font-weight:600;margin:0 0 10px;color:var(--ink);">Trust level</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+          <button onClick="{{ on.levelA }}" class="level-row" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;color:inherit;font:inherit;width:100%;">
+            <i class="ti ti-hand-stop" style="font-size:20px;color:var(--ink2);flex:none;"></i>
+            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level A — Approval gate</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px;">Every trade waits for your explicit OK.</div></div>
+            <sc-if value="{{ deployLvlA }}" hint-placeholder-val="{{ true }}"><i class="ti ti-circle-check-filled" style="font-size:20px;color:var(--clay);"></i></sc-if>
+          </button>
+          <button onClick="{{ on.levelB }}" class="level-row" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;color:inherit;font:inherit;width:100%;">
+            <i class="ti ti-adjustments-dollar" style="font-size:20px;color:var(--ink2);flex:none;"></i>
+            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level B — Auto under a limit</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px;">Small trades execute instantly; bigger ones ask first.</div></div>
+            <sc-if value="{{ deployLvlB }}" hint-placeholder-val="{{ false }}"><i class="ti ti-circle-check-filled" style="font-size:20px;color:var(--clay);"></i></sc-if>
+          </button>
+          <button onClick="{{ on.levelC }}" class="level-row" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;color:inherit;font:inherit;width:100%;">
+            <i class="ti ti-bolt" style="font-size:20px;color:var(--ink2);flex:none;"></i>
+            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level C — Full auto</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px;">Bot executes all trades and notifies you after.</div></div>
+            <sc-if value="{{ deployLvlC }}" hint-placeholder-val="{{ false }}"><i class="ti ti-circle-check-filled" style="font-size:20px;color:var(--clay);"></i></sc-if>
+          </button>
+        </div>
+
+        <sc-if value="{{ deployLvlB }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">Auto-execute ceiling</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:17px;color:var(--ink2);">₹</span>
+              <input value="{{ autoThreshold }}" onInput="{{ onThresholdChange }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:9px;padding:8px 12px;font-family:var(--mono);font-size:16px;font-weight:600;width:9ch;background:var(--panel);">
+            </div>
+            <p style="font-size:12px;color:var(--ink2);margin:8px 0 0;">Trades above this amount will ask for approval first.</p>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <div style="background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:16px;">
+        <p style="font-size:13px;font-weight:600;margin:0 0 12px;">Guardrails <span style="font-weight:400;color:var(--ink2);">(always on)</span></p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="guardrail-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--ink2);">Stop-loss on every trade</span>
+            <span class="mono-val" style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);text-align:right;">{{ stopLossNote }}</span>
+          </div>
+          <div class="guardrail-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--ink2);">Max daily loss</span>
+            <div style="display:flex;align-items:center;gap:6px;"><input value="{{ maxDailyLoss }}" onInput="{{ onMaxDailyLoss }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px;min-width:52px;width:52px;text-align:center;background:var(--panel);"><span style="font-size:13px;">% of budget</span></div>
+          </div>
+          <div class="guardrail-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--ink2);">Max capital deployed</span>
+            <div style="display:flex;align-items:center;gap:6px;"><input value="{{ maxDeployed }}" onInput="{{ onMaxDeployed }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px;min-width:52px;width:52px;text-align:center;background:var(--panel);"><span style="font-size:13px;">% of budget</span></div>
+          </div>
+          <div class="guardrail-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--ink2);">Max per stock</span>
+            <div style="display:flex;align-items:center;gap:6px;"><input value="{{ maxPerStock }}" onInput="{{ onMaxPerStock }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px;min-width:52px;width:52px;text-align:center;background:var(--panel);"><span style="font-size:13px;">% of budget</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#DFEADF;border:1px solid #C5D9C5;border-radius:11px;padding:13px 16px;">
+        <p style="font-size:14px;margin:0;color:var(--ink);line-height:1.5;"><i class="ti ti-info-circle" style="vertical-align:-2px;color:var(--green);"></i> {{ deployBehaviorSummary }}</p>
+      </div>
+    </div>
+
+    <!-- summary + confirm -->
+    <div class="deploy-footer" style="margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
+      <sc-if value="{{ strategySelected }}" hint-placeholder-val="{{ false }}">
+        <div class="deploy-summary" style="display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 16px;flex:1;min-width:240px;">
+          <i class="ti ti-circle-check-filled" style="font-size:20px;color:var(--green);"></i>
+          <span style="font-size:14.5px;"><span style="font-weight:600;">{{ summaryText }}</span></span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noStrategy }}" hint-placeholder-val="{{ true }}">
+        <div class="deploy-summary" style="display:flex;align-items:center;gap:10px;border:1px dashed var(--line2);border-radius:11px;padding:13px 16px;flex:1;min-width:240px;color:var(--ink2);font-size:14px;">
+          <i class="ti ti-arrow-up" style="font-size:17px;"></i>Select a strategy to continue
+        </div>
+      </sc-if>
+      <sc-if value="{{ strategySelected }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ deployBot }}" style="display:flex;align-items:center;gap:8px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:14px 22px;border-radius:11px;">{{ deployBtnLabel }}<i class="ti ti-arrow-right" style="font-size:18px;"></i></button>
+      </sc-if>
+      <sc-if value="{{ noStrategy }}" hint-placeholder-val="{{ true }}">
+        <button disabled style="display:flex;align-items:center;gap:8px;background:var(--line2);color:#fff;border:none;cursor:not-allowed;font-size:15px;font-weight:600;padding:14px 22px;border-radius:11px;opacity:0.7;">Deploy bot<i class="ti ti-arrow-right" style="font-size:18px;"></i></button>
+      </sc-if>
+    </div>
+  </main>
+  </sc-if>
+
+  <!-- ===================== SHORTLIST ===================== -->
+  <sc-if value="{{ isShortlist }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
+    <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:60px 20px;">
+        <i class="ti ti-list-search" style="font-size:40px;color:var(--ink2);"></i>
+        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No bot selected</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">Deploy a bot or pick one from the dashboard.</p>
+        <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasScreen }}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#F3E8CF;border:1px solid #E8D5A8;border-radius:13px;padding:16px 18px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <i class="ti ti-bell-ringing" style="font-size:20px;color:#8A6516;"></i>
+            <span style="font-weight:650;font-size:15px;">Trade waiting for your approval</span>
+          </div>
+          <sc-for list="{{ pending }}" as="p" hint-placeholder-count="1">
+            <div class="pending-card" style="background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
+              <div style="min-width:0;">
+                <div class="mono-val" style="font-family:var(--mono);font-weight:600;font-size:15px;">{{ p.ticker }}.NS</div>
+                <div style="font-size:13px;color:var(--ink2);margin-top:2px;">Buy {{ p.qty }} shares · {{ p.costFmt }}</div>
+                <div style="font-size:12.5px;color:var(--ink2);margin-top:6px;">Buy {{ p.buyFmt }} → Sell {{ p.sellFmt }} · Stop {{ p.stopFmt }}</div>
+              </div>
+              <div class="pending-actions" style="display:flex;gap:8px;">
+                <button onClick="{{ p.onApprove }}" style="background:var(--green);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:9px 16px;border-radius:9px;">Approve</button>
+                <button onClick="{{ p.onReject }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;padding:9px 16px;border-radius:9px;color:var(--ink2);">Reject</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasLlmSummary }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#DFE7EF;border:1px solid #C5D4E8;border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink);line-height:1.5;">
+          <i class="ti ti-sparkles" style="color:#3A5E86;"></i> {{ llmSummary }}
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasBotMsg }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink2);">
+          <i class="ti ti-robot" style="color:var(--clay);"></i> {{ botActionMsg }}
+        </div>
+      </sc-if>
+
+      <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">Shortlist · {{ stratName }}</p>
+          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0;">Your picks</h1>
+        </div>
+        <button onClick="{{ rescreen }}" style="display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--ink2);padding:9px 14px;border-radius:10px;"><i class="ti ti-refresh" style="font-size:15px;"></i>Re-screen</button>
+      </div>
+      <div class="meta-row" style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink2);margin-bottom:22px;">
+        <span><i class="ti ti-robot" style="font-size:14px;vertical-align:-2px;"></i> {{ activeBotLabel }}</span>
+        <span><i class="ti ti-search" style="font-size:14px;vertical-align:-2px;"></i> Checked {{ screenedN }} stocks</span>
+        <span><i class="ti ti-star" style="font-size:14px;vertical-align:-2px;color:var(--clay);"></i> <span style="color:var(--ink);font-weight:600;">{{ pickN }}</span> picks</span>
+        <span><i class="ti ti-wallet" style="font-size:14px;vertical-align:-2px;"></i> Cash <span style="font-family:var(--mono);color:var(--ink);font-weight:600;">{{ cashFmt }}</span></span>
+      </div>
+
+      <sc-if value="{{ isScanning }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px 24px;margin-bottom:16px;">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px;">
+            <div style="position:relative;width:72px;height:72px;margin-bottom:16px;">
+              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--clay);opacity:0.35;animation:pulse-ring 2s ease-in-out infinite;"></div>
+              <div style="position:absolute;inset:8px;border-radius:50%;border:2px solid var(--clay);opacity:0.2;animation:pulse-ring 2s ease-in-out infinite 0.4s;"></div>
+              <div style="position:absolute;inset:16px;border-radius:50%;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;animation:pulse-core 2s ease-in-out infinite;box-shadow:0 4px 14px rgba(194,97,63,0.35);">
+                <i class="{{ scanIcon }}" style="font-size:26px;{{ scanIconSpin }}"></i>
+              </div>
+            </div>
+            <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;letter-spacing:-0.01em;">{{ loadTitle }}</h2>
+            <p style="font-family:var(--mono);font-size:13px;color:var(--clay);font-weight:600;margin:0 0 14px;min-height:1.2em;animation:step-in 0.35s ease;">{{ loadStatus }}</p>
+            <div style="width:100%;max-width:340px;height:6px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden;">
+              <div style="height:100%;width:{{ loadProgressPct }};border-radius:999px;background:linear-gradient(90deg,var(--clay),#E8956F,var(--clay));background-size:200% 100%;animation:shimmer 2s linear infinite;transition:width 0.6s ease;"></div>
+            </div>
+            <p style="font-size:12px;color:var(--ink2);margin:10px 0 0;">Nifty 200 · throttled fetch · usually 2–4 min</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;max-width:360px;margin:0 auto;">
+            <sc-for list="{{ loadStepCards }}" as="st" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:{{ st.bg }};border:1px solid {{ st.border }};opacity:{{ st.opacity }};transition:all 0.3s ease;">
+                <div style="width:32px;height:32px;border-radius:8px;background:{{ st.iconBg }};display:flex;align-items:center;justify-content:center;flex:none;">
+                  <i class="{{ st.icon }}" style="font-size:16px;color:{{ st.iconCol }};{{ st.iconAnim }}"></i>
+                </div>
+                <div style="flex:1;text-align:left;">
+                  <div style="font-size:13px;font-weight:{{ st.weight }};color:{{ st.textCol }};">{{ st.label }}</div>
+                  <div style="font-size:11px;color:var(--ink2);margin-top:1px;">{{ st.sub }}</div>
+                </div>
+                <sc-if value="{{ st.done }}" hint-placeholder-val="{{ false }}"><i class="ti ti-check" style="font-size:16px;color:var(--green);"></i></sc-if>
+                <sc-if value="{{ st.active }}" hint-placeholder-val="{{ true }}"><i class="ti ti-loader-2" style="font-size:16px;color:var(--clay);animation:spin 1s linear infinite;display:inline-block;"></i></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ screenError }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#F4E2DF;border:1px solid #E8C4BC;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:var(--red);font-size:14px;">
+          <i class="ti ti-alert-circle" style="vertical-align:-2px;"></i> {{ errorMsg }}
+          <button onClick="{{ rescreen }}" style="margin-left:12px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;padding:6px 12px;border-radius:8px;color:var(--ink);">Retry</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasCands }}" hint-placeholder-val="{{ true }}">
+      <div class="cands-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:14px;">
+        <sc-for list="{{ cands }}" as="c" hint-placeholder-count="3">
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="font-family:var(--mono);font-weight:600;font-size:15.5px;">{{ c.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
+                  <sc-if value="{{ c.recGood }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:var(--green);background:#DFEADF;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
+                  <sc-if value="{{ c.recMaybe }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#8A6516;background:#F3E8CF;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
+                </div>
+                <div style="font-size:12.5px;color:var(--ink2);margin-top:3px;">{{ c.name }} · {{ c.sector }}</div>
+              </div>
+            </div>
+
+            <div class="cand-metrics" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:14px;min-width:0;">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);margin-bottom:6px;">Buy at</div>
+                <div class="mono-val" style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--ink);">{{ c.buyFmt }}</div>
+                <div style="font-size:12px;color:var(--ink2);margin-top:4px;">today's price</div>
+              </div>
+              <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:14px;min-width:0;">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);margin-bottom:6px;">Sell at</div>
+                <div class="mono-val" style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);">{{ c.sellFmt }}</div>
+                <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:4px;">{{ c.upside }} upside</div>
+              </div>
+            </div>
+
+            <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.5;">{{ c.recNote }}</p>
+
+            <div class="cand-footer" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:13px;">
+              <button onClick="{{ c.onViewReport }}" style="display:flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;padding:8px 14px;border-radius:9px;color:var(--ink);">
+                <i class="ti ti-file-description" style="font-size:16px;color:var(--clay);"></i>Why this pick?
+              </button>
+              <sc-if value="{{ c.canLog }}" hint-placeholder-val="{{ true }}">
+                <div class="cand-actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-left:auto;">
+                  <div style="font-size:13px;color:var(--ink2);">Buy <span style="color:var(--ink);font-weight:600;font-family:var(--mono);">{{ c.shares }}</span> shares for <span style="font-family:var(--mono);color:var(--ink);font-weight:600;">{{ c.costFmt }}</span></div>
+                  <sc-if value="{{ modeAdvisory }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ c.onLog }}" style="display:flex;align-items:center;gap:6px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;"><i class="ti ti-plus" style="font-size:15px;"></i>Log paper trade</button>
+                  </sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{ c.cantAfford }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:13px;color:var(--ink2);margin-left:auto;">Price too high for your budget right now.</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ noCands }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed var(--line2);border-radius:14px;">
+          <i class="ti ti-search-off" style="font-size:36px;color:var(--ink2);"></i>
+          <p style="margin:14px 0 4px;font-weight:600;">No picks found</p>
+          <p style="color:var(--ink2);margin:0 0 16px;font-size:14px;">None of the stocks we checked looked like a good fit right now. Try again later or raise your budget.</p>
+          <button onClick="{{ goto.setup }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;padding:9px 14px;border-radius:10px;color:var(--ink2);">Go to setup</button>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <!-- ===================== TRACKER ===================== -->
+  <sc-if value="{{ isTracker }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
+    <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:60px 20px;">
+        <i class="ti ti-report-money" style="font-size:40px;color:var(--ink2);"></i>
+        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No bot selected</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">Pick a bot from the dashboard to view its portfolio.</p>
+        <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ trackerActive }}" hint-placeholder-val="{{ false }}">
+      <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:22px;">
+        <div style="min-width:0;">
+          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">{{ activeBotName }}</p>
+          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 8px;">Portfolio</h1>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:600;color:var(--ink);">Strategy:</span>
+            <span style="font-size:13px;font-weight:600;color:var(--clay);">{{ activeBotStrategy }}</span>
+            <span style="font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--ink2);background:var(--paper);border:1px solid var(--line);">{{ activeBotModeLabel }}</span>
+          </div>
+        </div>
+        <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <sc-if value="{{ hasTrades }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ refreshPrices }}" style="{{ refreshBtnStyle }}" title="Fetch latest prices from market data">
+              <i class="{{ refreshIcon }}" style="{{ refreshIconStyle }}"></i>{{ refreshBtnLabel }}
+            </button>
+          </sc-if>
+          <sc-if value="{{ canTerminate }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ terminateBot }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--red);padding:9px 14px;border-radius:10px;">Terminate bot</button>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasRefreshMsg }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:14px;font-size:14px;color:var(--ink2);">
+          <i class="ti ti-check" style="color:var(--green);"></i> {{ refreshMsg }}
+        </div>
+      </sc-if>
+
+      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:12px;margin-bottom:14px;">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Allocation</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);">{{ allocationFmt }}</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">In stocks</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);">{{ deployedFmt }}</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Ready to invest</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);">{{ cashFmt }}</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Portfolio value</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);">{{ portfolioFmt }}</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Gain / loss</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);color:{{ pnlCol }};">{{ pnlFmt }}</div>
+          <div class="mono-val" style="font-size:12px;font-family:var(--mono);color:{{ pnlCol }};">{{ pctFmt }}</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
+          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Holdings</div>
+          <div class="mono-val" style="font-size:22px;font-weight:700;margin-top:5px;font-family:var(--mono);">{{ positions }}</div>
+          <div style="font-size:11.5px;color:var(--ink2);">since {{ since }}</div>
+        </div>
+      </div>
+
+    <sc-if value="{{ trackerEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed var(--line2);border-radius:14px;margin-bottom:14px;">
+        <i class="ti ti-report-money" style="font-size:36px;color:var(--ink2);"></i>
+        <h2 style="font-size:20px;font-weight:700;margin:14px 0 6px;">No paper trades yet</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">Run a screen and log a candidate to start tracking.</p>
+        <button onClick="{{ goto.shortlist }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">View shortlist</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasTrades }}" hint-placeholder-val="{{ true }}">
+
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:600;">Portfolio value</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">last 14 sessions · EOD</span>
+        </div>
+        <svg viewBox="0 0 640 150" width="100%" height="130" preserveAspectRatio="none" style="display:block;">
+          <polygon points="{{ sparkArea }}" fill="var(--clay)" opacity="0.09"></polygon>
+          <polyline points="{{ sparkLine }}" fill="none" stroke="var(--clay)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+        </svg>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <sc-for list="{{ trades }}" as="t" hint-placeholder-count="1">
+          <button onClick="{{ t.onViewReport }}" class="trade-card" style="text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;width:100%;color:inherit;font:inherit;transition:border-color 0.15s ease,box-shadow 0.15s ease;" title="View pick report">
+            <div class="trade-block" style="min-width:150px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-family:var(--mono);font-weight:600;font-size:15px;">{{ t.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
+                <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--green);background:#DFEADF;padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ t.status }}</span>
+              </div>
+              <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.name }}</div>
+              <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.qty }} shares · bought {{ t.entryDate }}</div>
+              <div style="font-size:11px;color:var(--clay);margin-top:6px;font-weight:600;"><i class="ti ti-file-description" style="font-size:13px;vertical-align:-2px;"></i> Tap for pick report</div>
+            </div>
+            <div class="trade-metrics" style="display:flex;gap:18px;flex-wrap:wrap;">
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Buy price</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.entryFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Now</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.ltpFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Sell target</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:var(--green);">{{ t.targetFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Gain / loss</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:{{ t.pnlCol }};">{{ t.pnlFmt }} <span style="font-weight:500;">{{ t.pctFmt }}</span></div></div>
+            </div>
+            <div class="trade-progress" style="min-width:150px;flex:1;max-width:220px;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);margin-bottom:6px;">Progress to sell price</div>
+              <div style="height:7px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden;"><div style="height:100%;width:{{ t.prog }};background:var(--clay);"></div></div>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <!-- ===================== ACTIVITY ===================== -->
+  <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">Action log</p>
+    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 20px;">What the bot did</h1>
+    <sc-if value="{{ noLog }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:48px 20px;color:var(--ink2);">No activity yet. Run a screen or change settings to get started.</div>
+    </sc-if>
+    <sc-if value="{{ hasLog }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <sc-for list="{{ actionLog }}" as="a" hint-placeholder-count="3">
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+              <span style="font-weight:600;font-size:14px;text-transform:capitalize;">{{ a.actionLabel }}</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">{{ a.timeFmt }}</span>
+            </div>
+            <p style="font-size:13.5px;margin:6px 0 0;color:var(--ink);">{{ a.detail }}</p>
+            <sc-if value="{{ a.hasReason }}" hint-placeholder-val="{{ false }}"><p style="font-size:12.5px;margin:4px 0 0;color:var(--ink2);">{{ a.reasoning }}</p></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <footer class="footer-row" style="max-width:1080px;margin:0 auto;padding:26px clamp(16px,4vw,32px);border-top:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">Paper trading · EOD data via yfinance · decides after close · not financial advice</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">NSE · ₹ INR</span>
+  </footer>
+
+  <!-- Pick report modal -->
+  <sc-if value="{{ pickModalOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:clamp(12px,4vw,28px);">
+    <div onClick="{{ closePickReport }}" style="position:absolute;inset:0;background:rgba(35,34,28,0.48);backdrop-filter:blur(3px);"></div>
+    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(35,34,28,0.18);animation:modal-in 0.28s ease;">
+      <div style="padding:22px 22px 18px;border-bottom:1px solid var(--line);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              <span class="mono-val" style="font-family:var(--mono);font-weight:700;font-size:18px;">{{ pickModalTicker }}<span style="color:var(--ink2);font-weight:500;">.NS</span></span>
+              <sc-if value="{{ pickModalAi }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:600;color:var(--clay);background:#FBF3EF;border:1px solid #E8C4BC;padding:3px 9px;border-radius:999px;"><i class="ti ti-sparkles" style="font-size:11px;"></i> AI ranked</span></sc-if>
+            </div>
+            <div style="font-size:13px;color:var(--ink2);">{{ pickModalName }} · {{ pickModalSector }}</div>
+            <div style="font-size:12px;color:var(--clay);font-weight:600;margin-top:8px;">{{ pickModalStrategy }}</div>
+          </div>
+          <button onClick="{{ closePickReport }}" style="background:var(--paper);border:1px solid var(--line2);cursor:pointer;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink2);flex:none;"><i class="ti ti-x" style="font-size:18px;"></i></button>
+        </div>
+        <div style="margin-top:14px;display:inline-block;font-size:12px;font-weight:650;color:var(--green);background:#DFEADF;padding:5px 12px;border-radius:999px;">{{ pickModalHeadline }}</div>
+      </div>
+      <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px;">
+        <sc-if value="{{ pickModalLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:28px 12px;color:var(--ink2);">
+            <i class="ti ti-loader-2" style="font-size:28px;color:var(--clay);animation:spin 1s linear infinite;display:inline-block;"></i>
+            <p style="margin:12px 0 0;font-size:14px;">Loading full pick report…</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pickModalReady }}" hint-placeholder-val="{{ true }}">
+        <sc-for list="{{ pickModalSections }}" as="sec" hint-placeholder-count="2">
+          <div>
+            <div style="font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);margin-bottom:8px;">{{ sec.title }}</div>
+            <p style="font-size:14px;line-height:1.55;margin:0;color:var(--ink);">{{ sec.body }}</p>
+          </div>
+        </sc-for>
+        <sc-if value="{{ pickModalHasSignals }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);margin-bottom:10px;">What the screener saw</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ pickModalSignals }}" as="sig" hint-placeholder-count="3">
+                <div class="signal-row" style="display:flex;justify-content:space-between;gap:12px;padding:11px 13px;background:var(--paper);border:1px solid var(--line);border-radius:10px;flex-wrap:wrap;">
+                  <span style="font-size:13px;color:var(--ink2);min-width:0;">{{ sig.label }}</span>
+                  <span class="mono-val" style="font-size:13px;font-weight:600;color:var(--ink);font-family:var(--mono);text-align:right;min-width:0;">{{ sig.detail }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <div>
+          <div style="font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);margin-bottom:10px;">Trade plan</div>
+          <div class="modal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <sc-for list="{{ pickModalPlan }}" as="p" hint-placeholder-count="3">
+              <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:13px;">
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);margin-bottom:5px;">{{ p.label }}</div>
+                <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink);">{{ p.value }}</div>
+                <div style="font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.35;">{{ p.hint }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- Strategy info modal -->
+  <sc-if value="{{ strategyModalOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:clamp(12px,4vw,28px);">
+    <div onClick="{{ closeStrategyInfo }}" style="position:absolute;inset:0;background:rgba(35,34,28,0.48);backdrop-filter:blur(3px);"></div>
+    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(35,34,28,0.18);animation:modal-in 0.28s ease;">
+      <div style="padding:22px 22px 18px;border-bottom:1px solid var(--line);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;"><i class="{{ strategyModalIcon }}" style="font-size:20px;"></i></div>
+              <div>
+                <div style="font-weight:700;font-size:18px;letter-spacing:-0.02em;">{{ strategyModalName }}</div>
+                <div style="font-size:12px;color:var(--ink2);margin-top:2px;">{{ strategyModalAnalysis }}</div>
+              </div>
+            </div>
+            <span style="font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;color:{{ strategyModalHorizonCol }};background:{{ strategyModalHorizonBg }};">{{ strategyModalHorizon }}</span>
+          </div>
+          <button onClick="{{ closeStrategyInfo }}" style="background:var(--paper);border:1px solid var(--line2);cursor:pointer;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink2);flex:none;"><i class="ti ti-x" style="font-size:18px;"></i></button>
+        </div>
+        <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin:14px 0 0;">{{ strategyModalSummary }}</p>
+      </div>
+      <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px;">
+        <sc-for list="{{ strategyModalSections }}" as="sec" hint-placeholder-count="2">
+          <div>
+            <div style="font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);margin-bottom:8px;">{{ sec.title }}</div>
+            <p style="font-size:14px;line-height:1.55;margin:0;color:var(--ink);">{{ sec.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080,&quot;height&quot;:900},&quot;selectorLayout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;grid&quot;,&quot;list&quot;],&quot;default&quot;:&quot;grid&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Selector&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;setup&quot;,&quot;shortlist&quot;,&quot;tracker&quot;,&quot;activity&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview&quot;},&quot;seedPosition&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Tracker&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = {
+      screen: props.startScreen ?? 'home',
+      activeBotId: null,
+      bots: [],
+      activeBot: null,
+      strategy: null,
+      budget: 10000,
+      layout: props.selectorLayout ?? 'grid',
+      deployMode: 'advisory',
+      deployLevel: 'A',
+      auto_threshold: 2000,
+      max_daily_loss_pct: 5,
+      max_deployed_pct: 100,
+      max_per_stock_pct: 40,
+      stop_loss_pct: 15,
+      trades: [],
+      loading: false,
+      deploying: false,
+      screenError: false,
+      errorMsg: '',
+      cands: [],
+      screenedN: 50,
+      pickN: 0,
+      pending: [],
+      actionLog: [],
+      botActionMsg: '',
+      llmSummary: '',
+      refreshing: false,
+      loadStepIdx: 0,
+      loadProgress: 0,
+      loadTitle: '',
+      loadStatus: '',
+      isScanning: false,
+      configLoaded: false,
+      pickModal: null,
+      pickModalLoading: false,
+      selectedBotIds: [],
+      bulkActionMsg: '',
+      strategyModal: null,
+    };
+    this._scanTimer = null;
+    this._loadAll();
+  }
+
+  _loadStepPlan(strategy, isDeploy){
+    const sub = { value:'Value filters', winners:'Momentum rules', box:'Box patterns', dip:'RSI dip signals' }[strategy] || 'Strategy rules';
+    const steps = [];
+    if (isDeploy) steps.push({ label: 'Creating bot', sub: 'Fund pool setup', icon: 'ti ti-robot' });
+    steps.push(
+      { label: 'Loading universe', sub: 'Nifty 200 list', icon: 'ti ti-list-numbers' },
+      { label: 'Fetching EOD data', sub: 'yfinance · throttled', icon: 'ti ti-cloud-download' },
+      { label: 'Running screener', sub: sub, icon: 'ti ti-filter' },
+      { label: 'AI ranking', sub: 'Gemini analysis', icon: 'ti ti-sparkles' },
+      { label: 'Building shortlist', sub: 'Final picks', icon: 'ti ti-list-check' },
+    );
+    return steps;
+  }
+
+  _startScanProgress(strategy, isDeploy){
+    this._stopScanProgress();
+    const steps = this._loadStepPlan(strategy, isDeploy);
+    const thresholds = isDeploy ? [0, 3, 12, 55, 115, 165] : [0, 5, 50, 110, 160];
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = (Date.now() - start) / 1000;
+      let idx = 0;
+      for (let i = thresholds.length - 1; i >= 0; i--) {
+        if (elapsed >= thresholds[i]) { idx = Math.min(i, steps.length - 1); break; }
+      }
+      const base = 8 + (idx / Math.max(steps.length - 1, 1)) * 78;
+      const wobble = Math.min(8, (elapsed % 4) * 2);
+      this.setState({
+        loadSteps: steps,
+        loadStepIdx: idx,
+        loadProgress: Math.min(94, base + wobble),
+        loadStatus: steps[idx].label,
+        loadTitle: isDeploy ? 'Deploying your bot' : 'Scanning market',
+        isScanning: true,
+      });
+    };
+    tick();
+    this._scanTimer = setInterval(tick, 700);
+  }
+
+  _stopScanProgress(finish){
+    if (this._scanTimer) clearInterval(this._scanTimer);
+    this._scanTimer = null;
+    if (finish) {
+      this.setState({ loadProgress: 100, loadStatus: 'Done', isScanning: false });
+    } else {
+      this.setState({ isScanning: false, loadProgress: 0 });
+    }
+  }
+
+  _botPath(id, sub){
+    return '/api/bots/' + id + (sub ? '/' + sub : '');
+  }
+
+  _preparePickModal(report){
+    if (!report) return null;
+    const sections = (report.sections || []).length
+      ? report.sections
+      : (report.summary ? [{ title: 'Why this stock', body: report.summary }] : []);
+    const signals = report.signals || [];
+    const plan = report.tradePlan || [];
+    return {
+      ...report,
+      sections,
+      signals,
+      plan,
+      hasSignals: signals.length > 0,
+    };
+  }
+
+  _fallbackPickReport(trade, bot){
+    const strat = bot?.strategyName || 'This bot';
+    return {
+      ticker: trade.ticker,
+      name: trade.name,
+      sector: trade.sector || '—',
+      strategyName: strat,
+      headline: 'Your holding',
+      summary: 'Paper position — pick report was not stored for this trade.',
+      sections: [{
+        title: 'About this position',
+        body: `Opened at ₹${trade.entry.toFixed(2)} with a sell target of ₹${Math.round(trade.target).toLocaleString('en-IN')}. Stop-loss at ₹${(trade.stopLoss || 0).toFixed(2)}.`,
+      }],
+      signals: [],
+      tradePlan: [
+        { label: 'Entry price', value: '₹' + trade.entry.toFixed(2), hint: 'When the bot bought' },
+        { label: 'Current price', value: '₹' + trade.ltp.toFixed(2), hint: 'Latest EOD mark' },
+        { label: 'Sell target', value: '₹' + Math.round(trade.target).toLocaleString('en-IN'), hint: 'Auto-exit when reached' },
+        { label: 'Stop-loss', value: '₹' + (trade.stopLoss || 0).toFixed(2), hint: 'Risk limit' },
+      ],
+      isAiPick: false,
+    };
+  }
+
+  openPickReport(report){
+    this.setState({ pickModal: this._preparePickModal(report), pickModalLoading: false });
+  }
+
+  closePickReport(){
+    this.setState({ pickModal: null, pickModalLoading: false });
+  }
+
+  _strategyInfo(){
+    return {
+      value: {
+        name: 'Buy cheap quality',
+        horizon: 'Long-term',
+        horizonCol: '#36724A',
+        horizonBg: '#DFEADF',
+        icon: 'ti ti-shield-check',
+        analysisType: 'Fundamental only',
+        summary: 'Hold financially healthy companies trading below fair value. Ignore daily noise.',
+        sections: [
+          { title: 'How it works', body: 'Find financially healthy Nifty 200 companies trading below their estimated worth. Buy and hold for 1–3+ years — the bot ignores short-term price swings and focuses on business quality and valuation.' },
+          { title: 'What we screen for', body: 'Low debt (current ratio ≥ 2), steady earnings, reasonable valuation (P/E ≤ 15, P/B ≤ 1.5, Graham number ≤ 22.5), decent ROE, and adequate liquidity. Price charts are not used.' },
+          { title: 'When we sell', body: 'Exit when price reaches fair value, or if fundamentals deteriorate — not on routine market dips.' },
+          { title: 'Risk & horizon', body: 'Lower turnover, long-term focus. Best if you want quality compounders at a discount rather than quick trades.' },
+        ],
+      },
+      winners: {
+        name: 'Buy the winners',
+        horizon: 'Weeks–months',
+        horizonCol: '#8A6516',
+        horizonBg: '#F3E8CF',
+        icon: 'ti ti-trending-up',
+        analysisType: 'Fundamentals + technicals',
+        summary: 'Ride strong companies breaking out of a quiet base into new highs on volume.',
+        sections: [
+          { title: 'How it works', body: 'Find companies with growing earnings and institutional interest whose stock is breaking out of a quiet sideways base into new highs on strong volume. Buy the breakout and hold while the trend lasts.' },
+          { title: 'What we screen for', body: 'CANSLIM-style momentum: earnings growth, relative strength, a tight consolidation base, and a volume-confirmed breakout above recent highs.' },
+          { title: 'When we sell', body: 'Exit when the uptrend breaks down — e.g. failure to hold breakout levels or loss of momentum — rather than a fixed time limit.' },
+          { title: 'Risk & horizon', body: 'Medium–high. Trend-following can reverse quickly; sized for weeks-to-months holds, not buy-and-forget.' },
+        ],
+      },
+      box: {
+        name: 'Buy the box breakout',
+        horizon: 'Days–weeks',
+        horizonCol: '#B4453A',
+        horizonBg: '#F4E2DF',
+        icon: 'ti ti-bolt',
+        analysisType: 'Technical only (Darvas Box)',
+        summary: 'Darvas box — buy when price closes above a tight range on rising volume. Stop below the box.',
+        sections: [
+          { title: 'How it works', body: 'Nicolas Darvas’s box method: a stock trades in a tight range (“box”) for days or weeks. A close above the box top on rising volume signals a new leg up. Pure price pattern — no fundamentals.' },
+          { title: 'What we screen for', body: 'A defined consolidation box (often 3+ weeks), breakout close above the box ceiling, and volume above recent average. Market filter: Nifty above its 200-day average.' },
+          { title: 'When we sell', body: 'Stop-loss just below the box bottom (signature Darvas rule). Trail the stop up as new boxes form; exit when price closes below the latest box floor.' },
+          { title: 'Risk & horizon', body: 'Medium–high, fast-moving. Designed for EOD-only execution — no intraday data required.' },
+        ],
+      },
+      dip: {
+        name: 'Buy the dip',
+        horizon: 'Few days–2wks',
+        horizonCol: '#3A5E86',
+        horizonBg: '#DFE7EF',
+        icon: 'ti ti-arrow-bear-right',
+        analysisType: 'Technical only',
+        summary: 'In long uptrends only, buy short sharp pullbacks and sell the bounce.',
+        sections: [
+          { title: 'How it works', body: 'Only trade stocks already in a long-term uptrend (above 200-day average). When price has a short, sharp pullback (oversold on RSI), buy expecting a bounce back toward the recent mean.' },
+          { title: 'What we screen for', body: 'Stock above 200 DMA, RSI(2) deeply oversold after a few red days, and enough liquidity in Nifty 200. No fundamental filters.' },
+          { title: 'When we sell', body: 'Take profit quickly once price recovers — even a modest bounce. Cut losses if the dip turns into a deeper breakdown.' },
+          { title: 'Risk & horizon', body: 'Medium. Many small wins possible, but a “dip” can become a larger fall — short holding period (days to ~2 weeks).' },
+        ],
+      },
+    };
+  }
+
+  openStrategyInfo(id){
+    const info = this._strategyInfo()[id];
+    if (!info) return;
+    this.setState({ strategyModal: { id, ...info } });
+  }
+
+  closeStrategyInfo(){
+    this.setState({ strategyModal: null });
+  }
+
+  _needsFullReport(report){
+    if (!report) return true;
+    if (!report.signals || report.signals.length === 0) return true;
+    if (report.headline === 'Your holding') return true;
+    return false;
+  }
+
+  async openTradeReport(trade){
+    const bot = this._activeBot();
+    const botId = this.state.activeBotId;
+    if (trade.pickReport && !this._needsFullReport(trade.pickReport)) {
+      this.openPickReport(trade.pickReport);
+      return;
+    }
+    this.setState({
+      pickModalLoading: true,
+      pickModal: this._preparePickModal(trade.pickReport || this._fallbackPickReport(trade, bot)),
+    });
+    if (!botId || !trade.id) {
+      this.openPickReport(this._fallbackPickReport(trade, bot));
+      return;
+    }
+    try {
+      const res = await fetch(this._botPath(botId, 'trades/' + trade.id + '/report'));
+      if (!res.ok) throw new Error('Report unavailable');
+      const data = await res.json();
+      const report = data.pickReport;
+      this.openPickReport(report);
+      const trades = this.state.trades.map(t =>
+        t.id === trade.id ? { ...t, pickReport: report } : t
+      );
+      this.setState({ trades });
+    } catch {
+      this.openPickReport(this._fallbackPickReport(trade, bot));
+    }
+  }
+
+  _mapCandidate(c){
+    return {
+      ...c,
+      recMaybe: !c.recGood && !!c.recLabel,
+      cantAfford: !c.canLog,
+      onLog: () => this.logTrade(c, c.shares),
+      onViewReport: () => this.openPickReport(c.pickReport || {
+        ticker: c.ticker, name: c.name, sector: c.sector,
+        strategyName: this._activeBot()?.strategyName || '',
+        headline: c.recLabel, summary: c.recNote, sections: [],
+        signals: Object.entries(c.signal || {}).map(([k,v]) => ({ label: k, detail: String(v) })),
+        tradePlan: [
+          { label: 'Buy at', value: c.buyFmt, hint: "Today's EOD price" },
+          { label: 'Sell target', value: c.sellFmt, hint: c.upside + ' upside' },
+        ],
+        isAiPick: c.llmRank != null,
+      }),
+    };
+  }
+
+  _activeBot(){
+    return this.state.activeBot;
+  }
+
+  async _loadBots(){
+    const res = await fetch('/api/bots');
+    const bots = res.ok ? (await res.json()).bots : [];
+    let activeBotId = this.state.activeBotId;
+    if (!activeBotId && bots.length) activeBotId = bots[0].id;
+    if (activeBotId && !bots.find(b => b.id === activeBotId)) activeBotId = bots[0]?.id ?? null;
+    const activeBot = bots.find(b => b.id === activeBotId) || null;
+    const validIds = new Set(bots.filter(b => b.status !== 'terminated').map(b => b.id));
+    const selectedBotIds = (this.state.selectedBotIds || []).filter(id => validIds.has(id));
+    this.setState({ bots, activeBotId, activeBot, selectedBotIds });
+    return { bots, activeBotId, activeBot };
+  }
+
+  async _loadBotData(botId){
+    if (!botId) {
+      this.setState({ trades: [], pending: [], actionLog: [], activeBot: null });
+      return null;
+    }
+    const [botRes, tradesRes, pendingRes, logRes] = await Promise.all([
+      fetch(this._botPath(botId)),
+      fetch(this._botPath(botId, 'trades')),
+      fetch(this._botPath(botId, 'pending')),
+      fetch(this._botPath(botId, 'log')),
+    ]);
+    const activeBot = botRes.ok ? await botRes.json() : null;
+    const trades = tradesRes.ok ? (await tradesRes.json()).trades : [];
+    const pending = pendingRes.ok ? (await pendingRes.json()).pending : [];
+    const actionLog = logRes.ok ? (await logRes.json()).log : [];
+    this.setState({
+      activeBotId: botId,
+      activeBot,
+      trades,
+      pending: (pending || []).map(p => ({
+        ...p,
+        onApprove: () => this.resolvePending(p.id, true),
+        onReject: () => this.resolvePending(p.id, false),
+      })),
+      actionLog: this._mapLog(actionLog),
+    });
+    return activeBot;
+  }
+
+  async _loadAll(){
+    try {
+      const { activeBotId } = await this._loadBots();
+      if (activeBotId) await this._loadBotData(activeBotId);
+      this.setState({ configLoaded: true });
+    } catch {
+      this.setState({ configLoaded: true });
+    }
+  }
+
+  async selectBot(id){
+    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '' });
+    const bot = await this._loadBotData(id);
+    if (bot) this.setState({ strategy: bot.strategy });
+  }
+
+  _mapPending(list){
+    const botId = this.state.activeBotId;
+    return (list || []).map(p => ({
+      ...p,
+      onApprove: () => this.resolvePending(p.id, true),
+      onReject: () => this.resolvePending(p.id, false),
+    }));
+  }
+
+  _mapLog(list){
+    return (list || []).map(a => ({
+      ...a,
+      actionLabel: (a.action || '').replace(/_/g, ' '),
+      timeFmt: a.createdAt ? new Date(a.createdAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '',
+      hasReason: !!a.reasoning,
+    }));
+  }
+
+  _deploySummary(){
+    const s = this.state;
+    const mode = s.deployMode;
+    const level = s.deployLevel;
+    if (mode === 'advisory') return 'Advisory mode — the bot suggests picks and you decide whether to log each paper trade yourself.';
+    if (level === 'A') return 'Autonomous (approval gate) — the bot finds trades and waits for your OK before executing anything.';
+    if (level === 'B') return 'Autonomous (auto under ₹' + s.auto_threshold.toLocaleString('en-IN') + ') — trades below that execute immediately; larger ones ask first.';
+    return 'Autonomous (full auto) — the bot executes trades within your guardrails and notifies you after each action.';
+  }
+
+  async togglePause(){
+    const botId = this.state.activeBotId;
+    const bot = this._activeBot();
+    if (!botId || !bot || bot.status === 'terminated') return;
+    const paused = bot.paused;
+    const res = await fetch(this._botPath(botId, paused ? 'resume' : 'pause'), { method: 'POST' });
+    if (res.ok) {
+      const updated = await res.json();
+      this.setState({ activeBot: updated, bots: this.state.bots.map(b => b.id === botId ? updated : b) });
+      this._refreshLog();
+    }
+  }
+
+  async terminateBot(){
+    const botId = this.state.activeBotId;
+    if (!botId || !confirm('Terminate this bot? It will stop all automated actions. History is kept.')) return;
+    const res = await fetch(this._botPath(botId, 'terminate'), { method: 'POST' });
+    if (res.ok) {
+      await this._loadAll();
+      this.setState({ screen: 'home' });
+    }
+  }
+
+  _selectableBots(){
+    return (this.state.bots || []).filter(b => b.status !== 'terminated');
+  }
+
+  toggleBotSelect(botId){
+    const ids = new Set(this.state.selectedBotIds || []);
+    if (ids.has(botId)) ids.delete(botId);
+    else ids.add(botId);
+    this.setState({ selectedBotIds: [...ids], bulkActionMsg: '' });
+  }
+
+  clearBotSelection(){
+    this.setState({ selectedBotIds: [], bulkActionMsg: '' });
+  }
+
+  toggleSelectAllBots(){
+    const selectable = this._selectableBots();
+    const ids = this.state.selectedBotIds || [];
+    const allSelected = selectable.length > 0 && selectable.every(b => ids.includes(b.id));
+    this.setState({
+      selectedBotIds: allSelected ? [] : selectable.map(b => b.id),
+      bulkActionMsg: '',
+    });
+  }
+
+  async bulkPauseBots(){
+    const ids = (this.state.selectedBotIds || []).filter(id => {
+      const b = this.state.bots.find(x => x.id === id);
+      return b && b.status !== 'terminated';
+    });
+    if (!ids.length) return;
+    if (!confirm(`Pause ${ids.length} bot${ids.length === 1 ? '' : 's'}?`)) return;
+    const results = await Promise.all(ids.map(id =>
+      fetch(this._botPath(id, 'pause'), { method: 'POST' }).then(r => r.ok)
+    ));
+    const ok = results.filter(Boolean).length;
+    await this._loadBots();
+    const activeId = this.state.activeBotId;
+    if (activeId && ids.includes(activeId)) {
+      const updated = this.state.bots.find(b => b.id === activeId);
+      if (updated) this.setState({ activeBot: updated });
+    }
+    this.setState({
+      selectedBotIds: [],
+      bulkActionMsg: ok === ids.length
+        ? `Paused ${ok} bot${ok === 1 ? '' : 's'}.`
+        : `Paused ${ok} of ${ids.length} bots.`,
+    });
+  }
+
+  async bulkTerminateBots(){
+    const ids = (this.state.selectedBotIds || []).filter(id => {
+      const b = this.state.bots.find(x => x.id === id);
+      return b && b.status !== 'terminated';
+    });
+    if (!ids.length) return;
+    if (!confirm(`Terminate ${ids.length} bot${ids.length === 1 ? '' : 's'}? They will stop all automated actions. History is kept.`)) return;
+    const results = await Promise.all(ids.map(id =>
+      fetch(this._botPath(id, 'terminate'), { method: 'POST' }).then(r => r.ok)
+    ));
+    const ok = results.filter(Boolean).length;
+    await this._loadAll();
+    const stillActive = this.state.bots.some(b => b.id === this.state.activeBotId);
+    this.setState({
+      selectedBotIds: [],
+      screen: stillActive ? this.state.screen : 'home',
+      activeBotId: stillActive ? this.state.activeBotId : null,
+      activeBot: stillActive ? this.state.activeBot : null,
+      bulkActionMsg: ok === ids.length
+        ? `Terminated ${ok} bot${ok === 1 ? '' : 's'}.`
+        : `Terminated ${ok} of ${ids.length} bots.`,
+    });
+  }
+
+  async refreshPrices(){
+    const botId = this.state.activeBotId;
+    if (!botId || this.state.refreshing) return;
+    this.setState({ refreshing: true, refreshMsg: '' });
+    try {
+      const res = await fetch(this._botPath(botId, 'refresh'), { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not refresh prices');
+      await this._loadBotData(botId);
+      await this._loadBots();
+      let msg = data.message || '';
+      if (!msg && data.checked > 0) {
+        const parts = [`Updated ${data.updated?.length ?? 0} position(s)`];
+        if (data.closed?.length) parts.push(`${data.closed.length} sold (target/stop hit)`);
+        msg = parts.join(' · ');
+      }
+      if (!msg) msg = 'Prices refreshed.';
+      this.setState({ refreshing: false, refreshMsg: msg });
+    } catch (err) {
+      this.setState({ refreshing: false, refreshMsg: '' });
+      alert(err.message || 'Refresh failed. Is the server running?');
+    }
+  }
+
+  async resolvePending(id, approve){
+    const botId = this.state.activeBotId;
+    if (!botId) return;
+    const res = await fetch(this._botPath(botId, 'pending/' + id + '/resolve'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approve }),
+    });
+    if (res.ok) {
+      await this._loadBotData(botId);
+      await this._loadBots();
+      if (approve) this.setState({ screen: 'tracker' });
+    }
+  }
+
+  async _refreshLog(){
+    const botId = this.state.activeBotId;
+    if (!botId) return;
+    const logRes = await fetch(this._botPath(botId, 'log'));
+    if (logRes.ok) {
+      this.setState({ actionLog: this._mapLog((await logRes.json()).log) });
+    }
+  }
+
+  async deployBot(){
+    const s = this.state;
+    if (!s.strategy || s.deploying) return;
+    this.setState({
+      deploying: true,
+      loading: true,
+      screenError: false,
+      errorMsg: '',
+      screen: 'shortlist',
+      cands: [],
+    });
+    this._startScanProgress(s.strategy, true);
+    try {
+      const res = await fetch('/api/bots/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          strategy: s.strategy,
+          allocation: s.budget,
+          mode: s.deployMode,
+          level: s.deployLevel,
+          auto_threshold: s.auto_threshold,
+          max_daily_loss_pct: s.max_daily_loss_pct,
+          max_deployed_pct: s.max_deployed_pct,
+          max_per_stock_pct: s.max_per_stock_pct,
+          stop_loss_pct: s.stop_loss_pct,
+          run_screen: true,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Deploy failed');
+      const data = await res.json();
+      const bot = data.bot;
+      const screen = data.screen;
+      const cands = (screen?.candidates || []).map(c => this._mapCandidate(c));
+      await this._loadBots();
+      this._stopScanProgress(true);
+      this.setState({
+        activeBotId: bot.id,
+        activeBot: bot,
+        strategy: bot.strategy,
+        deploying: false,
+        loading: false,
+        screen: 'shortlist',
+        cands,
+        screenedN: screen?.screenedCount || 200,
+        pickN: (screen?.candidates || []).length,
+        botActionMsg: screen?.botAction?.message || '',
+        llmSummary: screen?.llmSummary || screen?.llm?.summary || '',
+      });
+      if (bot.id) await this._loadBotData(bot.id);
+      if (['executed', 'partial'].includes(screen?.botAction?.action)) this.setState({ screen: 'tracker' });
+    } catch (err) {
+      this._stopScanProgress(false);
+      this.setState({
+        deploying: false,
+        loading: false,
+        screenError: true,
+        errorMsg: err.message || 'Deploy failed',
+        screen: 'shortlist',
+      });
+    }
+  }
+
+  async rescreen(){
+    const s = this.state;
+    const botId = s.activeBotId;
+    if (!botId || s.loading) return;
+    const strat = s.activeBot?.strategy || s.strategy || 'value';
+    this.setState({ loading: true, screenError: false, errorMsg: '', botActionMsg: '', llmSummary: '' });
+    this._startScanProgress(strat, false);
+    try {
+      const res = await fetch(this._botPath(botId, 'screen'), { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Screen failed');
+      const data = await res.json();
+      const cands = (data.candidates || []).map(c => this._mapCandidate(c));
+      await this._loadBotData(botId);
+      await this._loadBots();
+      this._stopScanProgress(true);
+      this.setState({
+        loading: false,
+        cands,
+        screenedN: data.screenedCount || 200,
+        pickN: (data.candidates || []).length,
+        botActionMsg: data.botAction?.message || '',
+        llmSummary: data.llmSummary || data.llm?.summary || '',
+        activeBot: data.bot || s.activeBot,
+      });
+      if (['executed', 'partial'].includes(data.botAction?.action)) this.setState({ screen: 'tracker' });
+    } catch (err) {
+      this._stopScanProgress(false);
+      this.setState({
+        loading: false,
+        screenError: true,
+        errorMsg: err.message || 'Could not reach the screener API.',
+        cands: [],
+      });
+    }
+  }
+
+  async logTrade(c, shares){
+    const botId = this.state.activeBotId;
+    if (!botId || !shares || shares < 1) return;
+    const bot = this._activeBot();
+    if (bot?.paused) {
+      alert('Bot is paused — resume to log trades.');
+      return;
+    }
+    try {
+      const res = await fetch(this._botPath(botId, 'trades/manual'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticker: c.ticker, name: c.name, sector: c.sector, qty: shares,
+          buy_price: c.buyPrice, sell_price: c.sellPrice,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Could not log trade');
+      }
+      await this._loadBotData(botId);
+      await this._loadBots();
+      this.setState({ screen: 'tracker' });
+    } catch (err) {
+      alert(err.message || 'Trade blocked by guardrails.');
+    }
+  }
+
+  renderVals(){
+    const s = this.state;
+    const bot = s.activeBot;
+    const fmt = n => '₹' + Math.round(n).toLocaleString('en-IN');
+    const signed = n => (n >= 0 ? '+₹' : '−₹') + Math.round(Math.abs(n)).toLocaleString('en-IN');
+    const STRAT = { value:{name:'Buy cheap quality'}, winners:{name:'Buy the winners'}, box:{name:'Buy the box breakout'}, dip:{name:'Buy the dip'} };
+    const strategyMeta = this._strategyInfo();
+    const strategyCards = ['value', 'winners', 'box', 'dip'].map(id => ({
+      id,
+      ...strategyMeta[id],
+      selected: s.strategy === id,
+      onSelect: () => this.setState({ strategy: id }),
+      onInfo: () => this.openStrategyInfo(id),
+    }));
+
+    const sel = { value:s.strategy==='value', winners:s.strategy==='winners', box:s.strategy==='box', dip:s.strategy==='dip' };
+    const pick = id => () => this.setState({ strategy:id });
+    const setMode = m => () => this.setState({ deployMode: m });
+    const setLevel = l => () => this.setState({ deployLevel: l });
+    const on = {
+      value:pick('value'), winners:pick('winners'), box:pick('box'), dip:pick('dip'),
+      layoutGrid:()=>this.setState({layout:'grid'}), layoutList:()=>this.setState({layout:'list'}),
+      modeAdvisory: setMode('advisory'), modeAuto: setMode('autonomous'),
+      levelA: setLevel('A'), levelB: setLevel('B'), levelC: setLevel('C'),
+    };
+    const goto = {
+      home: async () => { await this._loadBots(); this.setState({ screen:'home' }); },
+      setup: () => this.setState({ screen:'setup', strategy: null, screenError: false }),
+      shortlist: () => this.setState({ screen:'shortlist' }),
+      tracker: async () => { if (s.activeBotId) await this._loadBotData(s.activeBotId); this.setState({ screen:'tracker' }); },
+      activity: async () => { await this._refreshLog(); this.setState({ screen:'activity' }); },
+    };
+    const onBotSwitch = e => this.selectBot(parseInt(e.target.value, 10));
+    const clamp = v => Math.max(10000, Math.min(1000000, Math.round(v) || 10000));
+    const onSlider = e => this.setState({ budget: clamp(+e.target.value) });
+    const onBudgetChange = e => {
+      const n = parseInt(String(e.target.value).replace(/[^0-9]/g,'')) || 0;
+      this.setState({ budget: clamp(n) });
+    };
+    const clampPct = (v, lo, hi) => Math.max(lo, Math.min(hi, parseInt(v) || lo));
+    const onThresholdChange = e => this.setState({ auto_threshold: Math.max(500, parseInt(e.target.value.replace(/[^0-9]/g,'')) || 2000) });
+    const onMaxDailyLoss = e => this.setState({ max_daily_loss_pct: clampPct(e.target.value, 1, 50) });
+    const onMaxDeployed = e => this.setState({ max_deployed_pct: clampPct(e.target.value, 10, 100) });
+    const onMaxPerStock = e => this.setState({ max_per_stock_pct: clampPct(e.target.value, 5, 100) });
+
+    const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + ';';
+    const nav = {
+      home: navStyle(s.screen==='home'), setup:navStyle(s.screen==='setup'),
+      shortlist:navStyle(s.screen==='shortlist'), tracker:navStyle(s.screen==='tracker'), activity:navStyle(s.screen==='activity'),
+    };
+    const togStyle = a => 'display:flex;align-items:center;gap:6px;border:none;cursor:pointer;font-size:12.5px;font-weight:550;padding:6px 11px;border-radius:7px;background:' + (a?'var(--ink)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + ';';
+    const tog = { grid:togStyle(s.layout==='grid'), list:togStyle(s.layout==='list') };
+
+    const stratName = s.strategy ? STRAT[s.strategy].name : (bot?.strategyName || '');
+    const summaryText = s.strategy ? stratName + ' · ' + fmt(s.budget) + ' allocation' : '';
+    const otherTag = ({ winners:'positional hybrid', box:'technical pattern (Darvas Box)', dip:'short-swing technical' })[s.strategy || bot?.strategy] || '';
+
+    const isTerminated = bot?.status === 'terminated';
+    const isPaused = !!bot?.paused;
+    const bannerBg = isTerminated ? '#F4E2DF' : isPaused ? '#F3E8CF' : '#DFEADF';
+    const bannerBorder = isTerminated ? '#E8C4BC' : isPaused ? '#E8D5A8' : '#C5D9C5';
+    const bannerCol = isTerminated ? 'var(--red)' : isPaused ? '#8A6516' : 'var(--green)';
+    const bannerIcon = isTerminated ? 'ti ti-circle-x' : isPaused ? 'ti ti-player-pause-filled' : 'ti ti-player-play-filled';
+    const bannerText = isTerminated ? 'Bot terminated' : isPaused ? 'Bot is paused — no buys, no sells' : 'Bot is running';
+    const pauseIcon = isPaused ? 'ti ti-player-play' : 'ti ti-player-pause';
+    const pauseBtnStyle = 'display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);';
+    const pauseBtnTitle = isPaused ? 'Resume bot' : 'Pause bot';
+
+    const modeAdvisory = (bot?.mode || s.deployMode) === 'advisory';
+    const modeAuto = (bot?.mode || s.deployMode) === 'autonomous';
+    const deployModeAdvisory = s.deployMode === 'advisory';
+    const deployModeAuto = s.deployMode === 'autonomous';
+    const lvlA = (bot?.level || s.deployLevel) === 'A';
+    const lvlB = (bot?.level || s.deployLevel) === 'B';
+    const lvlC = (bot?.level || s.deployLevel) === 'C';
+    const setupModeAdvisory = s.deployMode === 'advisory';
+    const setupModeAuto = s.deployMode === 'autonomous';
+    const setupLvlA = s.deployLevel === 'A';
+    const setupLvlB = s.deployLevel === 'B';
+    const setupLvlC = s.deployLevel === 'C';
+
+    const openTrades = s.trades.filter(t => t.status === 'open');
+    const trades = openTrades.map(t => {
+      const invested = t.qty * t.entry, value = t.qty * t.ltp, pnl = value - invested;
+      const pct = invested ? pnl / invested * 100 : 0;
+      const prog = Math.max(3, Math.min(100, (t.ltp - t.entry) / (t.target - t.entry) * 100));
+      const row = { ...t, investedFmt: fmt(invested), valueFmt: fmt(value),
+        entryFmt: '₹' + t.entry.toFixed(2), ltpFmt: '₹' + t.ltp.toFixed(2),
+        targetFmt: '₹' + Math.round(t.target).toLocaleString('en-IN'),
+        stopFmt: '₹' + (t.stopLoss || 0).toFixed(2),
+        pnlFmt: signed(pnl), pctFmt: (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%',
+        pnlCol: pnl>=0 ? 'var(--green)' : 'var(--red)', prog: prog.toFixed(0) + '%' };
+      row.onViewReport = () => this.openTradeReport(t);
+      return row;
+    });
+
+    const allocation = bot?.allocation ?? s.budget;
+    const cash = bot?.availableCash ?? allocation;
+    const deployed = bot?.deployed ?? openTrades.reduce((a,t) => a + t.qty*t.entry, 0);
+    const portfolio = bot?.portfolioValue ?? cash + openTrades.reduce((a,t) => a + t.qty*t.ltp, 0);
+    const pnl = bot?.pnl ?? portfolio - allocation;
+    const pct = allocation ? pnl / allocation * 100 : 0;
+
+    const series = [9536,9512,9558,9604,9556,9590,9642,9614,9670,9706,9684,9722,9700,9740];
+    const W=640, H=150, P=16, mn=Math.min(...series), mx=Math.max(...series);
+    const X = i => P + i*(W-2*P)/(series.length-1);
+    const Y = v => P + (1-(v-mn)/((mx-mn)||1))*(H-2*P);
+    const line = series.map((v,i) => X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+    const area = P+','+(H-P)+' '+line+' '+(W-P)+','+(H-P);
+
+    const activeStrategy = bot?.strategy || s.strategy;
+    const hasCands = !s.isScanning && !s.loading && !s.deploying && !s.screenError && s.cands.length > 0;
+    const noCands = !s.isScanning && !s.loading && !s.deploying && !s.screenError && s.cands.length === 0 && s.screen === 'shortlist' && (s.activeBotId || s.deploying);
+
+    const loadSteps = s.loadSteps || [];
+    const stepIdx = s.loadStepIdx || 0;
+    const isScanning = s.isScanning || s.loading || s.deploying;
+    const loadStepCards = loadSteps.map((st, i) => {
+      const done = i < stepIdx;
+      const active = i === stepIdx && isScanning;
+      return {
+        ...st,
+        done,
+        active,
+        bg: active ? '#FBF3EF' : done ? '#F5FAF5' : 'var(--paper)',
+        border: active ? '#E8C4BC' : done ? '#C5D9C5' : 'var(--line)',
+        opacity: i > stepIdx + 1 ? '0.45' : '1',
+        iconBg: active ? '#F4E2DF' : done ? '#DFEADF' : 'var(--panel)',
+        iconCol: active ? 'var(--clay)' : done ? 'var(--green)' : 'var(--ink2)',
+        textCol: active ? 'var(--ink)' : done ? 'var(--ink)' : 'var(--ink2)',
+        weight: active ? '650' : '550',
+        iconAnim: active ? '' : '',
+      };
+    });
+    const scanIcon = s.deploying ? 'ti ti-rocket' : 'ti ti-search';
+    const scanIconSpin = s.deploying ? '' : 'animation:spin 1.2s linear infinite;display:inline-block;';
+    const loadProgressPct = Math.round(s.loadProgress || 0) + '%';
+
+    const pm = s.pickModal;
+    const pickModalOpen = !!pm;
+    const pickModalLoading = !!s.pickModalLoading;
+    const pickModalReady = pickModalOpen && !pickModalLoading;
+    const pickModalTicker = pm?.ticker || '';
+    const pickModalName = pm?.name || '';
+    const pickModalSector = pm?.sector || '';
+    const pickModalStrategy = pm?.strategyName || '';
+    const pickModalHeadline = pm?.headline || 'Pick report';
+    const pickModalAi = !!pm?.isAiPick;
+    const pickModalSections = pm?.sections || [];
+    const pickModalSignals = pm?.signals || [];
+    const pickModalHasSignals = pickModalSignals.length > 0;
+    const pickModalPlan = pm?.plan || pm?.tradePlan || [];
+
+    const sm = s.strategyModal;
+    const strategyModalOpen = !!sm;
+    const strategyModalName = sm?.name || '';
+    const strategyModalIcon = sm?.icon || 'ti ti-info-circle';
+    const strategyModalHorizon = sm?.horizon || '';
+    const strategyModalHorizonCol = sm?.horizonCol || 'var(--ink2)';
+    const strategyModalHorizonBg = sm?.horizonBg || 'var(--paper)';
+    const strategyModalAnalysis = sm?.analysisType || '';
+    const strategyModalSummary = sm?.summary || '';
+    const strategyModalSections = sm?.sections || [];
+
+    const statusStyle = st => {
+      if (st === 'running') return { label:'Running', col:'#36724A', bg:'#DFEADF' };
+      if (st === 'paused') return { label:'Paused', col:'#8A6516', bg:'#F3E8CF' };
+      return { label:'Terminated', col:'#B4453A', bg:'#F4E2DF' };
+    };
+
+    const botCards = s.bots.map(b => {
+      const st = statusStyle(b.status);
+      const bPnl = b.pnl ?? 0;
+      const selected = (s.selectedBotIds || []).includes(b.id);
+      const terminated = b.status === 'terminated';
+      return {
+        ...b,
+        statusLabel: st.label, statusCol: st.col, statusBg: st.bg,
+        modeLabel: b.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + b.level,
+        allocationFmt: fmt(b.allocation), cashFmt: fmt(b.availableCash), valueFmt: fmt(b.portfolioValue),
+        pnlCol: bPnl >= 0 ? 'var(--green)' : 'var(--red)',
+        selected: selected && !terminated,
+        cardBorder: selected && !terminated ? 'var(--clay)' : 'var(--line)',
+        selectBorder: selected ? 'var(--clay)' : 'var(--line2)',
+        selectBg: selected ? 'var(--clay)' : 'var(--paper)',
+        selectCol: selected ? '#fff' : 'transparent',
+        onToggleSelect: () => { if (!terminated) this.toggleBotSelect(b.id); },
+        onSelect: () => { this.selectBot(b.id); this.setState({ screen: 'tracker', strategy: b.strategy }); },
+      };
+    });
+
+    const selectableBots = s.bots.filter(b => b.status !== 'terminated');
+    const selectedIds = s.selectedBotIds || [];
+    const botSelectionCount = selectedIds.length;
+    const hasBotSelection = botSelectionCount > 0;
+    const allBotsSelected = selectableBots.length > 0 && selectableBots.every(b => selectedIds.includes(b.id));
+    const someBotsSelected = botSelectionCount > 0 && !allBotsSelected;
+    const selectAllLabel = allBotsSelected ? 'Deselect all' : 'Select all';
+    const selectAllBorder = allBotsSelected || someBotsSelected ? 'var(--clay)' : 'var(--line2)';
+    const selectAllBg = allBotsSelected ? 'var(--clay)' : 'transparent';
+
+    const botSelectStyle = 'font-family:inherit;font-size:13px;font-weight:550;border:1px solid var(--line2);border-radius:9px;padding:8px 32px 8px 12px;background:var(--panel);color:var(--ink);min-width:0;max-width:100%;width:100%;cursor:pointer;appearance:auto;-webkit-appearance:menulist;';
+    const botOptions = s.bots.map(b => ({
+      id: b.id,
+      label: 'Bot ' + b.id + (b.paused ? ' · paused' : ''),
+    }));
+    const refreshBtnStyle = 'display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:' + (s.refreshing ? 'wait' : 'pointer') + ';font-size:13px;font-weight:550;color:var(--ink);padding:9px 14px;border-radius:10px;opacity:' + (s.refreshing ? '0.7' : '1') + ';';
+    const refreshIcon = s.refreshing ? 'ti ti-loader-2' : 'ti ti-refresh';
+    const refreshBtnLabel = s.refreshing ? 'Refreshing…' : 'Refresh values';
+    const refreshIconStyle = s.refreshing
+      ? 'font-size:15px;animation:spin 1s linear infinite;display:inline-block;'
+      : 'font-size:15px;';
+    const activeBotLabel = bot
+      ? bot.name + ' · ' + (bot.strategyName || bot.strategy)
+      : '—';
+    const activeBotName = bot?.name || '—';
+    const activeBotStrategy = bot?.strategyName || '—';
+    const activeBotModeLabel = bot
+      ? (bot.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + bot.level)
+      : '—';
+
+    return {
+      isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
+      isGrid:s.layout==='grid', isList:s.layout==='list',
+      nav, tog, on, sel, goto, onBotSwitch, strategyCards,
+      togglePause: () => this.togglePause(), terminateBot: () => this.terminateBot(),
+      refreshPrices: () => this.refreshPrices(),
+      budget:s.budget, onSlider, onBudgetChange,
+      strategySelected: !!s.strategy, noStrategy: !s.strategy, summaryText,
+      deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy bot',
+      rescreen: () => this.rescreen(),
+      noBots: s.bots.length === 0, hasBots: s.bots.length > 0, botCards,
+      hasBotSelection, botSelectionCount, allBotsSelected, someBotsSelected,
+      selectAllLabel, selectAllBorder, selectAllBg, bulkActionMsg: s.bulkActionMsg,
+      toggleSelectAllBots: () => this.toggleSelectAllBots(),
+      clearBotSelection: () => this.clearBotSelection(),
+      bulkPauseBots: () => this.bulkPauseBots(),
+      bulkTerminateBots: () => this.bulkTerminateBots(),
+      hasActiveBot: !!s.activeBotId, noActiveBot: !s.activeBotId,
+      activeBotId: s.activeBotId, botOptions, botSelectStyle, activeBotLabel,
+      activeBotName, activeBotStrategy, activeBotModeLabel,
+      trackerActive: !!s.activeBotId,
+      hasScreen: !!s.activeBotId || isScanning,
+      stratName, otherTag, cands: s.cands, pickN: s.pickN, budgetFmt: fmt(s.budget), cashFmt: fmt(cash),
+      llmSummary: s.llmSummary, hasLlmSummary: !!s.llmSummary,
+      allocationFmt: fmt(allocation), deployedFmt: fmt(deployed), portfolioFmt: fmt(portfolio),
+      screenedN: s.screenedN, loading: s.loading, isScanning, screenError: s.screenError, errorMsg: s.errorMsg,
+      loadTitle: s.loadTitle || (s.deploying ? 'Deploying your bot' : 'Scanning market'),
+      loadStatus: s.loadStatus || 'Starting…',
+      loadProgressPct, loadStepCards, scanIcon, scanIconSpin,
+      hasCands, noCands, botActionMsg: s.botActionMsg, hasBotMsg: !!s.botActionMsg,
+      modeAdvisory: bot ? modeAdvisory : setupModeAdvisory,
+      deployModeAdvisory: setupModeAdvisory, deployModeAuto: setupModeAuto,
+      deployLvlA: setupLvlA, deployLvlB: setupLvlB, deployLvlC: setupLvlC,
+      deployBehaviorSummary: this._deploySummary(),
+      hasTrades: openTrades.length>0, noTrades: openTrades.length===0,
+      trackerEmpty: !!s.activeBotId && openTrades.length===0, trades,
+      pnlFmt: signed(pnl), pctFmt: (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%', pnlCol: pnl>=0 ? 'var(--green)' : 'var(--red)',
+      positions: openTrades.length, since: openTrades.length ? openTrades[0].entryDate : '—',
+      sparkLine: line, sparkArea: area,
+      showBanner: s.configLoaded && !!bot, bannerBg, bannerBorder, bannerCol, bannerIcon, bannerText,
+      behaviorSummary: bot?.behaviorSummary || this._deploySummary(),
+      pauseIcon, pauseBtnStyle, pauseBtnTitle,
+      showPauseBtn: !!bot && !isTerminated,
+      canTerminate: !!bot && !isTerminated,
+      refreshBtnStyle, refreshIcon, refreshBtnLabel, refreshIconStyle,
+      refreshMsg: s.refreshMsg, hasRefreshMsg: !!s.refreshMsg,
+      modeAuto: bot ? modeAuto : setupModeAuto,
+      lvlA: bot ? lvlA : setupLvlA, lvlB: bot ? lvlB : setupLvlB, lvlC: bot ? lvlC : setupLvlC,
+      autoThreshold: s.screen === 'setup' ? s.auto_threshold : (bot?.auto_threshold ?? s.auto_threshold), onThresholdChange,
+      maxDailyLoss: s.screen === 'setup' ? s.max_daily_loss_pct : (bot?.max_daily_loss_pct ?? s.max_daily_loss_pct),
+      maxDeployed: s.screen === 'setup' ? s.max_deployed_pct : (bot?.max_deployed_pct ?? s.max_deployed_pct),
+      maxPerStock: s.screen === 'setup' ? s.max_per_stock_pct : (bot?.max_per_stock_pct ?? s.max_per_stock_pct),
+      onMaxDailyLoss, onMaxDeployed, onMaxPerStock,
+      stopLossNote: bot?.stopLossNote || (s.stop_loss_pct + '% below buy price (automatic on every trade)'),
+      pending: s.pending, hasPending: s.pending.length > 0,
+      actionLog: s.actionLog, hasLog: s.actionLog.length > 0, noLog: s.actionLog.length === 0,
+      pickModalOpen, pickModalLoading, pickModalReady, pickModalTicker, pickModalName, pickModalSector, pickModalStrategy,
+      pickModalHeadline, pickModalAi, pickModalSections, pickModalSignals, pickModalHasSignals,
+      pickModalPlan, closePickReport: () => this.closePickReport(),
+      strategyModalOpen, strategyModalName, strategyModalIcon, strategyModalHorizon,
+      strategyModalHorizonCol, strategyModalHorizonBg, strategyModalAnalysis,
+      strategyModalSummary, strategyModalSections,
+      closeStrategyInfo: () => this.closeStrategyInfo(),
+    };
+  }
+}
+</script>
+</body>
+</html>

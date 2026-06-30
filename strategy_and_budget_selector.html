@@ -1,0 +1,106 @@
+<div>
+<h2 class="sr-only">Select a trading strategy and enter your budget to set up your trading bot</h2>
+
+<div style="margin-bottom: 1.5rem;">
+  <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 12px;">Step 1 of 2 — choose a strategy</p>
+  <div id="strategy-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
+</div>
+
+<div style="margin-bottom: 1.5rem;">
+  <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 12px;">Step 2 of 2 — your budget</p>
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 1rem;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+      <span style="font-size: 20px; color: var(--text-secondary);">₹</span>
+      <input type="number" id="budget-input" placeholder="50000" min="0" step="1000" style="flex: 1; font-size: 18px;" />
+    </div>
+    <input type="range" id="budget-slider" min="10000" max="1000000" step="5000" value="50000" style="width: 100%;" />
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+      <span>₹10k</span>
+      <span>₹10L</span>
+    </div>
+  </div>
+</div>
+
+<div id="summary" style="display: none; background: var(--bg-accent); border-radius: var(--radius); padding: 0.875rem 1rem; margin-bottom: 1rem;">
+  <p style="font-size: 14px; margin: 0; color: var(--text-accent);">
+    <span id="summary-text"></span>
+  </p>
+</div>
+
+<button id="confirm-btn" style="width: 100%; font-weight: 500;" disabled>Confirm selection</button>
+</div>
+
+<script>
+const strategies = [
+  { id: 'orb', icon: 'ti-bolt', name: 'Morning breakout', tag: 'Intraday', tagColor: 'red', desc: 'Buy when price breaks the morning range with strong volume. Same-day exit only.' },
+  { id: 'momentum', icon: 'ti-trending-up', name: 'Buy the winners', tag: 'Weeks-months', tagColor: 'amber', desc: 'Buy strong-performing stocks breaking to new highs. Hold while the trend lasts.' },
+  { id: 'value', icon: 'ti-shield-check', name: 'Buy cheap quality', tag: 'Long-term', tagColor: 'green', desc: 'Buy financially solid companies trading below their worth. Hold for years.' },
+  { id: 'dip', icon: 'ti-arrow-bear', name: 'Buy the dip', tag: 'Few days-2wks', tagColor: 'blue', desc: 'Buy short pullbacks within stocks already in an uptrend. Exit on quick recovery.' }
+];
+
+let selectedStrategy = null;
+let budgetValue = 50000;
+
+const grid = document.getElementById('strategy-grid');
+strategies.forEach(s => {
+  const card = document.createElement('div');
+  card.style.cssText = 'background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; transition: border-color 0.15s;';
+  card.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <i class="ti ${s.icon}" style="font-size: 22px; color: var(--text-secondary);" aria-hidden="true"></i>
+      <span style="font-size: 11px; padding: 2px 8px; border-radius: var(--radius); background: var(--bg-${s.tagColor}); color: var(--text-${s.tagColor});">${s.tag}</span>
+    </div>
+    <p style="font-size: 14px; font-weight: 500; margin: 0 0 4px;">${s.name}</p>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.5;">${s.desc}</p>
+  `;
+  card.addEventListener('click', () => {
+    selectedStrategy = s;
+    document.querySelectorAll('#strategy-grid > div').forEach(c => c.style.border = '0.5px solid var(--border)');
+    card.style.border = '2px solid var(--border-accent)';
+    updateSummary();
+  });
+  grid.appendChild(card);
+});
+
+const budgetInput = document.getElementById('budget-input');
+const budgetSlider = document.getElementById('budget-slider');
+
+function syncFromSlider() {
+  budgetValue = parseInt(budgetSlider.value);
+  budgetInput.value = budgetValue;
+  updateSummary();
+}
+function syncFromInput() {
+  const v = parseInt(budgetInput.value);
+  if (!isNaN(v) && v >= 0) {
+    budgetValue = v;
+    if (v >= 10000 && v <= 1000000) budgetSlider.value = v;
+    updateSummary();
+  }
+}
+budgetSlider.addEventListener('input', syncFromSlider);
+budgetInput.addEventListener('input', syncFromInput);
+budgetInput.value = budgetValue;
+
+function updateSummary() {
+  const summary = document.getElementById('summary');
+  const text = document.getElementById('summary-text');
+  const btn = document.getElementById('confirm-btn');
+  if (selectedStrategy) {
+    summary.style.display = 'block';
+    const formatted = new Intl.NumberFormat('en-IN').format(budgetValue);
+    text.textContent = `${selectedStrategy.name} with a budget of ₹${formatted}`;
+    btn.disabled = false;
+  } else {
+    summary.style.display = 'none';
+    btn.disabled = true;
+  }
+}
+
+document.getElementById('confirm-btn').addEventListener('click', () => {
+  if (selectedStrategy) {
+    const formatted = new Intl.NumberFormat('en-IN').format(budgetValue);
+    sendPrompt(`I've selected the "${selectedStrategy.name}" strategy with a budget of ₹${formatted}. Let's proceed.`);
+  }
+});
+</script>
