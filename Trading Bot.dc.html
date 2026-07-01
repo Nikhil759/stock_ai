@@ -1326,6 +1326,7 @@ class Component extends DCLogic {
       if (!msg && data.checked > 0) {
         const parts = [`Updated ${data.updated?.length ?? 0} position(s)`];
         if (data.closed?.length) parts.push(`${data.closed.length} sold (target/stop hit)`);
+        if (data.failed?.length) parts.push(`${data.failed.length} could not fetch`);
         msg = parts.join(' · ');
       }
       if (!msg) msg = 'Prices refreshed.';

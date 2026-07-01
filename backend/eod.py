@@ -1,20 +1,21 @@
 """End-of-day job — refresh prices, auto-exit, return cash to pool."""
 
 import database as db
-from data import fetch_stock_fundamentals
+from data import fetch_latest_price
 
 
 def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
     open_trades = db.get_trades(bot_id, status="open")
     closed = []
     updated = []
+    failed = []
     check_exits = bot["status"] == "running"
 
     for t in open_trades:
-        data = fetch_stock_fundamentals(t["ticker"])
-        if not data:
+        price = fetch_latest_price(t["ticker"])
+        if price is None:
+            failed.append(t["ticker"])
             continue
-        price = data["price"]
         db.update_trade_ltp(t["id"], price)
 
         exit_reason = None
@@ -38,6 +39,8 @@ def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
 
     bot_after = db.get_bot(bot_id)
     detail = f"Checked {len(open_trades)} positions · {len(closed)} sold · {len(updated)} updated"
+    if failed:
+        detail += f" · {len(failed)} failed"
     db.log_action(
         bot_id,
         log_action,
@@ -50,6 +53,7 @@ def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
         "checked": len(open_trades),
         "closed": closed,
         "updated": updated,
+        "failed": failed,
         "availableCash": bot_after["availableCash"],
         "portfolioValue": bot_after["portfolioValue"],
     }

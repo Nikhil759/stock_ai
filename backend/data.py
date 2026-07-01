@@ -258,6 +258,50 @@ def fetch_stock_fundamentals(symbol: str) -> dict | None:
     return result
 
 
+def fetch_latest_price(symbol: str) -> float | None:
+    """Fetch current/EOD quote from yfinance, bypassing fund cache."""
+    import yfinance as yf
+
+    ticker = yf.Ticker(to_ns(symbol))
+    price = None
+
+    try:
+        fi = ticker.fast_info
+        for key in ("last_price", "lastPrice", "regular_market_price", "regularMarketPrice"):
+            if isinstance(fi, dict):
+                price = safe_float(fi.get(key))
+            else:
+                price = safe_float(getattr(fi, key, None))
+            if price and price > 0:
+                break
+    except Exception:
+        price = None
+
+    if not price or price <= 0:
+        info = ticker.info or {}
+        price = safe_float(info.get("currentPrice")) or safe_float(info.get("regularMarketPrice"))
+
+    if not price or price <= 0:
+        hist = ticker.history(period="5d", auto_adjust=True)
+        if hist is not None and not hist.empty:
+            hist = hist.dropna(subset=["Close"])
+            if not hist.empty:
+                price = float(hist["Close"].iloc[-1])
+
+    if not price or price <= 0:
+        return None
+
+    price = round(price, 2)
+
+    fund_path = _cache_path("fund", symbol)
+    cached = _read_cache(fund_path)
+    if cached:
+        cached["price"] = price
+        _write_cache(fund_path, cached)
+
+    return price
+
+
 def fetch_stock_full(symbol: str) -> dict | None:
     """Fundamentals + 1y OHLCV merged."""
     fund = fetch_stock_fundamentals(symbol)
