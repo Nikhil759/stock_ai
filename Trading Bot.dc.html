@@ -139,30 +139,6 @@
     </div>
   </header>
 
-  <!-- Workspace bar -->
-  <sc-if value="{{ showWorkspaceBar }}" hint-placeholder-val="{{ true }}">
-  <div style="max-width:1080px;margin:0 auto;padding:8px clamp(16px,4vw,32px) 0;">
-    <div class="workspace-bar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 14px;">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">
-        <i class="ti ti-fingerprint" style="font-size:16px;color:var(--clay);flex:none;"></i>
-        <span style="font-size:13px;font-weight:600;">Your workspace</span>
-        <span class="mono-val" style="font-family:var(--mono);font-size:11px;color:var(--ink2);background:var(--paper);border:1px solid var(--line);padding:2px 8px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;">{{ workspaceShort }}</span>
-        <span style="font-size:12px;color:var(--ink2);">Copy link to use on other devices</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <sc-if value="{{ workspaceCopied }}" hint-placeholder-val="{{ false }}">
-          <span style="font-size:12px;color:var(--green);font-weight:600;"><i class="ti ti-check" style="font-size:13px;"></i> Link copied</span>
-        </sc-if>
-        <button onClick="{{ copyWorkspaceLink }}" style="background:var(--paper);border:1px solid var(--line2);cursor:pointer;font-size:12px;font-weight:600;color:var(--ink);padding:7px 12px;border-radius:9px;"><i class="ti ti-link" style="font-size:14px;vertical-align:-2px;"></i> Copy link</button>
-        <sc-if value="{{ showLegacyWorkspaceBtn }}" hint-placeholder-val="{{ false }}">
-          <button onClick="{{ openLegacyWorkspace }}" style="background:var(--paper);border:1px solid var(--line2);cursor:pointer;font-size:12px;font-weight:550;color:var(--clay);padding:7px 12px;border-radius:9px;">Original workspace</button>
-        </sc-if>
-        <button onClick="{{ startNewWorkspace }}" style="background:transparent;border:1px solid var(--line2);cursor:pointer;font-size:12px;font-weight:550;color:var(--ink2);padding:7px 12px;border-radius:9px;">New workspace</button>
-      </div>
-    </div>
-  </div>
-  </sc-if>
-
   <!-- Global status banner -->
   <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
   <div style="max-width:1080px;margin:0 auto;padding:10px clamp(16px,4vw,32px) 0;">
@@ -902,7 +878,6 @@ class Component extends DCLogic {
     this.state = {
       screen: props.startScreen ?? 'home',
       workspaceId,
-      workspaceCopied: false,
       activeBotId: null,
       bots: [],
       activeBot: null,
@@ -978,62 +953,10 @@ class Component extends DCLogic {
     } catch {}
   }
 
-  _workspaceLink(){
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set('ws', this.state.workspaceId);
-      return url.toString();
-    } catch {
-      return window.location.href + '?ws=' + encodeURIComponent(this.state.workspaceId || '');
-    }
-  }
-
   _fetch(url, opts){
     const ws = this.state.workspaceId;
     const headers = { ...(opts?.headers || {}), 'X-Workspace-Id': ws };
     return fetch(url, { ...opts, headers });
-  }
-
-  async copyWorkspaceLink(){
-    const link = this._workspaceLink();
-    try {
-      await navigator.clipboard.writeText(link);
-      this.setState({ workspaceCopied: true });
-      setTimeout(() => this.setState({ workspaceCopied: false }), 2500);
-    } catch {
-      prompt('Copy your workspace link:', link);
-    }
-  }
-
-  _legacyWorkspaceId(){
-    return 'ws-default-legacy';
-  }
-
-  async openLegacyWorkspace(){
-    const ws = this._legacyWorkspaceId();
-    this._persistWorkspace(ws);
-    this.setState({ workspaceId: ws, workspaceCopied: false, activeBotId: null, activeBot: null, bots: [], trades: [], pending: [], actionLog: [], cands: [] });
-    await this._loadAll();
-  }
-
-  async startNewWorkspace(){
-    if (!confirm('Start a fresh workspace? Your current bots stay at the old link — copy it first if you need them elsewhere.')) return;
-    const ws = this._newWorkspaceId();
-    this._persistWorkspace(ws);
-    this.setState({
-      workspaceId: ws,
-      workspaceCopied: false,
-      activeBotId: null,
-      activeBot: null,
-      bots: [],
-      trades: [],
-      pending: [],
-      actionLog: [],
-      cands: [],
-      selectedBotIds: [],
-      screen: 'home',
-    });
-    await this._loadAll();
   }
 
   _loadStepPlan(strategy, isDeploy){
@@ -1899,10 +1822,6 @@ class Component extends DCLogic {
       ? (bot.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + bot.level)
       : '—';
 
-    const ws = s.workspaceId || '';
-    const workspaceShort = ws.length > 18 ? ws.slice(0, 10) + '…' + ws.slice(-6) : ws;
-    const showLegacyWorkspaceBtn = s.configLoaded && s.bots.length === 0 && ws !== this._legacyWorkspaceId();
-
     return {
       isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
       isGrid:s.layout==='grid', isList:s.layout==='list',
@@ -1974,12 +1893,6 @@ class Component extends DCLogic {
       strategyModalHorizonCol, strategyModalHorizonBg, strategyModalAnalysis,
       strategyModalSummary, strategyModalSections,
       closeStrategyInfo: () => this.closeStrategyInfo(),
-      showWorkspaceBar: s.configLoaded,
-      workspaceShort, workspaceCopied: s.workspaceCopied,
-      showLegacyWorkspaceBtn,
-      copyWorkspaceLink: () => this.copyWorkspaceLink(),
-      startNewWorkspace: () => this.startNewWorkspace(),
-      openLegacyWorkspace: () => this.openLegacyWorkspace(),
     };
   }
 }
