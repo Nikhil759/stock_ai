@@ -40,6 +40,8 @@
   .strategy-grid,.cands-grid,.mode-grid,.stats-grid,.modal-grid,.cand-metrics{width:100%;max-width:100%}
   .trade-card{min-width:0;width:100%}
   .trade-metrics,.trade-progress{min-width:0}
+  .closed-trade-row{width:100%;text-align:left;cursor:pointer;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:inherit;font:inherit;transition:border-color 0.15s ease}
+  .closed-trade-row:hover{border-color:var(--line2)}
   .deploy-footer,.budget-row,.guardrail-row,.page-header,.page-actions,.pending-card,.pending-actions,.footer-row,.banner-row{width:100%;max-width:100%}
   .deploy-summary{min-width:0}
   .mono-val{overflow-wrap:anywhere;word-break:break-word}
@@ -685,8 +687,9 @@
             </div>
             <div class="trade-metrics" style="display:flex;gap:18px;flex-wrap:wrap;">
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Buy price</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.entryFmt }}</div></div>
-              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Invested</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.investedFmt }}</div></div>
-              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Now</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.ltpFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Current price</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.ltpFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Total invested</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.investedFmt }}</div></div>
+              <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Current value</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;">{{ t.valueFmt }}</div></div>
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Sell target</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:var(--green);">{{ t.targetFmt }}</div></div>
               <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Gain / loss</div><div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;margin-top:2px;color:{{ t.pnlCol }};">{{ t.pnlFmt }} <span style="font-weight:500;">{{ t.pctFmt }}</span></div></div>
             </div>
@@ -696,6 +699,42 @@
             </div>
           </button>
         </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasClosedTrades }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;">
+        <button onClick="{{ toggleClosedTrades }}" style="width:100%;text-align:left;cursor:pointer;background:transparent;border:none;padding:14px 17px;color:inherit;font:inherit;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">
+              <span style="font-size:13px;font-weight:600;">Closed trades</span>
+              <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink2);background:var(--paper);border:1px solid var(--line);padding:2px 8px;border-radius:999px;">{{ closedTradesCount }}</span>
+              <sc-if value="{{ closedTradesCollapsed }}" hint-placeholder-val="{{ true }}">
+                <span class="mono-val" style="font-family:var(--mono);font-size:12px;color:{{ closedTradesNetCol }};">{{ closedTradesNetFmt }}</span>
+              </sc-if>
+            </div>
+            <i class="{{ closedTradesChevron }}" style="font-size:18px;color:var(--ink2);flex:none;"></i>
+          </div>
+        </button>
+        <sc-if value="{{ closedTradesOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid var(--line);padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ closedTrades }}" as="c" hint-placeholder-count="1">
+              <button onClick="{{ c.onViewReport }}" class="closed-trade-row" title="View pick report">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+                  <div style="min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <span style="font-family:var(--mono);font-weight:600;font-size:14px;">{{ c.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
+                      <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:{{ c.reasonCol }};background:{{ c.reasonBg }};padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ c.reason }}</span>
+                      <span style="font-size:11px;color:var(--ink2);">Sold {{ c.exitDate }}</span>
+                    </div>
+                    <div class="mono-val" style="font-family:var(--mono);font-size:12px;color:var(--ink2);margin-top:5px;">{{ c.priceLine }} · {{ c.valueLine }}</div>
+                  </div>
+                  <div class="mono-val" style="font-family:var(--mono);font-size:14px;font-weight:600;color:{{ c.pnlCol }};text-align:right;flex:none;">{{ c.pnlFmt }} <span style="font-weight:500;font-size:12px;">{{ c.pctFmt }}</span></div>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
       </div>
     </sc-if>
     </sc-if>
@@ -874,6 +913,7 @@ class Component extends DCLogic {
       selectedBotIds: [],
       bulkActionMsg: '',
       strategyModal: null,
+      closedTradesOpen: false,
     };
     this._scanTimer = null;
     this._loadAll();
@@ -991,6 +1031,10 @@ class Component extends DCLogic {
 
   closePickReport(){
     this.setState({ pickModal: null, pickModalLoading: false });
+  }
+
+  toggleClosedTrades(){
+    this.setState({ closedTradesOpen: !this.state.closedTradesOpen });
   }
 
   _strategyInfo(){
@@ -1182,7 +1226,7 @@ class Component extends DCLogic {
   }
 
   async selectBot(id){
-    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '' });
+    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '', closedTradesOpen: false });
     const bot = await this._loadBotData(id);
     if (bot) this.setState({ strategy: bot.strategy });
   }
@@ -1585,6 +1629,34 @@ class Component extends DCLogic {
       return row;
     });
 
+    const closedTradesRaw = s.trades.filter(t => t.status === 'closed');
+    const closedNetPnl = closedTradesRaw.reduce((sum, t) => {
+      const exit = t.exitPrice ?? t.ltp;
+      return sum + t.qty * exit - t.qty * t.entry;
+    }, 0);
+    const closedTrades = closedTradesRaw.slice().reverse().map(t => {
+      const exit = t.exitPrice ?? t.ltp;
+      const invested = t.qty * t.entry;
+      const proceeds = t.qty * exit;
+      const tradePnl = proceeds - invested;
+      const tradePct = invested ? tradePnl / invested * 100 : 0;
+      const reason = t.exitReason === 'target' ? 'Target hit' : t.exitReason === 'stop_loss' ? 'Stop loss' : 'Auto closed';
+      const reasonCol = t.exitReason === 'target' ? 'var(--green)' : t.exitReason === 'stop_loss' ? 'var(--red)' : 'var(--ink2)';
+      const reasonBg = t.exitReason === 'target' ? '#DFEADF' : t.exitReason === 'stop_loss' ? '#F4E2DF' : 'var(--paper)';
+      const row = {
+        ...t,
+        reason, reasonCol, reasonBg,
+        priceLine: t.qty + ' @ ₹' + t.entry.toFixed(2) + ' → ₹' + exit.toFixed(2),
+        valueLine: fmt(invested) + ' → ' + fmt(proceeds),
+        pnlFmt: signed(tradePnl),
+        pctFmt: (tradePnl >= 0 ? '+' : '−') + Math.abs(tradePct).toFixed(2) + '%',
+        pnlCol: tradePnl >= 0 ? 'var(--green)' : 'var(--red)',
+        exitDate: t.exitDate || '—',
+      };
+      row.onViewReport = () => this.openTradeReport(t);
+      return row;
+    });
+
     const allocation = bot?.allocation ?? s.budget;
     const cash = bot?.availableCash ?? allocation;
     const deployed = bot?.deployed ?? openTrades.reduce((a,t) => a + t.qty*t.entry, 0);
@@ -1745,7 +1817,15 @@ class Component extends DCLogic {
       deployLvlA: setupLvlA, deployLvlB: setupLvlB, deployLvlC: setupLvlC,
       deployBehaviorSummary: this._deploySummary(),
       hasTrades: openTrades.length>0, noTrades: openTrades.length===0,
-      trackerEmpty: !!s.activeBotId && openTrades.length===0, trades,
+      trackerEmpty: !!s.activeBotId && openTrades.length===0 && closedTradesRaw.length===0, trades,
+      hasClosedTrades: closedTradesRaw.length > 0,
+      closedTradesCount: closedTradesRaw.length,
+      closedTrades, closedTradesOpen: !!s.closedTradesOpen,
+      closedTradesCollapsed: !s.closedTradesOpen,
+      closedTradesChevron: s.closedTradesOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down',
+      closedTradesNetFmt: signed(closedNetPnl) + ' net',
+      closedTradesNetCol: closedNetPnl >= 0 ? 'var(--green)' : 'var(--red)',
+      toggleClosedTrades: () => this.toggleClosedTrades(),
       pnlFmt: signed(pnl), pctFmt: (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%', pnlCol: pnl>=0 ? 'var(--green)' : 'var(--red)',
       positions: openTrades.length, since: openTrades.length ? openTrades[0].entryDate : '—',
       sparkLine: line, sparkArea: area,
