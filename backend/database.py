@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from strategies import STRATEGY_NAMES
+from workspace import LEGACY_WORKSPACE_ID
 
 DB_PATH = Path(__file__).resolve().parent / "bot.db"
 
@@ -53,7 +54,8 @@ def init_db():
                 stop_loss_pct REAL NOT NULL DEFAULT 15,
                 deployed_at TEXT NOT NULL,
                 terminated_at TEXT,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                workspace_id TEXT NOT NULL DEFAULT 'ws-default-legacy'
             );
 
             CREATE TABLE IF NOT EXISTS trades (
@@ -119,10 +121,26 @@ def init_db():
         _migrate_legacy(conn)
         _migrate_bot_names(conn)
         _migrate_pick_report(conn)
+        _migrate_workspace(conn)
 
 
 def _bot_name(bot_id: int) -> str:
     return f"Bot {bot_id}"
+
+
+def _migrate_workspace(conn):
+    cols = {c[1] for c in conn.execute("PRAGMA table_info(bots)").fetchall()}
+    if "workspace_id" not in cols:
+        conn.execute(
+            f"ALTER TABLE bots ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '{LEGACY_WORKSPACE_ID}'"
+        )
+        conn.execute(
+            "UPDATE bots SET workspace_id = ? WHERE workspace_id IS NULL OR workspace_id = ''",
+            (LEGACY_WORKSPACE_ID,),
+        )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bots_workspace ON bots(workspace_id)"
+    )
 
 
 def _migrate_pick_report(conn):
@@ -258,28 +276,37 @@ def _market_value_for_bot(bot_id: int) -> float:
     return float(row[0]) if row else 0.0
 
 
-def list_bots(include_terminated: bool = False) -> list[dict]:
+def list_bots(workspace_id: str, include_terminated: bool = False) -> list[dict]:
     init_db()
     with _conn() as conn:
         if include_terminated:
-            rows = conn.execute("SELECT * FROM bots ORDER BY id DESC").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM bots WHERE workspace_id = ? ORDER BY id DESC",
+                (workspace_id,),
+            ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM bots WHERE status != 'terminated' ORDER BY id DESC"
+                "SELECT * FROM bots WHERE workspace_id = ? AND status != 'terminated' ORDER BY id DESC",
+                (workspace_id,),
             ).fetchall()
     return [_row_bot(r) for r in rows]
 
 
-def get_bot(bot_id: int) -> dict | None:
+def get_bot(bot_id: int, workspace_id: str | None = None) -> dict | None:
     init_db()
     with _conn() as conn:
         row = conn.execute("SELECT * FROM bots WHERE id = ?", (bot_id,)).fetchone()
-    return _row_bot(row) if row else None
+    if not row:
+        return None
+    if workspace_id and row["workspace_id"] != workspace_id:
+        return None
+    return _row_bot(row)
 
 
 def deploy_bot(
     strategy: str,
     allocation: int,
+    workspace_id: str,
     mode: str = "advisory",
     level: str = "A",
     auto_threshold: int = 2000,
@@ -296,8 +323,8 @@ def deploy_bot(
             """INSERT INTO bots
                (name, strategy, status, allocation, available_cash, mode, level,
                 auto_threshold, max_daily_loss_pct, max_deployed_pct, max_per_stock_pct,
-                stop_loss_pct, deployed_at, created_at)
-               VALUES (?, ?, 'running', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                stop_loss_pct, deployed_at, created_at, workspace_id)
+               VALUES (?, ?, 'running', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 name or "Bot",
                 strategy,
@@ -312,6 +339,7 @@ def deploy_bot(
                 stop_loss_pct,
                 ts,
                 ts,
+                workspace_id,
             ),
         )
         bot_id = cur.lastrowid
@@ -695,15 +723,15 @@ def resolve_pending(bot_id: int, pending_id: int, approve: bool) -> dict | None:
     return {"status": "rejected"}
 
 
-# Legacy compat — returns first active bot or None
-def get_config() -> dict:
-    bots = list_bots()
+# Legacy compat — returns first active bot or None (requires workspace)
+def get_config(workspace_id: str) -> dict:
+    bots = list_bots(workspace_id)
     return bots[0] if bots else {**BOT_DEFAULTS, "id": None, "budget": 10000, "paused": False}
 
 
-def update_config(**kwargs):
-    bots = list_bots()
+def update_config(workspace_id: str, **kwargs):
+    bots = list_bots(workspace_id)
     if not bots:
-        return get_config()
+        return get_config(workspace_id)
     bot_id = bots[0]["id"]
     return update_bot(bot_id, **kwargs) or get_bot(bot_id)
