@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +18,13 @@ NIFTY_50 = [
     "SBILIFE", "HDFCLIFE", "ADANIPORTS", "LTIM", "BEL", "PIDILITIND",
 ]
 
-CACHE_DIR = Path(__file__).resolve().parent / "cache"
+# If a Railway Volume is attached to whichever service imports this module,
+# RAILWAY_VOLUME_MOUNT_PATH is injected automatically -- park the cache there
+# so it survives across ephemeral container restarts / cron re-runs. With no
+# volume (e.g. local dev, or a service without one attached), this is
+# unchanged from before: a plain repo-relative backend/cache/ folder.
+_RAILWAY_VOLUME = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+CACHE_DIR = Path(_RAILWAY_VOLUME) / "backend" / "cache" if _RAILWAY_VOLUME else Path(__file__).resolve().parent / "cache"
 _INDEX_CACHE: dict | None = None
 
 
@@ -109,7 +116,7 @@ def normalize_debt_to_equity(raw):
 
 
 def _cache_path(kind: str, symbol: str) -> Path:
-    CACHE_DIR.mkdir(exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     day = date.today().isoformat()
     return CACHE_DIR / f"{kind}_{symbol}_{day}.json"
 

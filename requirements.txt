@@ -1,0 +1,13 @@
+# Repo-root manifest -- exists ONLY so Railway/Nixpacks can detect and build
+# a Python environment for the data_layer cron service, whose Root Directory
+# is the repo root (needed so `python -m data_layer.build` can import the
+# data_layer package). Mirrors data_layer/requirements.txt.
+#
+# The `backend` web service is a separate Railway service with its own Root
+# Directory (backend/) and its own backend/requirements.txt -- this file
+# does not affect it.
+yfinance
+pandas
+numpy
+requests
+python-dotenv
