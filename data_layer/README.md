@@ -117,3 +117,20 @@ inside `backend` can't just read this service's local files — it'll need
 either private-network access to this service, a shared DB/object store, or
 folding this build into `backend`'s own process via an in-process scheduler
 instead of a separate Railway cron service.
+
+**Known, accepted limitation on Railway:** `fundamentals_ext.py` and
+`events.py` call `nseindia.com`'s unofficial JSON API directly, and NSE
+blocks known cloud/datacenter IP ranges (AWS, GCP — and therefore Railway)
+at the network level regardless of correct cookies/headers. Expect every
+`[fundamentals_ext]` / `[events]` call to log a `403 Forbidden` and degrade
+to `None`/empty on Railway — `promoter_holding_pct`, `next_earnings_date`,
+`ex_dividend_date`, and `recent_corporate_actions` will stay empty in
+production dossiers. This is a deliberate, accepted trade-off (not a bug):
+those same calls work fine when run locally (non-datacenter IP). Revisit
+only if those fields turn out to matter — the real fix would be routing
+just those two fetchers through a proxy/VPN with a non-blocked IP.
+
+Also worth knowing: Marketaux's daily quota is shared per-key regardless of
+caller, so running `python -m data_layer.fetch.news TICKER` locally (or any
+local full build) on the same day as the Railway cron run eats into the
+same quota the production run will see.
