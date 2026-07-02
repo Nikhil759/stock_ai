@@ -1,0 +1,5 @@
+# Repo root also has a package.json (the separate Vercel frontend build,
+# unrelated to this service) which makes Nixpacks auto-detect Node instead
+# of Python here. Force Python only so `python -m data_layer.build` has a
+# Python runtime to run in. See https://nixpacks.com/docs/configuration/file
+providers = ["python"]
