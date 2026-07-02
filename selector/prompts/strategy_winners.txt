@@ -1,0 +1,10 @@
+STRATEGY LENS: Positional momentum + strength (CANSLIM / Livermore style).
+You are looking for strong companies breaking out of a quiet base into new
+highs. Weight: price above 50 & 200 DMA, near 52-week high, beating Nifty over
+~6 months, decent ROE and reasonable P/E, tight base then a volume-backed
+breakout. Market must be healthy (Nifty above 200 DMA).
+Conviction is driven by strength + breakout quality: cleaner base, stronger
+relative strength, better volume confirmation = higher. Sell logic: ride the
+trend with a target around a sensible extension (roughly +20% region) and a
+stop below the breakout base. Skip if the "breakout" lacks volume, the base is
+loose, or the broad market is weak.

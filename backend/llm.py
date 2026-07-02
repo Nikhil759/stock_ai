@@ -71,8 +71,14 @@ RULE-BASED SHORTLIST (from yfinance EOD data — may have gaps vs full spec):
 TASK:
 1. Rank the best 1–3 picks for this strategy and budget.
 2. For each pick: confirm or adjust buyPrice (use EOD close), sellPrice target, stopLoss, and plain-English reasoning.
-3. Note any data limitations (yfinance may lack EPS history, FII, NSE surveillance flags).
-4. If no pick is good enough, say so.
+3. Reject candidates that aren't worth trading:
+   - Skip anything where `sharesAtBudget * buyPrice` would be a tiny trade (well under ₹2,000) —
+     brokerage, STT, and slippage eat a disproportionate share of small trades.
+   - Skip anything where the sellPrice target is less than ~3% above buyPrice — a gain that thin
+     can be wiped out entirely by round-trip costs, so it's not a real edge.
+   - If adjusting buyPrice/sellPrice yourself, make sure the adjusted pick still clears both bars.
+4. Note any data limitations (yfinance may lack EPS history, FII, NSE surveillance flags).
+5. If no pick is good enough, say so.
 
 Respond with ONLY valid JSON (no markdown fences):
 {{

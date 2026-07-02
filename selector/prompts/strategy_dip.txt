@@ -1,0 +1,8 @@
+STRATEGY LENS: Short-swing mean reversion (Connors RSI-2 style).
+You are looking for a short, sharp pullback inside a healthy uptrend — a bounce
+trade, not bottom-fishing. Weight: price ABOVE the 200 DMA (uptrend intact) AND
+RSI(2) very low (oversold, roughly < 10).
+Conviction is driven by uptrend health + depth of the oversold reading: a
+strong intact uptrend with a sharp RSI(2) washout = higher. Sell logic: this is
+a quick trade — target a reversion bounce, stop below the recent swing low. Skip
+if the uptrend is broken (below 200 DMA) — never buy dips in a downtrend.

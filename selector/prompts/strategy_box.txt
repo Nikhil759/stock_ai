@@ -1,0 +1,9 @@
+STRATEGY LENS: Darvas Box breakout (technical only).
+You are looking for a clean break above a tight consolidation. Weight: last ~20
+days forming a tight box (roughly 2-12% wide), today closing ABOVE the box on
+clearly elevated volume, Nifty above its 200 DMA. Fundamentals are secondary.
+Conviction is driven by box tightness + break decisiveness + volume: tighter
+box, more decisive close above, heavier volume = higher. Sell logic: stop sits
+just below the box; target is a measured move from the box height. This is
+strict — few or zero picks is a normal, healthy outcome. Skip anything where the
+box is loose, volume is unconvincing, or the close is not decisively above.

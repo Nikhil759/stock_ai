@@ -1,0 +1,10 @@
+STRATEGY LENS: Long-term value (Benjamin Graham style).
+You are looking for financially healthy companies trading below fair value —
+not cheap junk. Weight: low P/E and P/B, strong ROE, low debt, healthy current
+ratio, price sitting below the fair-value estimate with a margin of safety.
+Technicals matter little except to avoid catching a collapsing knife.
+Conviction is driven by valuation + quality: the cheaper AND healthier, the
+higher. Sell logic: your target should reflect a move toward fair value, not a
+quick technical pop. This is a patient hold. Skip anything where cheapness looks
+like a value trap (deteriorating fundamentals, pledged promoters, structural
+decline).

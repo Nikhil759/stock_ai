@@ -2,6 +2,15 @@
 
 import database as db
 
+# Below these, a trade isn't worth taking — brokerage/STT/slippage on a round
+# trip would eat too much of (or all of) the gain. Applied in check_guardrails
+# so it blocks every path that can place a trade: the multi-position filler
+# loop (plan_portfolio_buys, which mops up leftover cash with whatever's still
+# affordable regardless of LLM ranking), autonomous single-pick buys, and
+# manual paper trades logged by the user.
+MIN_TRADE_INR = 2000
+MIN_PROFIT_MARGIN_PCT = 3
+
 
 def _fmt_inr(n: float) -> str:
     return "₹" + f"{round(n):,}"
@@ -31,9 +40,22 @@ def check_guardrails(candidate: dict, cfg: dict, trades: list[dict]) -> tuple[bo
     cash = cfg.get("available_cash") or cfg.get("availableCash") or allocation
     cost = candidate.get("cost") or (candidate.get("shares", 0) * candidate.get("buyPrice", 0))
     shares = candidate.get("shares", 0)
+    buy = candidate.get("buyPrice", 0)
+    sell = candidate.get("sellPrice", 0)
 
     if shares < 1:
         return False, "Not enough cash to buy even 1 share."
+
+    if cost < MIN_TRADE_INR:
+        return False, f"Trade too small ({_fmt_inr(cost)}, minimum is {_fmt_inr(MIN_TRADE_INR)}) — not worth the brokerage."
+
+    if buy > 0 and sell > 0:
+        margin_pct = (sell - buy) / buy * 100
+        if margin_pct < MIN_PROFIT_MARGIN_PCT:
+            return False, (
+                f"Profit margin too thin ({margin_pct:.1f}%, minimum is {MIN_PROFIT_MARGIN_PCT}%) "
+                f"— brokerage/STT/slippage would eat the gain."
+            )
 
     if cost > cash + 0.01:
         return False, f"Insufficient cash ({_fmt_inr(cash)} available, need {_fmt_inr(cost)})."
