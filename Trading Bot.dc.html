@@ -11,6 +11,12 @@
 <helmet>
 <title>Wolf Capital</title>
 <link rel="icon" href="/wolf_logo.png" type="image/png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/wolf_logo.png">
+<meta name="theme-color" content="#BF5B2D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wolf Capital">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -81,6 +87,10 @@
   .mono-val{overflow-wrap:anywhere;word-break:break-word}
   .cand-footer,.cand-actions{width:100%;max-width:100%}
   .app-header-tools{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+  .install-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);font-size:12.5px;font-weight:600;padding:0 11px;height:36px;border-radius:9px;white-space:nowrap}
+  .install-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow);color:var(--ink)}
+  .install-label{display:inline}
+  @media (max-width:520px){.install-label{display:none}}
   .modal-panel{max-width:100%}
   .signal-row{min-width:0}
   @media (max-width:720px){
@@ -159,6 +169,12 @@
         <button class="app-nav-btn" onClick="{{ goto.activity }}" style="{{ nav.activity }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
       </nav>
       <div class="app-header-tools">
+      <sc-if value="{{ showInstallBtn }}" hint-placeholder-val="{{ false }}">
+        <button class="install-btn" onClick="{{ onInstallApp }}" title="{{ installBtnTitle }}">
+          <i class="ti ti-download" style="font-size:15px;"></i>
+          <span class="install-label">Install</span>
+        </button>
+      </sc-if>
       <sc-if value="{{ hasActiveBot }}" hint-placeholder-val="{{ false }}">
         <select class="bot-select" onChange="{{ onBotSwitch }}" value="{{ activeBotId }}" style="{{ botSelectStyle }}">
           <sc-for list="{{ botOptions }}" as="o" hint-placeholder-count="1">
@@ -172,6 +188,19 @@
       </div>
     </div>
   </header>
+
+  <sc-if value="{{ showIosInstallTip }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:50;background:rgba(38,33,26,0.42);display:flex;align-items:flex-end;justify-content:center;padding:16px;" onClick="{{ closeIosInstallTip }}">
+    <div style="width:min(100%,400px);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 18px 18px;box-shadow:0 18px 50px rgba(38,33,26,0.18);" onClick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28">
+        <div style="font-weight:700;font-size:16px;">Install Wolf Capital</div>
+      </div>
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--ink2);">On iPhone/iPad: tap <strong style="color:var(--ink);">Share</strong> <i class="ti ti-share" style="font-size:15px;vertical-align:-2px;"></i> in Safari, then <strong style="color:var(--ink);">Add to Home Screen</strong>.</p>
+      <button onClick="{{ closeIosInstallTip }}" style="width:100%;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:12px;border-radius:10px;">Got it</button>
+    </div>
+  </div>
+  </sc-if>
 
   <!-- Global status banner -->
   <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
@@ -1002,9 +1031,71 @@ class Component extends DCLogic {
       bulkActionMsg: '',
       strategyModal: null,
       closedTradesOpen: false,
+      showInstallBtn: false,
+      showIosInstallTip: false,
     };
+    this._deferredPrompt = null;
+    this._iosInstall = false;
     this._scanTimer = null;
+    if (typeof window !== 'undefined') this._initPwa();
     this._loadAll();
+  }
+
+  _isStandalonePwa(){
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  _isIosSafari(){
+    const ua = navigator.userAgent || '';
+    const ios = /iphone|ipad|ipod/i.test(ua);
+    const webkit = /webkit/i.test(ua);
+    const notOther = !/crios|fxios|edgios/i.test(ua);
+    return ios && webkit && notOther;
+  }
+
+  _initPwa(){
+    if (this._isStandalonePwa()) return;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this._deferredPrompt = e;
+      this.setState({ showInstallBtn: true });
+    });
+
+    window.addEventListener('appinstalled', () => {
+      this._deferredPrompt = null;
+      this.setState({ showInstallBtn: false, showIosInstallTip: false });
+    });
+
+    if (this._isIosSafari()) {
+      this._iosInstall = true;
+      this.setState({ showInstallBtn: true });
+    }
+  }
+
+  async _onInstallApp(){
+    if (this._iosInstall) {
+      this.setState({ showIosInstallTip: true });
+      return;
+    }
+    const prompt = this._deferredPrompt;
+    if (!prompt) return;
+    prompt.prompt();
+    try {
+      const { outcome } = await prompt.userChoice;
+      if (outcome === 'accepted') this.setState({ showInstallBtn: false });
+    } finally {
+      this._deferredPrompt = null;
+    }
+  }
+
+  _closeIosInstallTip(){
+    this.setState({ showIosInstallTip: false });
   }
 
   _wsStorageKey(){
@@ -2077,6 +2168,11 @@ class Component extends DCLogic {
       strategyModalHorizonCol, strategyModalHorizonBg, strategyModalAnalysis,
       strategyModalSummary, strategyModalSections,
       closeStrategyInfo: () => this.closeStrategyInfo(),
+      showInstallBtn: s.showInstallBtn && !this._isStandalonePwa(),
+      showIosInstallTip: !!s.showIosInstallTip,
+      onInstallApp: () => this._onInstallApp(),
+      closeIosInstallTip: () => this._closeIosInstallTip(),
+      installBtnTitle: this._iosInstall ? 'Add Wolf Capital to your home screen' : 'Install Wolf Capital app',
     };
   }
 }
