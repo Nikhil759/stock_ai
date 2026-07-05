@@ -1,0 +1,14 @@
+# fund-morning-cron on Railway.
+#
+# Service settings:
+#   Root Directory: /  (repo root)
+#   Config file:    railway.morning.toml
+#   Cron schedule:  45 3 * * 1-5  (UTC, ~9:15 AM IST weekdays)
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r backend/requirements.txt"
+
+[deploy]
+startCommand = "cd backend && FUND_MANAGER_FILL_PRICE=intention python -m scripts.run_morning_all_wolves"
+numReplicas = 1

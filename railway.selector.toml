@@ -1,0 +1,14 @@
+# fund-selector-cron on Railway.
+#
+# Service settings:
+#   Root Directory: /  (repo root)
+#   Config file:    railway.selector.toml
+#   Cron schedule:  30 3 * * 1-5  (UTC, ~9:00 AM IST weekdays)
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r backend/requirements.txt"
+
+[deploy]
+startCommand = "cd backend && python -m scripts.run_selector_all_wolves"
+numReplicas = 1
