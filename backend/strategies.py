@@ -3,6 +3,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+BACKEND = Path(__file__).resolve().parent
+KNOWLEDGE_DIR = BACKEND / "knowledge"
 
 STRATEGIES = {
     "value": {
@@ -63,7 +65,11 @@ def load_knowledge(strategy_id: str) -> str:
     meta = STRATEGIES.get(strategy_id)
     if not meta:
         return ""
-    path = ROOT / meta["knowledgeFile"]
+    # backend/knowledge/ ships with the web service (Root Directory = backend/).
+    # Fall back to repo-root copies for local dev when running from monorepo root.
+    path = KNOWLEDGE_DIR / meta["knowledgeFile"]
+    if not path.exists():
+        path = ROOT / meta["knowledgeFile"]
     if not path.exists():
         return ""
     return path.read_text(encoding="utf-8")

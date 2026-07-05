@@ -1,0 +1,10 @@
+# Web API service (stock_ai on Railway).
+# Set this service's Root Directory to backend/ so Railway uses this file
+# instead of the repo-root railway.json (which is for data-layer-cron only).
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+numReplicas = 1

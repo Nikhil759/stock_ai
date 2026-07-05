@@ -13,18 +13,18 @@
 <link rel="icon" href="/wolf_logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0;overflow-x:hidden}
+  html,body{margin:0;padding:0;overflow-x:hidden;background:#FAF6EE}
   input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:var(--line2);outline:none;width:100%;max-width:100%}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--clay);border:3px solid #fff;box-shadow:0 0 0 1px var(--line2);cursor:pointer}
   input[type=range]::-moz-range-thumb{width:20px;height:20px;border:3px solid #fff;border-radius:50%;background:var(--clay);cursor:pointer}
   button{font-family:inherit}
   img,svg,video{max-width:100%;height:auto}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  @keyframes pulse-ring{0%{transform:scale(0.92);opacity:0.55}50%{transform:scale(1.06);opacity:0.25}100%{transform:scale(0.92);opacity:0.55}}
+  @keyframes pulse-ring{0%{transform:scale(0.72);opacity:0.5}70%{opacity:0.14}100%{transform:scale(1.18);opacity:0}}
   @keyframes pulse-core{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
   @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
   @keyframes step-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -49,7 +49,12 @@
   .trade-card{min-width:0;width:100%}
   .trade-metrics,.trade-progress{min-width:0}
   .closed-trade-row{width:100%;text-align:left;cursor:pointer;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:inherit;font:inherit;transition:border-color 0.15s ease}
-  .closed-trade-row:hover{border-color:var(--line2)}
+  .closed-trade-row:hover{border-color:#E2C9A9;background:var(--wolf-tint)}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(216,118,50,0.55);outline-offset:2px}
+  .app-nav-btn{transition:box-shadow 0.15s ease,color 0.15s ease}
+  .app-nav-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow)}
+  .bot-card-btn,.trade-card,.level-row,.strategy-grid>div,.strategy-row,.mode-grid>button{transition:border-color 0.15s ease,box-shadow 0.15s ease,background-color 0.15s ease}
+  .bot-card-btn:hover,.trade-card:hover,.level-row:hover,.strategy-grid>div:hover,.strategy-row:hover,.mode-grid>button:hover{background-color:var(--wolf-tint)!important;box-shadow:0 2px 12px rgba(160,90,40,0.07)}
   .deploy-footer,.budget-row,.guardrail-row,.page-header,.page-actions,.pending-card,.pending-actions,.footer-row,.banner-row{width:100%;max-width:100%}
   .deploy-summary{min-width:0}
   .mono-val{overflow-wrap:anywhere;word-break:break-word}
@@ -116,14 +121,14 @@
   }
 </style>
 </helmet>
-<div class="app-root" style="--paper:#FAF9F5;--panel:#FFFFFF;--ink:#23221C;--ink2:#6E6C61;--line:#E8E5DA;--line2:#D9D5C8;--clay:#C2613F;--green:#3E7A52;--red:#B4453A;--mono:'Geist Mono',ui-monospace,'SF Mono',monospace;font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
+<div class="app-root" style="--paper:#FAF6EE;--panel:#FFFEFA;--ink:#26211A;--ink2:#6F685A;--line:#E9E1D0;--line2:#DBD1BC;--clay:#BF5B2D;--green:#3E7A52;--red:#B04938;--wolf-fur:#E8792F;--wolf-tint:#FBF2E5;--wolf-glow:rgba(216,118,50,0.16);--wolf-mist:#F4EBDB;--mono:'Geist Mono',ui-monospace,'SF Mono',monospace;font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);background-image:radial-gradient(1100px 480px at 88% -12%,rgba(226,124,55,0.05),transparent 60%),radial-gradient(900px 460px at -8% 4%,rgba(101,124,88,0.045),transparent 55%);background-attachment:fixed;color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
 
-  <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,249,245,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+  <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,246,238,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
     <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;">
-        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28">
+        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28" style="filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2));">
         <span style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
-        <span style="font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:0.04em;color:var(--ink2);border:1px solid var(--line2);padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
       </div>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
@@ -163,13 +168,13 @@
   <!-- ===================== HOME ===================== -->
   <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
   <main class="app-main" style="max-width:900px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
-    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Your Wolves</p>
-    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Dashboard</h1>
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Your Wolves</p>
+    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:800;letter-spacing:-0.024em;margin:0 0 7px;">Dashboard</h1>
     <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate Wolf with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
 
     <sc-if value="{{ noBots }}" hint-placeholder-val="{{ true }}">
-      <div style="text-align:center;padding:56px 24px;background:var(--panel);border:1px dashed var(--line2);border-radius:16px;">
-        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-xl" width="72" height="72" style="margin:0 auto;">
+      <div style="text-align:center;padding:60px 24px;background:radial-gradient(circle at 50% 28%,var(--wolf-tint),var(--panel) 68%);border:1px dashed #E2C9A9;border-radius:16px;">
+        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-xl" width="72" height="72" style="margin:0 auto;filter:drop-shadow(0 4px 10px rgba(160,85,35,0.18));">
         <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No Wolves deployed yet</h2>
         <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading Wolf.</p>
         <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first Wolf</button>
@@ -194,7 +199,7 @@
         <div class="toolbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
           <sc-if value="{{ hasBotSelection }}" hint-placeholder-val="{{ false }}">
             <button onClick="{{ bulkPauseBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--ink);"><i class="ti ti-player-pause" style="font-size:16px;"></i>Pause selected</button>
-            <button onClick="{{ bulkTerminateBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid #E8C4BC;cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--red);"><i class="ti ti-trash" style="font-size:16px;"></i>Terminate selected</button>
+            <button onClick="{{ bulkTerminateBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid #E4C4AC;cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--red);"><i class="ti ti-trash" style="font-size:16px;"></i>Terminate selected</button>
           </sc-if>
           <button onClick="{{ goto.setup }}" style="display:flex;align-items:center;gap:7px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;"><i class="ti ti-plus" style="font-size:16px;"></i>Deploy another Wolf</button>
         </div>
@@ -236,8 +241,8 @@
   <!-- ===================== SETUP / DEPLOY ===================== -->
   <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
-    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 1 of 3 — Strategy</p>
-    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Deploy a new Wolf</h1>
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Step 1 of 3 — Strategy</p>
+    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:800;letter-spacing:-0.024em;margin:0 0 7px;">Deploy a new Wolf</h1>
     <p style="color:var(--ink2);margin:0 0 22px;font-size:15px;line-height:1.5;max-width:54ch;">Pick a strategy and fund allocation. This creates a new Wolf instance — existing Wolves keep running separately.</p>
 
     <div style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
@@ -265,7 +270,7 @@
           </button>
           <button onClick="{{ st.onInfo }}" title="How this strategy works" style="position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:999px;border:1px solid var(--line2);background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);padding:0;z-index:2;"><i class="ti ti-info-circle" style="font-size:15px;"></i></button>
           <sc-if value="{{ st.selected }}" hint-placeholder-val="{{ true }}">
-            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div>
+            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;background:rgba(232,121,47,0.05);box-shadow:0 0 0 3px var(--wolf-glow);"></div>
             <div style="position:absolute;top:13px;right:44px;width:20px;height:20px;border-radius:50%;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;z-index:1;"><i class="ti ti-check" style="font-size:13px;"></i></div>
           </sc-if>
         </div>
@@ -277,7 +282,7 @@
     <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
     <div style="display:flex;flex-direction:column;gap:10px;">
       <sc-for list="{{ strategyCards }}" as="st" hint-placeholder-count="2">
-        <div style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:13px;">
+        <div class="strategy-row" style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:13px;">
           <button onClick="{{ st.onSelect }}" style="width:100%;text-align:left;cursor:pointer;background:transparent;border:none;padding:15px 48px 15px 16px;display:flex;align-items:center;gap:15px;color:inherit;font:inherit;">
             <div style="width:40px;height:40px;flex:none;border-radius:10px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="{{ st.icon }}" style="font-size:20px;"></i></div>
             <div style="flex:1;min-width:0;">
@@ -291,7 +296,7 @@
           </button>
           <button onClick="{{ st.onInfo }}" title="How this strategy works" style="position:absolute;top:50%;right:14px;transform:translateY(-50%);width:26px;height:26px;border-radius:999px;border:1px solid var(--line2);background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);padding:0;z-index:2;"><i class="ti ti-info-circle" style="font-size:15px;"></i></button>
           <sc-if value="{{ st.selected }}" hint-placeholder-val="{{ false }}">
-            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:13px;pointer-events:none;"></div>
+            <div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:13px;pointer-events:none;background:rgba(232,121,47,0.05);box-shadow:0 0 0 3px var(--wolf-glow);"></div>
             <i class="ti ti-circle-check-filled" style="position:absolute;top:50%;right:48px;transform:translateY(-50%);font-size:22px;color:var(--clay);flex:none;z-index:1;"></i>
           </sc-if>
         </div>
@@ -301,7 +306,7 @@
 
     <!-- Step 2 budget -->
     <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
-      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 2 of 3 — Allocation</p>
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Step 2 of 3 — Allocation</p>
       <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">Set fund allocation</h2>
       <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">This is the Wolf's cash pool. When positions sell, proceeds return here for reinvestment.</p>
       <div class="budget-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;">
@@ -318,7 +323,7 @@
 
     <!-- Step 3 — Wolf mode & guardrails -->
     <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
-      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 3 of 3 — Wolf mode</p>
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Step 3 of 3 — Wolf mode</p>
       <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">How should the Wolf behave?</h2>
       <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">Choose manual review or let the Wolf act on its own — with guardrails either way.</p>
 
@@ -329,7 +334,7 @@
             <span style="font-weight:650;font-size:15px;">Advisory</span>
           </div>
           <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Wolf suggests picks. You review and log trades yourself.</p>
-          <sc-if value="{{ deployModeAdvisory }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
+          <sc-if value="{{ deployModeAdvisory }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;background:rgba(232,121,47,0.05);box-shadow:0 0 0 3px var(--wolf-glow);"></div></sc-if>
         </button>
         <button onClick="{{ on.modeAuto }}" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;color:inherit;font:inherit;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
@@ -337,7 +342,7 @@
             <span style="font-weight:650;font-size:15px;">Autonomous</span>
           </div>
           <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Wolf manages paper trades within your rules and budget.</p>
-          <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
+          <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;background:rgba(232,121,47,0.05);box-shadow:0 0 0 3px var(--wolf-glow);"></div></sc-if>
         </button>
       </div>
 
@@ -395,7 +400,7 @@
         </div>
       </div>
 
-      <div style="background:#DFEADF;border:1px solid #C5D9C5;border-radius:11px;padding:13px 16px;">
+      <div style="background:#E2EAD8;border:1px solid #C8D6B9;border-radius:11px;padding:13px 16px;">
         <p style="font-size:14px;margin:0;color:var(--ink);line-height:1.5;"><i class="ti ti-info-circle" style="vertical-align:-2px;color:var(--green);"></i> {{ deployBehaviorSummary }}</p>
       </div>
     </div>
@@ -409,7 +414,7 @@
         </div>
       </sc-if>
       <sc-if value="{{ noStrategy }}" hint-placeholder-val="{{ true }}">
-        <div class="deploy-summary" style="display:flex;align-items:center;gap:10px;border:1px dashed var(--line2);border-radius:11px;padding:13px 16px;flex:1;min-width:240px;color:var(--ink2);font-size:14px;">
+        <div class="deploy-summary" style="display:flex;align-items:center;gap:10px;border:1px dashed #E2C9A9;border-radius:11px;padding:13px 16px;flex:1;min-width:240px;color:var(--ink2);font-size:14px;">
           <i class="ti ti-arrow-up" style="font-size:17px;"></i>Select a strategy to continue
         </div>
       </sc-if>
@@ -437,9 +442,9 @@
 
     <sc-if value="{{ hasScreen }}" hint-placeholder-val="{{ true }}">
       <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
-        <div style="background:#F3E8CF;border:1px solid #E8D5A8;border-radius:13px;padding:16px 18px;margin-bottom:20px;">
+        <div style="background:#F7E9C9;border:1px solid #E8D19C;border-radius:13px;padding:16px 18px;margin-bottom:20px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <i class="ti ti-bell-ringing" style="font-size:20px;color:#8A6516;"></i>
+            <i class="ti ti-bell-ringing" style="font-size:20px;color:#8F6410;"></i>
             <span style="font-weight:650;font-size:15px;">Trade waiting for your approval</span>
           </div>
           <sc-for list="{{ pending }}" as="p" hint-placeholder-count="1">
@@ -459,8 +464,8 @@
       </sc-if>
 
       <sc-if value="{{ hasLlmSummary }}" hint-placeholder-val="{{ false }}">
-        <div style="background:#DFE7EF;border:1px solid #C5D4E8;border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink);line-height:1.5;">
-          <i class="ti ti-sparkles" style="color:#3A5E86;"></i> {{ llmSummary }}
+        <div style="background:#E0EAE6;border:1px solid #C3D6CE;border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink);line-height:1.5;">
+          <i class="ti ti-sparkles" style="color:#3E6B63;"></i> {{ llmSummary }}
         </div>
       </sc-if>
 
@@ -472,8 +477,8 @@
 
       <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:8px;">
         <div>
-          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">Shortlist · {{ stratName }}</p>
-          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0;">Your picks</h1>
+          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">Shortlist · {{ stratName }}</p>
+          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0;">Your picks</h1>
         </div>
         <button onClick="{{ rescreen }}" style="display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--ink2);padding:9px 14px;border-radius:10px;"><i class="ti ti-refresh" style="font-size:15px;"></i>Re-screen</button>
       </div>
@@ -487,17 +492,17 @@
       <sc-if value="{{ isScanning }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px 24px;margin-bottom:16px;">
           <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px;">
-            <div style="position:relative;width:72px;height:72px;margin-bottom:16px;">
-              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--clay);opacity:0.35;animation:pulse-ring 2s ease-in-out infinite;"></div>
-              <div style="position:absolute;inset:8px;border-radius:50%;border:2px solid var(--clay);opacity:0.2;animation:pulse-ring 2s ease-in-out infinite 0.4s;"></div>
-              <div style="position:absolute;inset:16px;border-radius:50%;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;animation:pulse-core 2s ease-in-out infinite;box-shadow:0 4px 14px rgba(194,97,63,0.35);">
-                <img src="/wolf_logo.png" alt="" class="wolf-icon" width="40" height="40">
+            <div style="position:relative;width:84px;height:84px;margin-bottom:16px;">
+              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--clay);animation:pulse-ring 2.4s ease-out infinite;"></div>
+              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--wolf-fur);animation:pulse-ring 2.4s ease-out infinite 1.2s;"></div>
+              <div style="position:absolute;inset:10px;border-radius:50%;background:var(--wolf-tint);border:1px solid #EACBA8;display:flex;align-items:center;justify-content:center;animation:pulse-core 2.4s ease-in-out infinite;box-shadow:0 6px 18px rgba(191,91,45,0.16);">
+                <img src="/wolf_logo.png" alt="" class="wolf-icon" width="46" height="46">
               </div>
             </div>
             <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;letter-spacing:-0.01em;">{{ loadTitle }}</h2>
             <p style="font-family:var(--mono);font-size:13px;color:var(--clay);font-weight:600;margin:0 0 14px;min-height:1.2em;animation:step-in 0.35s ease;">{{ loadStatus }}</p>
             <div style="width:100%;max-width:340px;height:6px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden;">
-              <div style="height:100%;width:{{ loadProgressPct }};border-radius:999px;background:linear-gradient(90deg,var(--clay),#E8956F,var(--clay));background-size:200% 100%;animation:shimmer 2s linear infinite;transition:width 0.6s ease;"></div>
+              <div style="height:100%;width:{{ loadProgressPct }};border-radius:999px;background:linear-gradient(90deg,var(--clay),#E89B57,var(--clay));background-size:200% 100%;animation:shimmer 2s linear infinite;transition:width 0.6s ease;"></div>
             </div>
             <p style="font-size:12px;color:var(--ink2);margin:10px 0 0;">Nifty 200 · throttled fetch · usually 2–4 min</p>
           </div>
@@ -521,7 +526,7 @@
       </sc-if>
 
       <sc-if value="{{ screenError }}" hint-placeholder-val="{{ false }}">
-        <div style="background:#F4E2DF;border:1px solid #E8C4BC;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:var(--red);font-size:14px;">
+        <div style="background:#F3E0D3;border:1px solid #E4C4AC;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:var(--red);font-size:14px;">
           <i class="ti ti-alert-circle" style="vertical-align:-2px;"></i> {{ errorMsg }}
           <button onClick="{{ rescreen }}" style="margin-left:12px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;padding:6px 12px;border-radius:8px;color:var(--ink);">Retry</button>
         </div>
@@ -535,8 +540,8 @@
               <div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                   <span style="font-family:var(--mono);font-weight:600;font-size:15.5px;">{{ c.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
-                  <sc-if value="{{ c.recGood }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:var(--green);background:#DFEADF;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
-                  <sc-if value="{{ c.recMaybe }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#8A6516;background:#F3E8CF;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
+                  <sc-if value="{{ c.recGood }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:var(--green);background:#E2EAD8;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
+                  <sc-if value="{{ c.recMaybe }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#8F6410;background:#F7E9C9;padding:3px 9px;border-radius:999px;">{{ c.recLabel }}</span></sc-if>
                 </div>
                 <div style="font-size:12.5px;color:var(--ink2);margin-top:3px;">{{ c.name }} · {{ c.sector }}</div>
               </div>
@@ -579,7 +584,7 @@
       </sc-if>
 
       <sc-if value="{{ noCands }}" hint-placeholder-val="{{ false }}">
-        <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed var(--line2);border-radius:14px;">
+        <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;">
           <i class="ti ti-search-off" style="font-size:36px;color:var(--ink2);"></i>
           <p style="margin:14px 0 4px;font-weight:600;">No picks found</p>
           <p style="color:var(--ink2);margin:0 0 16px;font-size:14px;">None of the stocks we checked looked like a good fit right now. Try again later or raise your budget.</p>
@@ -605,8 +610,8 @@
     <sc-if value="{{ trackerActive }}" hint-placeholder-val="{{ false }}">
       <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:22px;">
         <div style="min-width:0;">
-          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">{{ activeBotName }}</p>
-          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 8px;">Portfolio</h1>
+          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">{{ activeBotName }}</p>
+          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0 0 8px;">Portfolio</h1>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:13px;font-weight:600;color:var(--ink);">Strategy:</span>
             <span style="font-size:13px;font-weight:600;color:var(--clay);">{{ activeBotStrategy }}</span>
@@ -661,7 +666,7 @@
       </div>
 
     <sc-if value="{{ trackerEmpty }}" hint-placeholder-val="{{ false }}">
-      <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed var(--line2);border-radius:14px;margin-bottom:14px;">
+      <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;margin-bottom:14px;">
         <i class="ti ti-report-money" style="font-size:36px;color:var(--ink2);"></i>
         <h2 style="font-size:20px;font-weight:700;margin:14px 0 6px;">No paper trades yet</h2>
         <p style="color:var(--ink2);margin:0 0 20px;">Run a screen and log a candidate to start tracking.</p>
@@ -688,7 +693,7 @@
             <div class="trade-block" style="min-width:150px;">
               <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-family:var(--mono);font-weight:600;font-size:15px;">{{ t.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--green);background:#DFEADF;padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ t.status }}</span>
+                <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--green);background:#E2EAD8;padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ t.status }}</span>
               </div>
               <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.name }}</div>
               <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.qty }} shares · bought {{ t.entryDate }}</div>
@@ -753,8 +758,8 @@
   <!-- ===================== ACTIVITY ===================== -->
   <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
-    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">Action log</p>
-    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 20px;">What the Wolf did</h1>
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">Action log</p>
+    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0 0 20px;">What the Wolf did</h1>
     <sc-if value="{{ noLog }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:48px 20px;color:var(--ink2);">No activity yet. Run a screen or change settings to get started.</div>
     </sc-if>
@@ -783,21 +788,21 @@
   <!-- Pick report modal -->
   <sc-if value="{{ pickModalOpen }}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:clamp(12px,4vw,28px);">
-    <div onClick="{{ closePickReport }}" style="position:absolute;inset:0;background:rgba(35,34,28,0.48);backdrop-filter:blur(3px);"></div>
-    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(35,34,28,0.18);animation:modal-in 0.28s ease;">
+    <div onClick="{{ closePickReport }}" style="position:absolute;inset:0;background:rgba(43,34,24,0.48);backdrop-filter:blur(3px);"></div>
+    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(80,52,28,0.16);animation:modal-in 0.28s ease;">
       <div style="padding:22px 22px 18px;border-bottom:1px solid var(--line);">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
           <div style="min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
               <span class="mono-val" style="font-family:var(--mono);font-weight:700;font-size:18px;">{{ pickModalTicker }}<span style="color:var(--ink2);font-weight:500;">.NS</span></span>
-              <sc-if value="{{ pickModalAi }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:600;color:var(--clay);background:#FBF3EF;border:1px solid #E8C4BC;padding:3px 9px;border-radius:999px;"><i class="ti ti-sparkles" style="font-size:11px;"></i> AI ranked</span></sc-if>
+              <sc-if value="{{ pickModalAi }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:600;color:var(--clay);background:#FAF0E4;border:1px solid #E4C4AC;padding:3px 9px;border-radius:999px;"><i class="ti ti-sparkles" style="font-size:11px;"></i> AI ranked</span></sc-if>
             </div>
             <div style="font-size:13px;color:var(--ink2);">{{ pickModalName }} · {{ pickModalSector }}</div>
             <div style="font-size:12px;color:var(--clay);font-weight:600;margin-top:8px;">{{ pickModalStrategy }}</div>
           </div>
           <button onClick="{{ closePickReport }}" style="background:var(--paper);border:1px solid var(--line2);cursor:pointer;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink2);flex:none;"><i class="ti ti-x" style="font-size:18px;"></i></button>
         </div>
-        <div style="margin-top:14px;display:inline-block;font-size:12px;font-weight:650;color:var(--green);background:#DFEADF;padding:5px 12px;border-radius:999px;">{{ pickModalHeadline }}</div>
+        <div style="margin-top:14px;display:inline-block;font-size:12px;font-weight:650;color:var(--green);background:#E2EAD8;padding:5px 12px;border-radius:999px;">{{ pickModalHeadline }}</div>
       </div>
       <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px;">
         <sc-if value="{{ pickModalLoading }}" hint-placeholder-val="{{ false }}">
@@ -847,8 +852,8 @@
   <!-- Strategy info modal -->
   <sc-if value="{{ strategyModalOpen }}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:clamp(12px,4vw,28px);">
-    <div onClick="{{ closeStrategyInfo }}" style="position:absolute;inset:0;background:rgba(35,34,28,0.48);backdrop-filter:blur(3px);"></div>
-    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(35,34,28,0.18);animation:modal-in 0.28s ease;">
+    <div onClick="{{ closeStrategyInfo }}" style="position:absolute;inset:0;background:rgba(43,34,24,0.48);backdrop-filter:blur(3px);"></div>
+    <div class="modal-panel" style="position:relative;width:100%;max-width:520px;max-height:min(88vh,720px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(80,52,28,0.16);animation:modal-in 0.28s ease;">
       <div style="padding:22px 22px 18px;border-bottom:1px solid var(--line);">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
           <div style="min-width:0;">
@@ -1091,8 +1096,8 @@ class Component extends DCLogic {
       value: {
         name: 'Buy cheap quality',
         horizon: 'Long-term',
-        horizonCol: '#36724A',
-        horizonBg: '#DFEADF',
+        horizonCol: '#3D6B47',
+        horizonBg: '#E2EAD8',
         icon: 'ti ti-shield-check',
         analysisType: 'Fundamental only',
         summary: 'Hold financially healthy companies trading below fair value. Ignore daily noise.',
@@ -1106,8 +1111,8 @@ class Component extends DCLogic {
       winners: {
         name: 'Buy the winners',
         horizon: 'Weeks–months',
-        horizonCol: '#8A6516',
-        horizonBg: '#F3E8CF',
+        horizonCol: '#8F6410',
+        horizonBg: '#F7E9C9',
         icon: 'ti ti-trending-up',
         analysisType: 'Fundamentals + technicals',
         summary: 'Ride strong companies breaking out of a quiet base into new highs on volume.',
@@ -1121,8 +1126,8 @@ class Component extends DCLogic {
       box: {
         name: 'Buy the box breakout',
         horizon: 'Days–weeks',
-        horizonCol: '#B4453A',
-        horizonBg: '#F4E2DF',
+        horizonCol: '#B04938',
+        horizonBg: '#F3E0D3',
         icon: 'ti ti-bolt',
         analysisType: 'Technical only (Darvas Box)',
         summary: 'Darvas box — buy when price closes above a tight range on rising volume. Stop below the box.',
@@ -1136,8 +1141,8 @@ class Component extends DCLogic {
       dip: {
         name: 'Buy the dip',
         horizon: 'Few days–2wks',
-        horizonCol: '#3A5E86',
-        horizonBg: '#DFE7EF',
+        horizonCol: '#3E6B63',
+        horizonBg: '#E0EAE6',
         icon: 'ti ti-arrow-bear-right',
         analysisType: 'Technical only',
         summary: 'In long uptrends only, buy short sharp pullbacks and sell the bounce.',
@@ -1607,11 +1612,20 @@ class Component extends DCLogic {
       levelA: setLevel('A'), levelB: setLevel('B'), levelC: setLevel('C'),
     };
     const goto = {
-      home: async () => { await this._loadBots(); this.setState({ screen:'home' }); },
+      home: async () => {
+        this.setState({ screen: 'home' });
+        try { await this._loadBots(); } catch (e) { console.error('loadBots failed:', e); }
+      },
       setup: () => this.setState({ screen:'setup', strategy: null, screenError: false }),
       shortlist: () => this.setState({ screen:'shortlist' }),
-      tracker: async () => { if (s.activeBotId) await this._loadBotData(s.activeBotId); this.setState({ screen:'tracker' }); },
-      activity: async () => { await this._refreshLog(); this.setState({ screen:'activity' }); },
+      tracker: async () => {
+        this.setState({ screen: 'tracker' });
+        try { if (s.activeBotId) await this._loadBotData(s.activeBotId); } catch (e) { console.error('loadBotData failed:', e); }
+      },
+      activity: async () => {
+        this.setState({ screen: 'activity' });
+        try { await this._refreshLog(); } catch (e) { console.error('refreshLog failed:', e); }
+      },
     };
     const onBotSwitch = e => this.selectBot(parseInt(e.target.value, 10));
     const clamp = v => Math.max(10000, Math.min(1000000, Math.round(v) || 10000));
@@ -1626,7 +1640,7 @@ class Component extends DCLogic {
     const onMaxDeployed = e => this.setState({ max_deployed_pct: clampPct(e.target.value, 10, 100) });
     const onMaxPerStock = e => this.setState({ max_per_stock_pct: clampPct(e.target.value, 5, 100) });
 
-    const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + ';';
+    const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
     const nav = {
       home: navStyle(s.screen==='home'), setup:navStyle(s.screen==='setup'),
       shortlist:navStyle(s.screen==='shortlist'), tracker:navStyle(s.screen==='tracker'), activity:navStyle(s.screen==='activity'),
@@ -1640,9 +1654,9 @@ class Component extends DCLogic {
 
     const isTerminated = bot?.status === 'terminated';
     const isPaused = !!bot?.paused;
-    const bannerBg = isTerminated ? '#F4E2DF' : isPaused ? '#F3E8CF' : '#DFEADF';
-    const bannerBorder = isTerminated ? '#E8C4BC' : isPaused ? '#E8D5A8' : '#C5D9C5';
-    const bannerCol = isTerminated ? 'var(--red)' : isPaused ? '#8A6516' : 'var(--green)';
+    const bannerBg = isTerminated ? '#F3E0D3' : isPaused ? '#F7E9C9' : '#E2EAD8';
+    const bannerBorder = isTerminated ? '#E4C4AC' : isPaused ? '#E8D19C' : '#C8D6B9';
+    const bannerCol = isTerminated ? 'var(--red)' : isPaused ? '#8F6410' : 'var(--green)';
     const bannerIcon = isTerminated ? 'ti ti-circle-x' : isPaused ? 'ti ti-player-pause-filled' : 'ti ti-player-play-filled';
     const bannerText = isTerminated ? 'Wolf terminated' : isPaused ? 'Wolf is paused — no buys, no sells' : 'Wolf is running';
     const pauseIcon = isPaused ? 'ti ti-player-play' : 'ti ti-player-pause';
@@ -1691,7 +1705,7 @@ class Component extends DCLogic {
       const tradePct = invested ? tradePnl / invested * 100 : 0;
       const reason = t.exitReason === 'target' ? 'Target hit' : t.exitReason === 'stop_loss' ? 'Stop loss' : 'Auto closed';
       const reasonCol = t.exitReason === 'target' ? 'var(--green)' : t.exitReason === 'stop_loss' ? 'var(--red)' : 'var(--ink2)';
-      const reasonBg = t.exitReason === 'target' ? '#DFEADF' : t.exitReason === 'stop_loss' ? '#F4E2DF' : 'var(--paper)';
+      const reasonBg = t.exitReason === 'target' ? '#E2EAD8' : t.exitReason === 'stop_loss' ? '#F3E0D3' : 'var(--paper)';
       const row = {
         ...t,
         reason, reasonCol, reasonBg,
@@ -1736,10 +1750,10 @@ class Component extends DCLogic {
         active,
         wolfIcon: !!st.wolfIcon,
         tiIcon: !st.wolfIcon,
-        bg: active ? '#FBF3EF' : done ? '#F5FAF5' : 'var(--paper)',
-        border: active ? '#E8C4BC' : done ? '#C5D9C5' : 'var(--line)',
+        bg: active ? '#FAF0E4' : done ? '#F3F6EC' : 'var(--paper)',
+        border: active ? '#E4C4AC' : done ? '#C8D6B9' : 'var(--line)',
         opacity: i > stepIdx + 1 ? '0.45' : '1',
-        iconBg: active ? '#F4E2DF' : done ? '#DFEADF' : 'var(--panel)',
+        iconBg: active ? '#F3E0D3' : done ? '#E2EAD8' : 'var(--panel)',
         iconCol: active ? 'var(--clay)' : done ? 'var(--green)' : 'var(--ink2)',
         textCol: active ? 'var(--ink)' : done ? 'var(--ink)' : 'var(--ink2)',
         weight: active ? '650' : '550',
@@ -1777,9 +1791,9 @@ class Component extends DCLogic {
     const strategyModalSections = sm?.sections || [];
 
     const statusStyle = st => {
-      if (st === 'running') return { label:'Running', col:'#36724A', bg:'#DFEADF' };
-      if (st === 'paused') return { label:'Paused', col:'#8A6516', bg:'#F3E8CF' };
-      return { label:'Terminated', col:'#B4453A', bg:'#F4E2DF' };
+      if (st === 'running') return { label:'Running', col:'#3D6B47', bg:'#E2EAD8' };
+      if (st === 'paused') return { label:'Paused', col:'#8F6410', bg:'#F7E9C9' };
+      return { label:'Terminated', col:'#B04938', bg:'#F3E0D3' };
     };
 
     const botCards = s.bots.map(b => {
