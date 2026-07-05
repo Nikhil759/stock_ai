@@ -18,14 +18,15 @@ import database as db
 from scripts.run_selector_for_wolf import run_for_wolf
 
 
-def main() -> None:
+def run_selector_all_wolves() -> list[tuple[int, str]]:
+    """Run selector for every running Wolf. Returns list of (bot_id, error) failures."""
     db.init_db()
     bots = db.list_running_bots()
     if not bots:
         print("No running Wolves found.")
-        return
+        return []
     print(f"Running daily selector for {len(bots)} Wolf(s)...")
-    errors = []
+    errors: list[tuple[int, str]] = []
     for bot in bots:
         bid = bot["id"]
         try:
@@ -38,8 +39,15 @@ def main() -> None:
         print(f"\n{len(errors)} failure(s):")
         for bid, msg in errors:
             print(f"  Wolf {bid}: {msg}")
+    else:
+        print("\nAll Wolves processed.")
+    return errors
+
+
+def main() -> None:
+    errors = run_selector_all_wolves()
+    if errors:
         sys.exit(1)
-    print("\nAll Wolves processed.")
 
 
 if __name__ == "__main__":

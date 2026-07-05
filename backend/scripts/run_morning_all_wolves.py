@@ -20,12 +20,7 @@ import database as db
 from fund_manager.deploy import morning_deploy, print_deploy_summary
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Morning deploy all running Wolves")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--date", type=str, default=None)
-    args = parser.parse_args()
-
+def run_morning_all_wolves(*, dry_run: bool = False, run_date: str | None = None) -> None:
     db.init_db()
     bots = db.list_running_bots()
     if not bots:
@@ -33,8 +28,16 @@ def main() -> None:
         return
     for bot in bots:
         print(f"\n{'='*50}\nWolf {bot['id']} ({bot['strategy']})")
-        summary = morning_deploy(bot["id"], run_date=args.date, dry_run=args.dry_run)
+        summary = morning_deploy(bot["id"], run_date=run_date, dry_run=dry_run)
         print_deploy_summary(summary)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Morning deploy all running Wolves")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--date", type=str, default=None)
+    args = parser.parse_args()
+    run_morning_all_wolves(dry_run=args.dry_run, run_date=args.date)
 
 
 if __name__ == "__main__":

@@ -6,14 +6,13 @@ import json
 from datetime import date
 from pathlib import Path
 
-from repo_paths import find_repo_root
-
-_INTENTIONS_DIR = find_repo_root() / "intentions"
+from data_paths import get_intentions_dir
 
 
 def intentions_dir() -> Path:
-    _INTENTIONS_DIR.mkdir(parents=True, exist_ok=True)
-    return _INTENTIONS_DIR
+    d = get_intentions_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 
 def wolf_daily_path(bot_id: int, run_date: date | str | None = None) -> Path:

@@ -3,8 +3,17 @@
 # Railway service settings:
 #   Root Directory: /  (repo root — NOT backend/)
 #   Config file:    railway.web.toml
+#   Volume:         attach one volume (e.g. mount /data) — persists bot.db + intentions/
+#   Variables:      GEMINI_API_KEY, DOSSIER_API_URL, DOSSIER_API_TOKEN,
+#                   FUND_MANAGER_FILL_PRICE=intention
 #
-# Full monorepo is required so selector/, data_layer/, and shared volumes work.
+# Fund manager cron runs in-process (no separate cron services):
+#   FUND_SELECTOR_CRON  default 30 3 * * 1-5  (~9:00 AM IST weekdays)
+#   FUND_MORNING_CRON   default 45 3 * * 1-5  (~9:15 AM IST weekdays)
+#   FUND_SCHEDULER_ENABLED=1  (auto-on when RAILWAY_ENVIRONMENT is set)
+#
+# Do NOT use railway.selector.toml / railway.morning.toml — those were for
+# separate services that cannot share SQLite with stock_ai.
 
 [build]
 builder = "NIXPACKS"

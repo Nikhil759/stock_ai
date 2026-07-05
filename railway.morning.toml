@@ -1,9 +1,5 @@
-# fund-morning-cron on Railway.
-#
-# Service settings:
-#   Root Directory: /  (repo root)
-#   Config file:    railway.morning.toml
-#   Cron schedule:  45 3 * * 1-5  (UTC, ~9:15 AM IST weekdays)
+# DEPRECATED — fund manager cron runs inside stock_ai via fund_scheduler.py.
+# Do not create a separate Railway service for this. Use railway.web.toml on stock_ai.
 
 [build]
 builder = "NIXPACKS"

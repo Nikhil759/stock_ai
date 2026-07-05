@@ -82,9 +82,11 @@ class TargetUpdateRequest(BaseModel):
 @app.on_event("startup")
 def startup():
     from logging_setup import setup_app_logging
+    from fund_scheduler import start_fund_scheduler
 
     setup_app_logging(verbose=True)
     db.init_db()
+    start_fund_scheduler()
 
 
 def _bot_response(b: dict) -> dict:
