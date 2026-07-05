@@ -1,0 +1,16 @@
+# Web API service (stock_ai on Railway).
+#
+# Railway service settings:
+#   Root Directory: /  (repo root — NOT backend/)
+#   Config file:    railway.web.toml
+#   No cron schedule on this service (cron lives on data-layer-cron + railway.json)
+#
+# Full monorepo is required so selector/, data_layer/, and shared volumes work.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r backend/requirements.txt"
+
+[deploy]
+startCommand = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+numReplicas = 1

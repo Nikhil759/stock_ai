@@ -1,10 +1,11 @@
-# Web API service (stock_ai on Railway).
-# Root Directory in Railway UI must stay `backend`.
-# Build vendors selector/ + data_layer/ from the monorepo clone into backend/.
+# DEPRECATED — use repo-root railway.web.toml instead.
+#
+# The stock_ai web service must deploy from the REPO ROOT (not backend/),
+# with Config file = railway.web.toml in Railway service settings.
+# See backend/README.md.
 
 [build]
 builder = "NIXPACKS"
-buildCommand = "bash scripts/railway_build.sh"
 
 [deploy]
 startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
