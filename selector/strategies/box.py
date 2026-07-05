@@ -1,15 +1,15 @@
 """
 Box — "Buy the box breakout" (Darvas Box, technical only).
 
-The old backend/screeners/box.py computed the box numerically from raw
-highs/lows/volumes (2-12% width, breakout above box*1.002, volume >=1.25x
-avg). The data layer only exposes chart_shape as plain-language labels
-(consolidation/volume_pattern strings), not the raw box geometry, so this
-reads those labels instead. This is deliberately strict -- few or zero
-survivors is a normal, healthy outcome (per the spec), so all three must
-fire rather than a majority.
+Coarse funnel: 2-of-3 among tight consolidation, rising volume, and a
+computed breakout above the prior 20-day box. Nifty above 200 DMA is tracked
+for ranking/logging but is NOT a hard gate — weak tape lowers LLM conviction
+instead of zeroing the pipeline.
 """
 from __future__ import annotations
+
+MIN_PASSES = 2
+CORE_CHECKS = ("tight_consolidation", "volume_surge", "breakout_above_box")
 
 
 def passes(dossier) -> tuple[bool, dict]:
@@ -22,7 +22,23 @@ def passes(dossier) -> tuple[bool, dict]:
     checks = {
         "tight_consolidation": consolidation.startswith("tight"),
         "volume_surge": volume_pattern.startswith("rising"),
+        "breakout_above_box": cs.breakout_above_box is True,
         "market_healthy": mc.nifty_above_200dma is True,
     }
-    survived = all(checks.values())
+    core_passes = sum(checks[k] for k in CORE_CHECKS)
+    survived = core_passes >= MIN_PASSES
     return survived, checks
+
+
+def rank_key(dossier) -> tuple:
+    """Higher tuple sorts first — used when funnel scores tie."""
+    cs = dossier.chart_shape
+    mc = dossier.market_context
+    width = cs.box_width_pct if cs.box_width_pct is not None else 99.0
+    return (
+        int(cs.breakout_above_box is True),
+        int((cs.volume_pattern or "").startswith("rising")),
+        int((cs.consolidation or "").startswith("tight")),
+        -width,
+        int(mc.nifty_above_200dma is True),
+    )

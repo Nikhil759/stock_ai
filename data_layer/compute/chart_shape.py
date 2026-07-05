@@ -40,14 +40,36 @@ def compute_chart_shape(bars) -> ChartShape:
 
     # consolidation: width of the recent 20-day range as % of its midpoint
     consolidation = None
+    box_width_pct = None
+    breakout_above_box = None
     if len(close) >= 20:
         seg = close.tail(20)
         hi, lo = float(seg.max()), float(seg.min())
         mid = (hi + lo) / 2
         if mid:
             width = (hi - lo) / mid * 100
+            box_width_pct = round(width, 1)
             tag = "tight" if width <= 12 else "loose"
             consolidation = f"{tag} range, ~{width:.0f}% wide, 20 days"
+
+    # Darvas box breakout: prior 20 sessions' range (excl. today) vs today's close
+    if (
+        len(df) >= 25
+        and "high" in df
+        and "low" in df
+        and df["high"].notna().sum() >= 21
+        and df["low"].notna().sum() >= 21
+    ):
+        prior = df.iloc[-21:-1]
+        box_high = float(prior["high"].max())
+        box_low = float(prior["low"].min())
+        box_mid = (box_high + box_low) / 2
+        if box_mid > 0:
+            w = (box_high - box_low) / box_mid * 100
+            if box_width_pct is None:
+                box_width_pct = round(w, 1)
+            if 2 <= w <= 12:
+                breakout_above_box = price > box_high * 1.002
 
     # volume pattern over last ~10 sessions
     volume_pattern = "unknown"
@@ -82,4 +104,6 @@ def compute_chart_shape(bars) -> ChartShape:
         consolidation=consolidation,
         volume_pattern=volume_pattern,
         distance_note=distance_note,
+        box_width_pct=box_width_pct,
+        breakout_above_box=breakout_above_box,
     )

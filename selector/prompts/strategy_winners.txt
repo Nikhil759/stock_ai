@@ -1,10 +1,30 @@
 STRATEGY LENS: Positional momentum + strength (CANSLIM / Livermore style).
-You are looking for strong companies breaking out of a quiet base into new
-highs. Weight: price above 50 & 200 DMA, near 52-week high, beating Nifty over
-~6 months, decent ROE and reasonable P/E, tight base then a volume-backed
-breakout. Market must be healthy (Nifty above 200 DMA).
-Conviction is driven by strength + breakout quality: cleaner base, stronger
-relative strength, better volume confirmation = higher. Sell logic: ride the
-trend with a target around a sensible extension (roughly +20% region) and a
-stop below the breakout base. Skip if the "breakout" lacks volume, the base is
-loose, or the broad market is weak.
+You are looking for market-leading stocks with strong relative strength.
+
+PRIMARY SIGNALS (already verified for funnel survivors — weight heavily):
+- Price above 50 & 200 DMA
+- Near 52-week high (within ~15%)
+- Beating Nifty over ~6 months
+
+SECONDARY SIGNALS (judge from dossier):
+- ROE, reasonable P/E, tight base, volume on breakout (chart_shape + volume_vs_20d_avg)
+
+MARKET REGIME:
+- Nifty above 200 DMA: standard bar; 60+ conviction can be buy when primary
+  signals are clean.
+- Nifty below 200 DMA: cautious regime, NOT a blanket skip. Stocks above their
+  own DMAs, near highs, and beating Nifty 6m are relative leaders — exactly what
+  this strategy buys in corrections. Cap conviction around 75 unless volume
+  confirms a breakout. Do NOT skip solely because Nifty is below 200 DMA when all
+  three primary momentum signals are true.
+
+CONVICTION (align decision with bands in the skeleton):
+- All 3 primary + rising volume + tight base → 70-85 buy
+- All 3 primary + flat volume but tight base → 50-65 watch (or buy 60+ if RS very strong)
+- All 3 primary + loose base + flat volume → 40-50 watch or skip if other red flags
+- Broken stock-level momentum or clear value trap → skip
+
+Sell logic: ride the trend with target around +20% region; stop below the
+breakout base. Skip only when stock-level momentum is broken, fundamentals are
+clearly deteriorating, or base/breakout quality is poor — not merely because the
+broad market is weak.

@@ -1,9 +1,25 @@
 STRATEGY LENS: Darvas Box breakout (technical only).
 You are looking for a clean break above a tight consolidation. Weight: last ~20
-days forming a tight box (roughly 2-12% wide), today closing ABOVE the box on
-clearly elevated volume, Nifty above its 200 DMA. Fundamentals are secondary.
-Conviction is driven by box tightness + break decisiveness + volume: tighter
-box, more decisive close above, heavier volume = higher. Sell logic: stop sits
-just below the box; target is a measured move from the box height. This is
-strict — few or zero picks is a normal, healthy outcome. Skip anything where the
-box is loose, volume is unconvincing, or the close is not decisively above.
+days forming a tight box (roughly 2-12% wide), close above the box on elevated
+volume. Fundamentals are secondary.
+
+PRIMARY SIGNALS (funnel survivors already passed 2-of-3):
+- Tight consolidation (~2-12% wide over ~20 days)
+- Rising / breakout volume pattern
+- breakout_above_box when present in chart_shape
+
+MARKET REGIME:
+- Nifty above 200 DMA: standard bar; textbook breakouts can reach 70-85 conviction.
+- Nifty below 200 DMA: cautious, NOT a blanket skip. A tight box with rising
+  volume and a decisive close above the range can still be buy (60-75) or watch
+  (45-59). Reduce conviction ~10 points vs a strong tape; do not skip solely for
+  weak Nifty if the stock's box setup is clean.
+
+CONVICTION:
+- Tight box + rising volume + breakout_above_box true + healthy tape → 70-85 buy
+- Tight box + rising volume, breakout unconfirmed → 50-65 watch or buy if tape OK
+- Loose box or drying volume → skip or low watch only
+
+Sell logic: stop just below the box; target a measured move from box height.
+Skip when the box is clearly loose, volume is unconvincing, or price is still
+inside the range with no break.

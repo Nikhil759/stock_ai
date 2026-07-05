@@ -79,6 +79,8 @@ class ChartShape:
     consolidation: Optional[str] = None
     volume_pattern: Optional[str] = None
     distance_note: Optional[str] = None
+    box_width_pct: Optional[float] = None       # 20-day range width; Darvas box filter
+    breakout_above_box: Optional[bool] = None  # close above prior 20d box high (+0.2%)
 
 
 @dataclass
