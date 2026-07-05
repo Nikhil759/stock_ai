@@ -15,9 +15,23 @@ UNIVERSE_FILE = ROOT / "nifty200.json"   # list of ticker names
 # invocations, since cron containers are otherwise ephemeral.
 STATE_DIR = Path(os.environ["RAILWAY_VOLUME_MOUNT_PATH"]) if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") else ROOT
 
-DOSSIER_DIR = STATE_DIR / "dossiers"          # one <TICKER>.json per stock
+# Web service may set DOSSIER_DIR after syncing from data-layer-cron internal API.
+def get_dossier_dir() -> Path:
+    override = os.environ.get("DOSSIER_DIR", "").strip()
+    if override:
+        return Path(override)
+    return STATE_DIR / "dossiers"
+
+
+# Back-compat alias for code that imported DOSSIER_DIR directly.
+DOSSIER_DIR = get_dossier_dir()
+
 DB_PATH = STATE_DIR / "data" / "history.sqlite"
 CACHE_DIR = STATE_DIR / "data" / "cache"      # parent for fundamentals/news/events per-day caches
+
+# --- internal dossier API (data-layer-cron serve + stock_ai sync) ---
+DOSSIER_API_TOKEN = os.environ.get("DOSSIER_API_TOKEN", "").strip()
+BUILD_CRON = os.environ.get("DOSSIER_BUILD_CRON", "30 2 * * 1-5")  # UTC, weekdays pre-open
 
 # --- yfinance ---
 YF_SUFFIX = ".NS"        # NSE suffix for Yahoo tickers (RELIANCE -> RELIANCE.NS)

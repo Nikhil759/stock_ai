@@ -102,7 +102,7 @@ def run(snapshot: str = "pre_open") -> None:
         save_dossier(d)
         append_snapshot(d)
 
-    print(f"[build] wrote {len(dossiers)} dossiers to {config.DOSSIER_DIR}")
+    print(f"[build] wrote {len(dossiers)} dossiers to {config.get_dossier_dir()}")
 
 
 if __name__ == "__main__":

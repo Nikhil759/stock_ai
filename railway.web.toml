@@ -3,7 +3,7 @@
 # Railway service settings:
 #   Root Directory: /  (repo root — NOT backend/)
 #   Config file:    railway.web.toml
-#   No cron schedule on this service (cron lives on data-layer-cron + railway.json)
+railway.web.toml
 #
 # Full monorepo is required so selector/, data_layer/, and shared volumes work.
 

@@ -1,5 +1,6 @@
 .env
 backend/cache/
+backend/dossier_cache/
 backend/bot.db
 backend/.venv/
 public/

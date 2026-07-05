@@ -1,11 +1,11 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r data_layer/requirements.txt"
   },
   "deploy": {
-    "startCommand": "python -m data_layer.build",
-    "cronSchedule": "30 2 * * 1-5",
+    "startCommand": "uvicorn data_layer.serve:app --host 0.0.0.0 --port $PORT",
     "numReplicas": 1
   }
 }

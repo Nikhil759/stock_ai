@@ -57,13 +57,33 @@ Each phase leaves the whole thing runnable; empty blocks are valid, not errors.
   endpoints via a shared cookie-warmed `requests` session — no `nsepython`
   dependency needed for either.
 
-## Deploying the daily build as a Railway cron job
+## Deploying the dossier API on Railway (`data-layer-cron`)
 
-`python -m data_layer.build` is written to run-to-completion and exit
-cleanly (the `ThreadPoolExecutor` is closed via `with`, sqlite connections
-are opened/closed per call) — a good fit for Railway's Cron Job model,
-which starts a service on a crontab schedule, runs its start command once,
-and expects it to exit.
+`data-layer-cron` runs a **persistent internal API** (`data_layer.serve`) that:
+
+- Keeps dossiers on its **volume** (unchanged)
+- Runs **scheduled builds** via APScheduler (`DOSSIER_BUILD_CRON`, default `30 2 * * 1-5` UTC)
+- Exposes `GET /api/dossiers` for `stock_ai` over **private networking**
+
+Start command (`railway.json`):
+
+```
+uvicorn data_layer.serve:app --host 0.0.0.0 --port $PORT
+```
+
+Set `DOSSIER_API_TOKEN` on both `data-layer-cron` and `stock_ai`. On `stock_ai`:
+
+```
+DOSSIER_API_URL=http://data-layer-cron.railway.internal:<PORT>
+```
+
+Use the `PORT` variable from the cron service (e.g. `8080`).
+
+## Deploying the daily build (legacy note)
+
+`python -m data_layer.build` still works locally and via `POST /api/build` on the
+internal API. The old Railway **cron-only** start command is replaced by the
+serve app + in-process scheduler.
 
 **1. All runtime state lives under one root, so one Volume covers it.**
 `dossiers/`, `data/history.sqlite`, `data/cache/*` (this package) and

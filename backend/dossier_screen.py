@@ -9,6 +9,8 @@ from strategies import STRATEGY_NAMES, VALID_STRATEGIES
 
 ensure_repo_on_path()
 
+from dossier_sync import sync_dossiers_from_api
+
 from selector.pipeline import run_pipeline  # noqa: E402
 from selector.schemas import FinalPicks, Pick  # noqa: E402
 
@@ -143,6 +145,22 @@ def screen(strategy: str, budget: int, bot_context: dict | None = None, use_llm:
         "screen start strategy=%s budget=₹%s cash=₹%s cap=%s%% llm=%s",
         strategy, budget, cash, cap_pct, use_llm,
     )
+
+    try:
+        sync_info = sync_dossiers_from_api()
+        if sync_info.get("synced"):
+            log.info("dossier sync: %d files from %s", sync_info["count"], sync_info["source"])
+        else:
+            log.info("dossier sync skipped (%s)", sync_info.get("message", "local dossiers"))
+    except RuntimeError as exc:
+        log.error("screen failed: %s", exc)
+        return {
+            "strategy": strategy,
+            "strategyName": STRATEGY_NAMES.get(strategy, strategy),
+            "supported": False,
+            "pipeline": "dossier",
+            "message": str(exc),
+        }
 
     try:
         payload = run_pipeline(
