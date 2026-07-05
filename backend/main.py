@@ -165,6 +165,12 @@ def deploy_bot(req: DeployRequest, ws: str = Depends(require_workspace)):
                 ]
                 bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), deployed)
                 result["botAction"] = bot_result
+                pipeline_payload = result.get("pipelinePayload")
+                if pipeline_payload:
+                    pipeline_payload["botId"] = bot_id
+                    db.save_birth_intention(bot_id, pipeline_payload)
+                    from fund_manager.intentions import write_birth_intention_file
+                    write_birth_intention_file(bot_id, pipeline_payload)
             screen_result = result
         except Exception as exc:
             screen_result = {
@@ -283,6 +289,15 @@ def resolve_pending(bot_id: int, pending_id: int, body: ApproveRequest, ws: str 
 def action_log(bot_id: int, limit: int = 30, ws: str = Depends(require_workspace)):
     _get_bot_or_404(bot_id, ws)
     return {"log": db.get_action_log(bot_id, limit)}
+
+
+@app.get("/api/bots/{bot_id}/daily-note")
+def bot_daily_note(bot_id: int, note_date: str | None = None, ws: str = Depends(require_workspace)):
+    _get_bot_or_404(bot_id, ws)
+    note = db.get_daily_note(bot_id, note_date)
+    if not note:
+        return {"note": None, "message": "No fund manager note for this date."}
+    return note
 
 
 @app.post("/api/bots/{bot_id}/trades/manual")

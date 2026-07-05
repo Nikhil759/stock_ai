@@ -91,6 +91,7 @@ def select_final(
     *,
     per_stock_cap_pct: float | None = None,
     reasoning: ReasoningLog | None = None,
+    wolf_context: dict | None = None,
 ) -> FinalPicks:
     survivors = [v for v in scored if v.decision in ("buy", "watch")]
     skipped_early = [
@@ -113,15 +114,20 @@ def select_final(
             portfolio_note="Nothing cleared the bar in per-stock scoring today; holding cash.",
         )
 
-    user_content = json.dumps({
+    user_payload = {
         "account": account,
         "market_context": market_context,
         "survivors": [v.model_dump() for v in survivors],
-    }, default=str)
+    }
+    if wolf_context:
+        user_payload["wolf_context"] = wolf_context
+    user_content = json.dumps(user_payload, default=str)
 
     t0 = time.monotonic()
     try:
-        response = client.generate_final(user_content, FinalPicks)
+        response = client.generate_final(
+            user_content, FinalPicks, wolf_mode=bool(wolf_context),
+        )
         result = response.parsed
         if result is None:
             log.warning("response.parsed was None for final selection, falling back to raw JSON parse")

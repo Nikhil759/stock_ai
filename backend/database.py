@@ -122,6 +122,47 @@ def init_db():
         _migrate_bot_names(conn)
         _migrate_pick_report(conn)
         _migrate_workspace(conn)
+        _migrate_breaker(conn)
+        _migrate_daily_notes(conn)
+        _migrate_birth_intention(conn)
+
+
+def _migrate_birth_intention(conn):
+    cols = {c[1] for c in conn.execute("PRAGMA table_info(bots)").fetchall()}
+    if "birth_intention_json" not in cols:
+        conn.execute("ALTER TABLE bots ADD COLUMN birth_intention_json TEXT")
+
+
+def _migrate_daily_notes(conn):
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS daily_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bot_id INTEGER NOT NULL,
+            note_date TEXT NOT NULL,
+            note_text TEXT NOT NULL,
+            sections_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(bot_id, note_date),
+            FOREIGN KEY (bot_id) REFERENCES bots(id)
+        )
+    """)
+
+
+def _migrate_breaker(conn):
+    cols = {c[1] for c in conn.execute("PRAGMA table_info(bots)").fetchall()}
+    if "breaker_tripped" not in cols:
+        conn.execute(
+            "ALTER TABLE bots ADD COLUMN breaker_tripped INTEGER NOT NULL DEFAULT 0"
+        )
+    if "breaker_reset_mode" not in cols:
+        conn.execute(
+            "ALTER TABLE bots ADD COLUMN breaker_reset_mode TEXT NOT NULL DEFAULT 'auto'"
+        )
+    if "day_start_portfolio_value" not in cols:
+        conn.execute("ALTER TABLE bots ADD COLUMN day_start_portfolio_value REAL")
+    if "day_start_date" not in cols:
+        conn.execute("ALTER TABLE bots ADD COLUMN day_start_date TEXT")
 
 
 def _bot_name(bot_id: int) -> str:
@@ -255,6 +296,10 @@ def _row_bot(r) -> dict:
         "stop_loss_pct": r["stop_loss_pct"],
         "deployedAt": r["deployed_at"],
         "terminatedAt": r["terminated_at"],
+        "breakerTripped": bool(r["breaker_tripped"]) if "breaker_tripped" in r.keys() else False,
+        "breakerResetMode": r["breaker_reset_mode"] if "breaker_reset_mode" in r.keys() else "auto",
+        "dayStartPortfolioValue": r["day_start_portfolio_value"] if "day_start_portfolio_value" in r.keys() else None,
+        "dayStartDate": r["day_start_date"] if "day_start_date" in r.keys() else None,
     }
 
 
@@ -274,6 +319,16 @@ def _market_value_for_bot(bot_id: int) -> float:
             (bot_id,),
         ).fetchone()
     return float(row[0]) if row else 0.0
+
+
+def list_running_bots() -> list[dict]:
+    """All running (not paused/terminated) bots across workspaces — for cron jobs."""
+    init_db()
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM bots WHERE status = 'running' ORDER BY id",
+        ).fetchall()
+    return [_row_bot(r) for r in rows]
 
 
 def list_bots(workspace_id: str, include_terminated: bool = False) -> list[dict]:
@@ -371,6 +426,41 @@ def set_bot_status(bot_id: int, status: str) -> dict | None:
         action = {"running": "bot_resumed", "paused": "bot_paused", "terminated": "bot_terminated"}[status]
         log_action(bot_id, action, bot["name"], f"Status → {status}")
     return bot
+
+
+def save_birth_intention(bot_id: int, payload: dict) -> None:
+    """Persist the selector output from deploy as this Wolf's birth intention."""
+    init_db()
+    raw = json.dumps(payload, default=str)
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE bots SET birth_intention_json = ? WHERE id = ?",
+            (raw, bot_id),
+        )
+    note = ""
+    result = payload.get("result")
+    if isinstance(result, dict):
+        note = (result.get("portfolio_note") or "")[:500]
+    log_action(
+        bot_id,
+        "birth_intention_saved",
+        f"Birth intention recorded ({payload.get('strategy', '?')} deploy)",
+        note,
+    )
+
+
+def get_birth_intention(bot_id: int) -> dict | None:
+    init_db()
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT birth_intention_json FROM bots WHERE id = ?", (bot_id,)
+        ).fetchone()
+    if not row or not row["birth_intention_json"]:
+        return None
+    try:
+        return json.loads(row["birth_intention_json"])
+    except (json.JSONDecodeError, TypeError):
+        return None
 
 
 def update_bot(bot_id: int, **kwargs) -> dict | None:
@@ -721,6 +811,102 @@ def resolve_pending(bot_id: int, pending_id: int, approve: bool) -> dict | None:
         return {"status": "approved", "trade": trade}
     log_action(bot_id, "trade_rejected", f"Rejected {pending['ticker']}", pending["reason"])
     return {"status": "rejected"}
+
+
+def set_breaker_tripped(bot_id: int, tripped: bool) -> None:
+    init_db()
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE bots SET breaker_tripped = ? WHERE id = ?",
+            (1 if tripped else 0, bot_id),
+        )
+
+
+def set_day_baseline(bot_id: int, portfolio_value: float, day: str | None = None) -> None:
+    init_db()
+    day = day or datetime.now().strftime("%Y-%m-%d")
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE bots SET day_start_portfolio_value = ?, day_start_date = ? WHERE id = ?",
+            (portfolio_value, day, bot_id),
+        )
+
+
+def clear_breaker_if_auto(bot_id: int) -> bool:
+    """Auto-clear breaker at pre-open if mode is 'auto'. Returns True if cleared."""
+    init_db()
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT breaker_tripped, breaker_reset_mode FROM bots WHERE id = ?",
+            (bot_id,),
+        ).fetchone()
+        if not row or not row["breaker_tripped"]:
+            return False
+        if (row["breaker_reset_mode"] or "auto") != "auto":
+            return False
+        conn.execute(
+            "UPDATE bots SET breaker_tripped = 0 WHERE id = ?",
+            (bot_id,),
+        )
+    log_action(bot_id, "breaker_cleared", "Auto-reset at pre-open", "Daily-loss breaker cleared.")
+    return True
+
+
+def upsert_daily_note(
+    bot_id: int,
+    note_date: str,
+    note_text: str,
+    sections_json: str | None = None,
+) -> dict:
+    init_db()
+    ts = _now()
+    with _conn() as conn:
+        existing = conn.execute(
+            "SELECT id, created_at FROM daily_notes WHERE bot_id = ? AND note_date = ?",
+            (bot_id, note_date),
+        ).fetchone()
+        if existing:
+            conn.execute(
+                """UPDATE daily_notes SET note_text = ?, sections_json = ?, updated_at = ?
+                   WHERE bot_id = ? AND note_date = ?""",
+                (note_text, sections_json, ts, bot_id, note_date),
+            )
+            created = existing["created_at"]
+        else:
+            conn.execute(
+                """INSERT INTO daily_notes
+                   (bot_id, note_date, note_text, sections_json, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (bot_id, note_date, note_text, sections_json, ts, ts),
+            )
+            created = ts
+    return {
+        "botId": bot_id,
+        "date": note_date,
+        "note": note_text,
+        "createdAt": created,
+        "updatedAt": ts,
+    }
+
+
+def get_daily_note(bot_id: int, note_date: str | None = None) -> dict | None:
+    init_db()
+    note_date = note_date or datetime.now().strftime("%Y-%m-%d")
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM daily_notes WHERE bot_id = ? AND note_date = ?",
+            (bot_id, note_date),
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        "botId": row["bot_id"],
+        "date": row["note_date"],
+        "note": row["note_text"],
+        "sectionsJson": row["sections_json"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
 
 
 # Legacy compat — returns first active bot or None (requires workspace)

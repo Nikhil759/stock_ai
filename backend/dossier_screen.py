@@ -163,6 +163,15 @@ def screen(strategy: str, budget: int, bot_context: dict | None = None, use_llm:
         }
 
     try:
+        bot_id = bot.get("id")
+        wolf_context = None
+        open_positions: list[dict] = []
+        if bot_id:
+            from wolf_context import build_wolf_context, open_positions_for_account
+
+            wolf_context = build_wolf_context(bot_id)
+            open_positions = open_positions_for_account(bot_id)
+
         payload = run_pipeline(
             strategy,
             budget=budget,
@@ -170,6 +179,9 @@ def screen(strategy: str, budget: int, bot_context: dict | None = None, use_llm:
             per_stock_cap_pct=float(cap_pct),
             use_llm=use_llm,
             write_intentions=False,
+            bot_id=bot_id,
+            wolf_context=wolf_context,
+            open_positions=open_positions,
         )
     except FileNotFoundError as e:
         log.error("screen failed: %s", e)
@@ -230,5 +242,6 @@ def screen(strategy: str, budget: int, bot_context: dict | None = None, use_llm:
         "llmSummary": result.portfolio_note,
         "reasoningLog": reasoning_log,
         "marketFilter": market_note,
+        "pipelinePayload": payload,
         "dossierAsOf": dossier_meta.get(candidates[0]["ticker"], {}).get("as_of") if candidates else None,
     }

@@ -11,3 +11,4 @@ dossiers/
 data/
 intentions/
 logs/
+.kite_token_*

@@ -143,6 +143,7 @@ def generate_structured(strategy: str, user_content: str, response_schema: type)
 
 
 _final_prompt_cache: str | None = None
+_daily_wolf_prompt_cache: str | None = None
 
 
 def load_final_selection_prompt() -> str:
@@ -152,18 +153,25 @@ def load_final_selection_prompt() -> str:
     return _final_prompt_cache
 
 
-def generate_final(user_content: str, response_schema: type):
-    """One-off structured call for the portfolio-decision prompt. Runs once
-    per strategy per day, not per-stock, so explicit caching would be pure
-    overhead here -- always uses a plain system_instruction."""
+def load_daily_wolf_prompt() -> str:
+    global _daily_wolf_prompt_cache
+    if _daily_wolf_prompt_cache is None:
+        _daily_wolf_prompt_cache = (PROMPTS_DIR / "daily_wolf_selection.txt").read_text()
+    return _daily_wolf_prompt_cache
+
+
+def generate_final(user_content: str, response_schema: type, *, wolf_mode: bool = False):
+    """Structured call for portfolio / daily-Wolf intention selection."""
     client = get_client()
+    system_instruction = load_daily_wolf_prompt() if wolf_mode else load_final_selection_prompt()
+    label = "daily wolf" if wolf_mode else "final selection"
     config = types.GenerateContentConfig(
-        system_instruction=load_final_selection_prompt(),
+        system_instruction=system_instruction,
         response_mime_type="application/json",
         response_schema=response_schema,
     )
-    log.debug("-> generate_content [final selection] user_content=%d chars", len(user_content))
-    log.debug("final selection input payload:\n%s", user_content)
+    log.debug("-> generate_content [%s] user_content=%d chars", label, len(user_content))
+    log.debug("%s input payload:\n%s", label, user_content)
     t0 = time.monotonic()
     response = client.models.generate_content(
         model=GEMINI_MODEL,
@@ -171,5 +179,5 @@ def generate_final(user_content: str, response_schema: type):
         config=config,
     )
     elapsed = time.monotonic() - t0
-    log.debug("<- generate_content [final selection] took=%.2fs raw=%s", elapsed, response.text)
+    log.debug("<- generate_content [%s] took=%.2fs raw=%s", label, elapsed, response.text)
     return response

@@ -694,6 +694,16 @@
         </div>
       </sc-if>
 
+      <sc-if value="{{ hasDailyNote }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--paper);border:1px solid var(--line2);border-radius:11px;padding:14px 16px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--clay);font-weight:600;">Fund manager · today</div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">{{ dailyNoteUpdated }}</span>
+          </div>
+          <pre style="font-family:var(--sans,inherit);font-size:13px;line-height:1.55;color:var(--ink);margin:0;white-space:pre-wrap;word-break:break-word;">{{ dailyNoteText }}</pre>
+        </div>
+      </sc-if>
+
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:12px;margin-bottom:14px;">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Allocation</div>
@@ -973,6 +983,7 @@ class Component extends DCLogic {
       pickN: 0,
       pending: [],
       actionLog: [],
+      dailyNote: null,
       botActionMsg: '',
       llmSummary: '',
       lastScreenSummary: {},
@@ -1343,19 +1354,22 @@ class Component extends DCLogic {
 
   async _loadBotData(botId){
     if (!botId) {
-      this.setState({ trades: [], pending: [], actionLog: [], activeBot: null });
+      this.setState({ trades: [], pending: [], actionLog: [], dailyNote: null, activeBot: null });
       return null;
     }
-    const [botRes, tradesRes, pendingRes, logRes] = await Promise.all([
+    const [botRes, tradesRes, pendingRes, logRes, noteRes] = await Promise.all([
       this._fetch(this._botPath(botId)),
       this._fetch(this._botPath(botId, 'trades')),
       this._fetch(this._botPath(botId, 'pending')),
       this._fetch(this._botPath(botId, 'log')),
+      this._fetch(this._botPath(botId, 'daily-note')),
     ]);
     const activeBot = botRes.ok ? await botRes.json() : null;
     const trades = tradesRes.ok ? (await tradesRes.json()).trades : [];
     const pending = pendingRes.ok ? (await pendingRes.json()).pending : [];
     const actionLog = logRes.ok ? (await logRes.json()).log : [];
+    const noteData = noteRes.ok ? await noteRes.json() : null;
+    const dailyNote = noteData?.note ? noteData : null;
     this.setState({
       activeBotId: botId,
       activeBot,
@@ -1366,6 +1380,7 @@ class Component extends DCLogic {
         onReject: () => this.resolvePending(p.id, false),
       })),
       actionLog: this._mapLog(actionLog),
+      dailyNote,
     });
     return activeBot;
   }
@@ -1971,6 +1986,11 @@ class Component extends DCLogic {
       : '—';
     const trackerSummary = (s.lastScreenSummary || {})[s.activeBotId] || s.llmSummary || '';
     const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker';
+    const dailyNoteText = s.dailyNote?.note || '';
+    const dailyNoteUpdated = s.dailyNote?.updatedAt
+      ? new Date(s.dailyNote.updatedAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+      : '';
+    const hasDailyNote = !!dailyNoteText && s.screen === 'tracker';
 
     return {
       isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
@@ -1998,6 +2018,7 @@ class Component extends DCLogic {
       activeBotName, activeBotStrategy, activeBotModeLabel,
       trackerActive: !!s.activeBotId,
       trackerSummary, hasTrackerSummary,
+      dailyNoteText, dailyNoteUpdated, hasDailyNote,
       hasScreen: !!s.activeBotId || isScanning,
       stratName, otherTag, cands: s.cands, pickN: s.pickN, budgetFmt: fmt(s.budget), cashFmt: fmt(cash),
       llmSummary: s.llmSummary, hasLlmSummary: !!s.llmSummary,

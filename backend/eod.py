@@ -1,7 +1,11 @@
 """End-of-day job — refresh prices, auto-exit, return cash to pool."""
 
+import logging
+
 import database as db
 from data import fetch_latest_price
+
+log = logging.getLogger(__name__)
 
 
 def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
@@ -28,12 +32,14 @@ def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
         if exit_reason:
             result = db.close_trade(t["id"], price, exit_reason)
             if result:
+                proceeds = t["qty"] * price
                 closed.append({
                     "ticker": t["ticker"],
                     "price": price,
                     "reason": exit_reason,
-                    "proceeds": t["qty"] * price,
+                    "proceeds": proceeds,
                 })
+                _maybe_redeploy_freed_cash(bot_id, proceeds, t["ticker"])
         else:
             updated.append({"ticker": t["ticker"], "ltp": price})
 
@@ -57,6 +63,15 @@ def _refresh_open_trades(bot_id: int, bot: dict, *, log_action: str) -> dict:
         "availableCash": bot_after["availableCash"],
         "portfolioValue": bot_after["portfolioValue"],
     }
+
+
+def _maybe_redeploy_freed_cash(bot_id: int, proceeds: float, ticker: str) -> None:
+    """Optional mid-day redeploy when refresh closes a position."""
+    try:
+        from fund_manager.redeploy import handle_freed_cash
+        handle_freed_cash(bot_id, proceeds, ticker)
+    except Exception:
+        log.exception("Mid-day redeploy failed for bot %s %s", bot_id, ticker)
 
 
 def refresh_prices(bot_id: int) -> dict:
