@@ -490,6 +490,22 @@
         </div>
       </sc-if>
 
+      <sc-if value="{{ hasScreenReasoning }}" hint-placeholder-val="{{ false }}">
+        <details style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:16px;">
+          <summary style="cursor:pointer;font-size:14px;font-weight:650;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-list-details" style="color:var(--clay);"></i> How we picked these <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink2);">({{ reasoningCount }} steps)</span>
+          </summary>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
+            <sc-for list="{{ reasoningRows }}" as="r" hint-placeholder-count="4">
+              <div style="font-size:13px;line-height:1.45;color:var(--ink2);padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;">
+                <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--clay);">{{ r.phase }}</span>
+                <div style="margin-top:4px;color:var(--ink);">{{ r.message }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </details>
+      </sc-if>
+
       <sc-if value="{{ hasBotMsg }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink2);">
           <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-sm wolf-icon-inline" width="14" height="14"> {{ botActionMsg }}
@@ -525,7 +541,7 @@
             <div style="width:100%;max-width:340px;height:6px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden;">
               <div style="height:100%;width:{{ loadProgressPct }};border-radius:999px;background:linear-gradient(90deg,var(--clay),#E89B57,var(--clay));background-size:200% 100%;animation:shimmer 2s linear infinite;transition:width 0.6s ease;"></div>
             </div>
-            <p style="font-size:12px;color:var(--ink2);margin:10px 0 0;">Nifty 200 · throttled fetch · usually 2–4 min</p>
+            <p style="font-size:12px;color:var(--ink2);margin:10px 0 0;">{{ loadHint }}</p>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;max-width:360px;margin:0 auto;">
             <sc-for list="{{ loadStepCards }}" as="st" hint-placeholder-count="4">
@@ -654,6 +670,12 @@
       <sc-if value="{{ hasRefreshMsg }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:14px;font-size:14px;color:var(--ink2);">
           <i class="ti ti-check" style="color:var(--green);"></i> {{ refreshMsg }}
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasTrackerSummary }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#E0EAE6;border:1px solid #C3D6CE;border-radius:11px;padding:12px 16px;margin-bottom:14px;font-size:14px;color:var(--ink);line-height:1.5;">
+          <i class="ti ti-sparkles" style="color:#3E6B63;"></i> {{ trackerSummary }}
         </div>
       </sc-if>
 
@@ -938,11 +960,14 @@ class Component extends DCLogic {
       actionLog: [],
       botActionMsg: '',
       llmSummary: '',
+      lastScreenSummary: {},
+      screenReasoning: [],
       refreshing: false,
       loadStepIdx: 0,
       loadProgress: 0,
       loadTitle: '',
       loadStatus: '',
+      loadHint: 'Dossier pipeline · usually 1–2 min',
       isScanning: false,
       configLoaded: false,
       pickModal: null,
@@ -995,23 +1020,41 @@ class Component extends DCLogic {
   }
 
   _loadStepPlan(strategy, isDeploy){
-    const sub = { value:'Value filters', winners:'Momentum rules', box:'Box patterns', dip:'RSI dip signals' }[strategy] || 'Strategy rules';
+    const sub = { value:'Value math filters', winners:'Momentum rules', box:'Box pattern checks', dip:'RSI dip signals' }[strategy] || 'Strategy rules';
     const steps = [];
-    if (isDeploy) steps.push({ label: 'Creating Wolf', sub: 'Fund pool setup', wolfIcon: true });
+    if (isDeploy) steps.push({ label: 'Creating Wolf', sub: 'Fund pool setup', phase: 'setup', wolfIcon: true });
     steps.push(
-      { label: 'Loading universe', sub: 'Nifty 200 list', icon: 'ti ti-list-numbers' },
-      { label: 'Fetching EOD data', sub: 'yfinance · throttled', icon: 'ti ti-cloud-download' },
-      { label: 'Running screener', sub: sub, icon: 'ti ti-filter' },
-      { label: 'AI ranking', sub: 'Gemini analysis', icon: 'ti ti-sparkles' },
-      { label: 'Building shortlist', sub: 'Final picks', icon: 'ti ti-list-check' },
+      { label: 'Loading dossiers', sub: 'Pre-built neutral fact files', phase: 'dossiers', icon: 'ti ti-database' },
+      { label: 'Math funnel', sub: sub, phase: 'funnel', icon: 'ti ti-filter' },
+      { label: 'AI scoring', sub: 'Gemini reads full dossier JSON', phase: 'scoring', icon: 'ti ti-sparkles' },
+      { label: 'Final selection', sub: 'Budget + conviction ranking', phase: 'final', icon: 'ti ti-chart-pie' },
+      { label: 'Building shortlist', sub: 'Formatting picks', phase: 'shortlist', icon: 'ti ti-list-check' },
     );
     return steps;
+  }
+
+  _applyReasoningLog(log, isDeploy){
+    if (!log || !log.length) return null;
+    const steps = (this.state.loadSteps || this._loadStepPlan(this.state.strategy, isDeploy)).map(st => ({ ...st }));
+    const latestByPhase = {};
+    for (const entry of log) {
+      const phase = entry.phase;
+      if (phase) latestByPhase[phase] = entry.message || entry.detail || '';
+    }
+    for (const st of steps) {
+      if (st.phase && latestByPhase[st.phase]) st.sub = latestByPhase[st.phase];
+    }
+    if (isDeploy && latestByPhase.setup) {
+      const setupStep = steps.find(s => s.phase === 'setup');
+      if (setupStep) setupStep.sub = latestByPhase.setup;
+    }
+    return { steps, screenReasoning: log };
   }
 
   _startScanProgress(strategy, isDeploy){
     this._stopScanProgress();
     const steps = this._loadStepPlan(strategy, isDeploy);
-    const thresholds = isDeploy ? [0, 3, 12, 55, 115, 165] : [0, 5, 50, 110, 160];
+    const thresholds = isDeploy ? [0, 2, 6, 18, 75, 95] : [0, 3, 12, 55, 85];
     const start = Date.now();
     const tick = () => {
       const elapsed = (Date.now() - start) / 1000;
@@ -1021,11 +1064,13 @@ class Component extends DCLogic {
       }
       const base = 8 + (idx / Math.max(steps.length - 1, 1)) * 78;
       const wobble = Math.min(8, (elapsed % 4) * 2);
+      const activeStep = steps[idx];
       this.setState({
         loadSteps: steps,
         loadStepIdx: idx,
         loadProgress: Math.min(94, base + wobble),
-        loadStatus: steps[idx].label,
+        loadStatus: activeStep?.label || 'Working…',
+        loadHint: this._scanHint(activeStep?.phase, elapsed),
         loadTitle: isDeploy ? 'Deploying your Wolf' : 'Scanning market',
         isScanning: true,
       });
@@ -1034,13 +1079,33 @@ class Component extends DCLogic {
     this._scanTimer = setInterval(tick, 700);
   }
 
-  _stopScanProgress(finish){
+  _scanHint(phase, elapsed){
+    const rotate = (arr) => arr[Math.floor(elapsed / 3) % arr.length];
+    const hints = {
+      dossiers: ['Reading 200 dossier JSON files…', 'No live yfinance — facts are pre-computed', 'Dossiers built by data_layer cron'],
+      funnel: ['Applying deterministic strategy checks…', 'Filtering on pre-computed fundamentals + technicals', 'Ranking survivors by checks passed'],
+      scoring: ['Gemini scores each survivor in parallel…', 'Full dossier JSON sent per stock', 'Buy / watch / skip + conviction per ticker'],
+      final: ['One portfolio LLM call…', 'Allocating budget across top convictions', 'Prices frozen from scoring stage'],
+      shortlist: ['Formatting picks for your Wolf…', 'Attaching reasoning summaries…'],
+      setup: ['Creating fund pool…', 'Saving guardrails…'],
+    };
+    return hints[phase] ? rotate(hints[phase]) : 'Dossier pipeline · usually 1–2 min';
+  }
+
+  _stopScanProgress(finish, reasoningPatch){
     if (this._scanTimer) clearInterval(this._scanTimer);
     this._scanTimer = null;
+    const patch = reasoningPatch || {};
     if (finish) {
-      this.setState({ loadProgress: 100, loadStatus: 'Done', isScanning: false });
+      this.setState({
+        loadProgress: 100,
+        loadStatus: 'Done',
+        loadHint: 'Selection complete',
+        isScanning: false,
+        ...patch,
+      });
     } else {
-      this.setState({ isScanning: false, loadProgress: 0 });
+      this.setState({ isScanning: false, loadProgress: 0, ...patch });
     }
   }
 
@@ -1301,7 +1366,8 @@ class Component extends DCLogic {
   }
 
   async selectBot(id){
-    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '', closedTradesOpen: false });
+    const summary = (this.state.lastScreenSummary || {})[id] || '';
+    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '', closedTradesOpen: false, llmSummary: summary });
     const bot = await this._loadBotData(id);
     if (bot) this.setState({ strategy: bot.strategy });
   }
@@ -1513,8 +1579,10 @@ class Component extends DCLogic {
       const bot = data.bot;
       const screen = data.screen;
       const cands = (screen?.candidates || []).map(c => this._mapCandidate(c));
+      const summary = screen?.llmSummary || screen?.llm?.summary || '';
+      const reasoningPatch = this._applyReasoningLog(screen?.reasoningLog, true);
       await this._loadBots();
-      this._stopScanProgress(true);
+      this._stopScanProgress(true, reasoningPatch);
       this.setState({
         activeBotId: bot.id,
         activeBot: bot,
@@ -1526,7 +1594,9 @@ class Component extends DCLogic {
         screenedN: screen?.screenedCount || 200,
         pickN: (screen?.candidates || []).length,
         botActionMsg: screen?.botAction?.message || '',
-        llmSummary: screen?.llmSummary || screen?.llm?.summary || '',
+        llmSummary: summary,
+        lastScreenSummary: { ...s.lastScreenSummary, [bot.id]: summary },
+        screenReasoning: screen?.reasoningLog || reasoningPatch?.screenReasoning || [],
       });
       if (bot.id) await this._loadBotData(bot.id);
       if (['executed', 'partial'].includes(screen?.botAction?.action)) this.setState({ screen: 'tracker' });
@@ -1547,23 +1617,27 @@ class Component extends DCLogic {
     const botId = s.activeBotId;
     if (!botId || s.loading) return;
     const strat = s.activeBot?.strategy || s.strategy || 'value';
-    this.setState({ loading: true, screenError: false, errorMsg: '', botActionMsg: '', llmSummary: '' });
+    this.setState({ loading: true, screenError: false, errorMsg: '', botActionMsg: '', llmSummary: '', screenReasoning: [] });
     this._startScanProgress(strat, false);
     try {
       const res = await this._fetch(this._botPath(botId, 'screen'), { method: 'POST' });
       if (!res.ok) throw new Error((await res.json()).detail || 'Screen failed');
       const data = await res.json();
       const cands = (data.candidates || []).map(c => this._mapCandidate(c));
+      const summary = data.llmSummary || data.llm?.summary || '';
+      const reasoningPatch = this._applyReasoningLog(data.reasoningLog, false);
       await this._loadBotData(botId);
       await this._loadBots();
-      this._stopScanProgress(true);
+      this._stopScanProgress(true, reasoningPatch);
       this.setState({
         loading: false,
         cands,
         screenedN: data.screenedCount || 200,
         pickN: (data.candidates || []).length,
         botActionMsg: data.botAction?.message || '',
-        llmSummary: data.llmSummary || data.llm?.summary || '',
+        llmSummary: summary,
+        lastScreenSummary: { ...s.lastScreenSummary, [botId]: summary },
+        screenReasoning: data.reasoningLog || reasoningPatch?.screenReasoning || [],
         activeBot: data.bot || s.activeBot,
       });
       if (['executed', 'partial'].includes(data.botAction?.action)) this.setState({ screen: 'tracker' });
@@ -1871,6 +1945,8 @@ class Component extends DCLogic {
     const activeBotModeLabel = bot
       ? (bot.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + bot.level)
       : '—';
+    const trackerSummary = (s.lastScreenSummary || {})[s.activeBotId] || s.llmSummary || '';
+    const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker';
 
     return {
       isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
@@ -1893,13 +1969,22 @@ class Component extends DCLogic {
       activeBotId: s.activeBotId, botOptions, botSelectStyle, activeBotLabel,
       activeBotName, activeBotStrategy, activeBotModeLabel,
       trackerActive: !!s.activeBotId,
+      trackerSummary, hasTrackerSummary,
       hasScreen: !!s.activeBotId || isScanning,
       stratName, otherTag, cands: s.cands, pickN: s.pickN, budgetFmt: fmt(s.budget), cashFmt: fmt(cash),
       llmSummary: s.llmSummary, hasLlmSummary: !!s.llmSummary,
+      reasoningRows: (s.screenReasoning || []).map((r, i) => ({
+        phase: (r.phase || 'step').replace(/_/g, ' '),
+        message: r.message || '',
+        key: i,
+      })),
+      reasoningCount: (s.screenReasoning || []).length,
+      hasScreenReasoning: (s.screenReasoning || []).length > 0,
       allocationFmt: fmt(allocation), deployedFmt: fmt(deployed), portfolioFmt: fmt(portfolio),
       screenedN: s.screenedN, loading: s.loading, isScanning, screenError: s.screenError, errorMsg: s.errorMsg,
       loadTitle: s.loadTitle || (s.deploying ? 'Deploying your Wolf' : 'Scanning market'),
       loadStatus: s.loadStatus || 'Starting…',
+      loadHint: s.loadHint || 'Dossier pipeline · usually 1–2 min',
       loadProgressPct, loadStepCards, scanIcon, scanIconSpin,
       hasCands, noCands, botActionMsg: s.botActionMsg, hasBotMsg: !!s.botActionMsg,
       modeAdvisory: bot ? modeAdvisory : setupModeAdvisory,

@@ -81,6 +81,9 @@ class TargetUpdateRequest(BaseModel):
 
 @app.on_event("startup")
 def startup():
+    from logging_setup import setup_app_logging
+
+    setup_app_logging(verbose=True)
     db.init_db()
 
 
@@ -151,6 +154,14 @@ def deploy_bot(req: DeployRequest, ws: str = Depends(require_workspace)):
     if req.run_screen:
         result = screen(req.strategy, req.allocation, deployed)
         if result.get("supported"):
+            setup_msg = (
+                f"Wolf #{bot_id} created · ₹{req.allocation:,} pool · "
+                f"{req.mode} mode · {STRATEGY_NAMES.get(req.strategy, req.strategy)}"
+            )
+            result["reasoningLog"] = [
+                {"phase": "setup", "message": setup_msg},
+                *(result.get("reasoningLog") or []),
+            ]
             bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), deployed)
             result["botAction"] = bot_result
         screen_result = result

@@ -6,10 +6,27 @@ FastAPI web service for the paper-trading bot. Deployed separately from the
 ## Local dev
 
 ```bash
+# 1. Build dossiers first (repo root — needs network for yfinance)
+cd ..
+python -m data_layer.build
+
+# 2. Start API
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
+```
+
+Deploy / screen uses **dossier-powered** selection (`selector` funnel + LLM on
+full dossier JSON), not live yfinance screeners. Requires `dossiers/` at the
+repo root (200 JSON files) and `GEMINI_API_KEY` in `../.env`.
+
+Quick validation without the UI:
+
+```bash
+python -m selector.funnel value          # Phase 1 only
+python -m selector.run value             # full pipeline → intentions/
+cd backend && python -c "from dossier_screen import screen; print(screen('value', 100000, use_llm=True)['candidates'])"
 ```
 
 Open http://localhost:8000/app
@@ -44,5 +61,10 @@ curl -i "https://YOUR-RAILWAY-URL.up.railway.app/api/health"
 
 Point Vercel's `RAILWAY_PUBLIC_URL` at this URL and redeploy the frontend.
 
-Strategy knowledge markdown lives in `backend/knowledge/` so the web service
-does not need the full monorepo root at runtime.
+**Dossiers on Railway:** screening reads `dossiers/` from the repo-root
+`data_layer` path. The web service must see the same dossiers the cron builds
+(shared volume mount at repo root, or run `data_layer.build` in-process).
+Until that is wired, production deploy may return "No dossiers found".
+
+Strategy knowledge markdown in `backend/knowledge/` is legacy; live screening
+uses `selector/prompts/` with full dossier JSON.

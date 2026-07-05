@@ -11,9 +11,12 @@ CORE RULES
   then by evidence quality.
 - Respect the budget exactly. You have limited cash and can only buy whole
   shares. Do not exceed available cash or the per-stock cap.
-- Prefer conviction and evidence quality over quantity. Fewer strong picks beat
-  more mediocre ones. Holding cash is a valid, sometimes wise, outcome — if
-  nothing clears the bar, return an empty picks list and say why.
+- Aim to deploy as much of cash_available as practical. Minimize cash_held_inr —
+  leftover cash should only reflect whole-share rounding, per-stock cap limits,
+  or genuinely insufficient survivors. Do not leave large chunks of the allocation
+  idle when affordable whole-share picks exist among the survivors.
+- Prefer conviction and evidence quality over quantity, but within that bar try
+  to fill the budget with 1–3 strong picks rather than defaulting to cash.
 - Diversify sensibly: avoid concentrating the whole budget in one sector unless
   the evidence is overwhelming.
 - Carry each pick's buy / stop / target through from its score unchanged.
@@ -42,6 +45,6 @@ OUTPUT
   "skipped": [
     { "ticker": string, "reason": string }   // strong-ish names you passed on
   ],
-  "cash_held_inr": number,          // deliberately un-deployed cash
+  "cash_held_inr": number,          // cash deliberately left undeployed (minimize this)
   "portfolio_note": string          // 1-3 sentences on the overall shape today
 }

@@ -11,19 +11,26 @@ import math
 import time
 
 from ..config import PER_STOCK_CAP_PCT
+from ..reasoning_log import ReasoningLog
 from ..schemas import FinalPicks, Pick, SkippedEntry, StockVerdict
 from . import client
 
 log = logging.getLogger(__name__)
 
 
-def _validate_and_clamp(result: FinalPicks, account: dict) -> FinalPicks:
+def _validate_and_clamp(
+    result: FinalPicks,
+    account: dict,
+    *,
+    per_stock_cap_pct: float | None = None,
+) -> FinalPicks:
     """Enforce the budget/cap constraints the LLM was asked to respect but
     might not have honored exactly. Clamp or drop violations, log every
     change, recompute cash_held_inr from what actually survives."""
     budget_total = account["budget_total"]
     cash_available = account["cash_available"]
-    per_stock_cap = budget_total * PER_STOCK_CAP_PCT / 100
+    cap_pct = per_stock_cap_pct if per_stock_cap_pct is not None else account.get("per_stock_cap_pct", PER_STOCK_CAP_PCT)
+    per_stock_cap = budget_total * cap_pct / 100
 
     log.debug("validating LLM's %d raw pick(s) against per_stock_cap=₹%.0f cash_available=₹%.0f",
               len(result.picks), per_stock_cap, cash_available)
@@ -49,7 +56,7 @@ def _validate_and_clamp(result: FinalPicks, account: dict) -> FinalPicks:
             allocation = round(shares * p.buy_price, 2)
             log.warning("clamped %s: allocation exceeded per-stock cap "
                         "(%d%% of budget = ₹%.0f), reduced to %d shares (₹%.2f)",
-                        p.ticker, PER_STOCK_CAP_PCT, per_stock_cap, shares, allocation)
+                        p.ticker, cap_pct, per_stock_cap, shares, allocation)
             if shares < 1:
                 dropped.append(SkippedEntry(ticker=p.ticker, reason="cannot afford even 1 share within per-stock cap"))
                 continue
@@ -77,7 +84,14 @@ def _validate_and_clamp(result: FinalPicks, account: dict) -> FinalPicks:
     )
 
 
-def select_final(scored: list[StockVerdict], account: dict, market_context: dict) -> FinalPicks:
+def select_final(
+    scored: list[StockVerdict],
+    account: dict,
+    market_context: dict,
+    *,
+    per_stock_cap_pct: float | None = None,
+    reasoning: ReasoningLog | None = None,
+) -> FinalPicks:
     survivors = [v for v in scored if v.decision in ("buy", "watch")]
     skipped_early = [
         SkippedEntry(ticker=v.ticker, reason=f"per-stock decision: {v.decision}")
@@ -90,6 +104,8 @@ def select_final(scored: list[StockVerdict], account: dict, market_context: dict
 
     if not survivors:
         log.info("no buy/watch candidates -- holding cash by default, no LLM call made")
+        if reasoning is not None:
+            reasoning.add("final", "No buy/watch survivors after per-stock scoring — holding cash.")
         return FinalPicks(
             picks=[],
             skipped=skipped_early,
@@ -120,6 +136,28 @@ def select_final(scored: list[StockVerdict], account: dict, market_context: dict
         )
     elapsed = time.monotonic() - t0
     log.info("final selection LLM call returned in %.1fs: %d raw pick(s) proposed", elapsed, len(result.picks))
+    if reasoning is not None:
+        if result.picks:
+            picks_line = "; ".join(
+                f"{p.ticker} ({p.shares} sh, conviction {p.conviction})" for p in result.picks
+            )
+            reasoning.add(
+                "final",
+                f"Portfolio LLM chose {len(result.picks)} pick(s): {picks_line}.",
+                portfolioNote=result.portfolio_note,
+            )
+        else:
+            reasoning.add("final", f"No picks allocated — {result.portfolio_note}")
+        note_snip = (result.portfolio_note or "").replace("\n", " ")[:200]
+        if note_snip:
+            reasoning.add("final", f"Portfolio note: {note_snip}", portfolioNote=result.portfolio_note)
 
     result.skipped = skipped_early + result.skipped
-    return _validate_and_clamp(result, account)
+    validated = _validate_and_clamp(result, account, per_stock_cap_pct=per_stock_cap_pct)
+    if reasoning is not None and validated.picks:
+        reasoning.add(
+            "final",
+            f"After budget validation: {len(validated.picks)} pick(s), ₹{validated.cash_held_inr:,.0f} cash held.",
+            picks=[p.model_dump() for p in validated.picks],
+        )
+    return validated

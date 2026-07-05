@@ -12,6 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..schemas import StockVerdict
+from ..reasoning_log import ReasoningLog
 from . import client
 
 log = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def _skip(ticker: str, reason: str) -> StockVerdict:
     )
 
 
-def score_stock(dossier, strategy: str) -> StockVerdict:
+def score_stock(dossier, strategy: str, reasoning: ReasoningLog | None = None) -> StockVerdict:
     """Score one dossier against one strategy. Never raises -- any failure
     (bad JSON, absurd price, network error) degrades to a "skip" verdict."""
     ticker = dossier.meta.ticker
@@ -64,6 +65,18 @@ def score_stock(dossier, strategy: str) -> StockVerdict:
         log.info("%-12s -> %-5s conviction=%-3d buy=%-10s stop=%-10s target=%-10s (%.1fs)",
                  ticker, verdict.decision, verdict.conviction,
                  verdict.buy_price, verdict.stop_loss, verdict.sell_target, elapsed)
+        if reasoning is not None:
+            thesis_snip = (verdict.thesis or "").replace("\n", " ")[:140]
+            reasoning.add(
+                "scoring",
+                f"{ticker} → {verdict.decision} (conviction {verdict.conviction}): {thesis_snip}",
+                ticker=ticker,
+                decision=verdict.decision,
+                conviction=verdict.conviction,
+                thesis=verdict.thesis,
+                key_signals=verdict.key_signals,
+                risks=verdict.risks,
+            )
         log.debug("%-12s thesis: %s", ticker, verdict.thesis)
         if verdict.key_signals:
             log.debug("%-12s signals: %s", ticker, verdict.key_signals)
@@ -75,13 +88,18 @@ def score_stock(dossier, strategy: str) -> StockVerdict:
         return _skip(ticker, str(e))
 
 
-def score_all(survivors: list, strategy: str, max_workers: int = 8) -> list[StockVerdict]:
+def score_all(
+    survivors: list,
+    strategy: str,
+    max_workers: int = 8,
+    reasoning: ReasoningLog | None = None,
+) -> list[StockVerdict]:
     log.info("scoring %d survivor(s) for strategy=%r (%d parallel workers)",
              len(survivors), strategy, max_workers)
     t0 = time.monotonic()
     verdicts: list[StockVerdict] = []
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {pool.submit(score_stock, d, strategy): d for d in survivors}
+        futures = {pool.submit(score_stock, d, strategy, reasoning): d for d in survivors}
         for fut in as_completed(futures):
             verdicts.append(fut.result())
     elapsed = time.monotonic() - t0
@@ -91,6 +109,14 @@ def score_all(survivors: list, strategy: str, max_workers: int = 8) -> list[Stoc
     skips = sum(1 for v in verdicts if v.decision == "skip")
     log.info("scoring done in %.1fs: %d buy, %d watch, %d skip (of %d)",
              elapsed, buys, watches, skips, len(verdicts))
+    if reasoning is not None:
+        reasoning.add(
+            "scoring",
+            f"Per-stock LLM done: {buys} buy, {watches} watch, {skips} skip (of {len(verdicts)} scored).",
+            buys=buys,
+            watches=watches,
+            skips=skips,
+        )
     return verdicts
 
 

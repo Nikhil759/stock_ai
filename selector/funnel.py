@@ -17,12 +17,13 @@ from data_layer.storage import load_all_dossiers
 from data_layer.dossier import Dossier
 
 from .config import FUNNEL_MAX_SURVIVORS
+from .reasoning_log import ReasoningLog
 from .strategies import STRATEGIES
 
 log = logging.getLogger(__name__)
 
 
-def run_funnel(strategy: str) -> list[Dossier]:
+def run_funnel(strategy: str, reasoning: ReasoningLog | None = None) -> list[Dossier]:
     if strategy not in STRATEGIES:
         raise ValueError(f"Unknown strategy {strategy!r}. Choose from {sorted(STRATEGIES)}.")
     passes_fn = STRATEGIES[strategy]
@@ -64,6 +65,19 @@ def run_funnel(strategy: str) -> list[Dossier]:
     for score, d, checks in survivors:
         fired = ", ".join(k for k, v in checks.items() if v)
         log.info("  SURVIVOR %-12s score=%d  checks=[%s]", d.meta.ticker, score, fired)
+
+    if reasoning is not None:
+        top = ", ".join(d.meta.ticker for _, d, _ in survivors[:8])
+        extra = f" (+{len(survivors) - 8} more)" if len(survivors) > 8 else ""
+        reasoning.add(
+            "funnel",
+            f"{len(scored)}/{len(dossiers)} passed {strategy} math checks → {len(survivors)} sent to LLM"
+            + (f" (top: {top}{extra})" if top else ""),
+            passed=len(scored),
+            rejected=rejected,
+            survivors=len(survivors),
+            topTickers=[d.meta.ticker for _, d, _ in survivors[:12]],
+        )
 
     return [d for _, d, _ in survivors]
 
