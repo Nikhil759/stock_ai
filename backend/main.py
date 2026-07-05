@@ -152,19 +152,27 @@ def deploy_bot(req: DeployRequest, ws: str = Depends(require_workspace)):
     screen_result = None
 
     if req.run_screen:
-        result = screen(req.strategy, req.allocation, deployed)
-        if result.get("supported"):
-            setup_msg = (
-                f"Wolf #{bot_id} created · ₹{req.allocation:,} pool · "
-                f"{req.mode} mode · {STRATEGY_NAMES.get(req.strategy, req.strategy)}"
-            )
-            result["reasoningLog"] = [
-                {"phase": "setup", "message": setup_msg},
-                *(result.get("reasoningLog") or []),
-            ]
-            bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), deployed)
-            result["botAction"] = bot_result
-        screen_result = result
+        try:
+            result = screen(req.strategy, req.allocation, deployed)
+            if result.get("supported"):
+                setup_msg = (
+                    f"Wolf #{bot_id} created · ₹{req.allocation:,} pool · "
+                    f"{req.mode} mode · {STRATEGY_NAMES.get(req.strategy, req.strategy)}"
+                )
+                result["reasoningLog"] = [
+                    {"phase": "setup", "message": setup_msg},
+                    *(result.get("reasoningLog") or []),
+                ]
+                bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), deployed)
+                result["botAction"] = bot_result
+            screen_result = result
+        except Exception as exc:
+            screen_result = {
+                "strategy": req.strategy,
+                "supported": False,
+                "pipeline": "dossier",
+                "message": f"Screening failed: {exc}",
+            }
 
     return {"bot": _bot_response(db.get_bot(bot_id, ws)), "screen": screen_result, "workspaceId": ws}
 

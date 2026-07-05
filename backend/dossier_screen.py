@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 import logging
-import sys
-from pathlib import Path
 
+from repo_paths import ensure_repo_on_path
 from strategies import STRATEGY_NAMES, VALID_STRATEGIES
 
-# Backend runs with cwd=backend/; selector + data_layer live at repo root.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+ensure_repo_on_path()
 
 from selector.pipeline import run_pipeline  # noqa: E402
-from selector.schemas import FinalPicks, Pick, StockVerdict  # noqa: E402
+from selector.schemas import FinalPicks, Pick  # noqa: E402
 
 log = logging.getLogger(__name__)
 

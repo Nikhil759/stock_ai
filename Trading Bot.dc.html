@@ -1602,12 +1602,15 @@ class Component extends DCLogic {
       if (['executed', 'partial'].includes(screen?.botAction?.action)) this.setState({ screen: 'tracker' });
     } catch (err) {
       this._stopScanProgress(false);
+      try { await this._loadBots(); } catch (_) { /* ignore */ }
+      const latestBot = this.state.bots[this.state.bots.length - 1];
       this.setState({
         deploying: false,
         loading: false,
         screenError: true,
         errorMsg: err.message || 'Deploy failed',
         screen: 'shortlist',
+        ...(latestBot ? { activeBotId: latestBot.id, activeBot: latestBot } : {}),
       });
     }
   }

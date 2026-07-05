@@ -1,9 +1,10 @@
 # Web API service (stock_ai on Railway).
-# Set this service's Root Directory to backend/ so Railway uses this file
-# instead of the repo-root railway.json (which is for data-layer-cron only).
+# Root Directory in Railway UI must stay `backend`.
+# Build vendors selector/ + data_layer/ from the monorepo clone into backend/.
 
 [build]
 builder = "NIXPACKS"
+buildCommand = "bash scripts/railway_build.sh"
 
 [deploy]
 startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"

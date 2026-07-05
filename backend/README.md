@@ -61,10 +61,16 @@ curl -i "https://YOUR-RAILWAY-URL.up.railway.app/api/health"
 
 Point Vercel's `RAILWAY_PUBLIC_URL` at this URL and redeploy the frontend.
 
-**Dossiers on Railway:** screening reads `dossiers/` from the repo-root
-`data_layer` path. The web service must see the same dossiers the cron builds
-(shared volume mount at repo root, or run `data_layer.build` in-process).
-Until that is wired, production deploy may return "No dossiers found".
+**Dossiers on Railway:** attach the **same Volume** used by `data-layer-cron` to
+the `stock_ai` web service and set `RAILWAY_VOLUME_MOUNT_PATH` (Railway injects
+this automatically when a volume is mounted). Screening reads
+`$RAILWAY_VOLUME_MOUNT_PATH/dossiers/`. Without a shared volume, deploy succeeds
+but screening returns "No dossiers found".
+
+**Build:** `backend/railway.toml` runs `scripts/railway_build.sh`, which copies
+`selector/` and `data_layer/` from the monorepo into `backend/` at deploy time
+(Railway root dir is `backend/`, so those packages are not in the runtime image
+otherwise).
 
 Strategy knowledge markdown in `backend/knowledge/` is legacy; live screening
 uses `selector/prompts/` with full dossier JSON.
