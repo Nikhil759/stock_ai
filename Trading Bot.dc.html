@@ -21,6 +21,27 @@
   input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:var(--line2);outline:none;width:100%;max-width:100%}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--clay);border:3px solid #fff;box-shadow:0 0 0 1px var(--line2);cursor:pointer}
   input[type=range]::-moz-range-thumb{width:20px;height:20px;border:3px solid #fff;border-radius:50%;background:var(--clay);cursor:pointer}
+  input.budget-slider{
+    --thumb:44px;
+    /* End fill at thumb center (inset track), not raw % or full thumb width */
+    --fill:calc(var(--budget-ratio) * (100% - var(--thumb)) + calc(var(--thumb) / 2));
+    height:8px;border-radius:999px;
+    background:linear-gradient(to right,var(--clay) 0%,var(--clay) var(--fill),var(--line2) var(--fill),var(--line2) 100%);
+  }
+  input.budget-slider::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:transparent}
+  input.budget-slider::-webkit-slider-thumb{
+    -webkit-appearance:none;width:44px;height:44px;margin-top:-18px;
+    border:none;border-radius:0;background:transparent url('/wolf_logo.png') center/contain no-repeat;
+    box-shadow:none;filter:drop-shadow(0 2px 5px rgba(120,60,20,0.28));cursor:grab;
+  }
+  input.budget-slider:active::-webkit-slider-thumb{cursor:grabbing}
+  input.budget-slider::-moz-range-track{height:8px;border-radius:999px;background:var(--line2)}
+  input.budget-slider::-moz-range-progress{height:8px;border-radius:999px;background:var(--clay)}
+  input.budget-slider::-moz-range-thumb{
+    width:44px;height:44px;border:none;border-radius:0;
+    background:transparent url('/wolf_logo.png') center/contain no-repeat;
+    box-shadow:none;filter:drop-shadow(0 2px 5px rgba(120,60,20,0.28));cursor:grab;
+  }
   button{font-family:inherit}
   img,svg,video{max-width:100%;height:auto}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
@@ -315,7 +336,7 @@
           <input value="{{ budget }}" onInput="{{ onBudgetChange }}" inputmode="numeric" style="border:none;outline:none;background:transparent;font-family:var(--mono);font-size:21px;font-weight:600;width:8.5ch;color:var(--ink);">
         </div>
         <div style="flex:1;min-width:220px;">
-          <input type="range" min="10000" max="1000000" step="1000" value="{{ budget }}" onInput="{{ onSlider }}" style="width:100%;">
+          <input type="range" class="budget-slider" min="10000" max="1000000" step="1000" value="{{ budget }}" onInput="{{ onSlider }}" style="{{ budgetSliderStyle }}">
           <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:7px;"><span>₹10,000</span><span>₹10,00,000</span></div>
         </div>
       </div>
@@ -1734,6 +1755,10 @@ class Component extends DCLogic {
     const line = series.map((v,i) => X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
     const area = P+','+(H-P)+' '+line+' '+(W-P)+','+(H-P);
 
+    const budgetMin = 10000, budgetMax = 1000000;
+    const budgetSliderRatio = ((s.budget - budgetMin) / (budgetMax - budgetMin)).toFixed(4);
+    const budgetSliderStyle = '--budget-ratio:' + budgetSliderRatio + ';width:100%';
+
     const activeStrategy = bot?.strategy || s.strategy;
     const hasCands = !s.isScanning && !s.loading && !s.deploying && !s.screenError && s.cands.length > 0;
     const noCands = !s.isScanning && !s.loading && !s.deploying && !s.screenError && s.cands.length === 0 && s.screen === 'shortlist' && (s.activeBotId || s.deploying);
@@ -1853,7 +1878,7 @@ class Component extends DCLogic {
       nav, tog, on, sel, goto, onBotSwitch, strategyCards,
       togglePause: () => this.togglePause(), terminateBot: () => this.terminateBot(),
       refreshPrices: () => this.refreshPrices(),
-      budget:s.budget, onSlider, onBudgetChange,
+      budget:s.budget, onSlider, onBudgetChange, budgetSliderStyle,
       strategySelected: !!s.strategy, noStrategy: !s.strategy, summaryText,
       deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy Wolf',
       rescreen: () => this.rescreen(),
@@ -1864,7 +1889,7 @@ class Component extends DCLogic {
       clearBotSelection: () => this.clearBotSelection(),
       bulkPauseBots: () => this.bulkPauseBots(),
       bulkTerminateBots: () => this.bulkTerminateBots(),
-      hasActiveBot: !!s.activeBotId, noActiveBot: !s.activeBotId,
+      hasActiveBot: !!s.activeBotId, noActiveBot: !s.activeBotId && !isScanning,
       activeBotId: s.activeBotId, botOptions, botSelectStyle, activeBotLabel,
       activeBotName, activeBotStrategy, activeBotModeLabel,
       trackerActive: !!s.activeBotId,
