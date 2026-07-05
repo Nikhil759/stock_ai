@@ -3,7 +3,6 @@
 # Railway service settings:
 #   Root Directory: /  (repo root — NOT backend/)
 #   Config file:    railway.web.toml
-railway.web.toml
 #
 # Full monorepo is required so selector/, data_layer/, and shared volumes work.
 
