@@ -217,32 +217,32 @@ def build_trade_proposal(candidate: dict, cfg: dict) -> dict:
 
 def behavior_summary(cfg: dict) -> str:
     if cfg.get("status") == "terminated":
-        return "This bot has been terminated. History is kept for reference."
+        return "This Wolf has been terminated. History is kept for reference."
 
     if cfg.get("paused") or cfg.get("status") == "paused":
-        return "Bot is paused — no buys, no sells, no automated actions until you resume."
+        return "Wolf is paused — no buys, no sells, no automated actions until you resume."
 
     if cfg["mode"] == "advisory":
-        return "Advisory mode — the bot suggests picks and you decide whether to log each paper trade yourself."
+        return "Advisory mode — the Wolf suggests picks and you decide whether to log each paper trade yourself."
 
     level = cfg["level"]
     if level == "A":
-        return "Autonomous (approval gate) — the bot finds trades and waits for your OK before executing anything."
+        return "Autonomous (approval gate) — the Wolf finds trades and waits for your OK before executing anything."
     if level == "B":
         th = _fmt_inr(cfg["auto_threshold"])
         return f"Autonomous (auto under {th}) — trades below {th} execute immediately; larger ones ask first."
-    return "Autonomous (full auto) — the bot executes trades within your guardrails and notifies you after each action."
+    return "Autonomous (full auto) — the Wolf executes trades within your guardrails and notifies you after each action."
 
 
 def process_screen_results(bot_id: int, candidates: list[dict], bot: dict) -> dict:
     cfg = bot_config(bot)
 
     if cfg["status"] == "terminated":
-        return {"action": "terminated", "message": "Bot is terminated."}
+        return {"action": "terminated", "message": "Wolf is terminated."}
 
     if cfg["paused"]:
-        db.log_action(bot_id, "screen_skipped", "Screen complete but bot is paused", "No trades while paused.")
-        return {"action": "paused", "message": "Bot is paused — review picks manually."}
+        db.log_action(bot_id, "screen_skipped", "Screen complete but Wolf is paused", "No trades while paused.")
+        return {"action": "paused", "message": "Wolf is paused — review picks manually."}
 
     if cfg["mode"] == "advisory":
         db.log_action(bot_id, "screen_complete", f"Found {len(candidates)} picks", "Advisory — user decides.")
@@ -302,9 +302,9 @@ def process_screen_results(bot_id: int, candidates: list[dict], bot: dict) -> di
 def manual_log_trade(bot_id: int, candidate: dict, bot: dict) -> dict:
     cfg = bot_config(bot)
     if cfg["status"] == "terminated":
-        raise ValueError("Bot is terminated.")
+        raise ValueError("Wolf is terminated.")
     if cfg["paused"]:
-        raise ValueError("Bot is paused — cannot log new trades.")
+        raise ValueError("Wolf is paused — cannot log new trades.")
 
     trades = db.get_trades(bot_id, status="open")
     fitted = _fit_to_guardrails(candidate, cfg, trades)

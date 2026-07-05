@@ -22,7 +22,7 @@ UI_FILE = ROOT / "Trading Bot.dc.html"
 
 load_dotenv(ROOT / ".env")
 
-app = FastAPI(title="NSE Value Bot", version="0.4.0")
+app = FastAPI(title="Wolf Capital", version="0.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,7 +103,7 @@ def require_workspace(x_workspace_id: str = Header(..., alias="X-Workspace-Id"))
 def _get_bot_or_404(bot_id: int, workspace_id: str) -> dict:
     b = db.get_bot(bot_id, workspace_id=workspace_id)
     if not b:
-        raise HTTPException(status_code=404, detail="Bot not found")
+        raise HTTPException(status_code=404, detail="Wolf not found")
     return b
 
 
@@ -163,7 +163,7 @@ def pause_bot(bot_id: int, ws: str = Depends(require_workspace)):
     _get_bot_or_404(bot_id, ws)
     b = db.set_bot_status(bot_id, "paused")
     if not b:
-        raise HTTPException(status_code=404, detail="Bot not found")
+        raise HTTPException(status_code=404, detail="Wolf not found")
     return _bot_response(b)
 
 
@@ -172,7 +172,7 @@ def resume_bot(bot_id: int, ws: str = Depends(require_workspace)):
     _get_bot_or_404(bot_id, ws)
     b = db.set_bot_status(bot_id, "running")
     if not b:
-        raise HTTPException(status_code=404, detail="Bot not found")
+        raise HTTPException(status_code=404, detail="Wolf not found")
     return _bot_response(b)
 
 
@@ -181,7 +181,7 @@ def terminate_bot(bot_id: int, ws: str = Depends(require_workspace)):
     _get_bot_or_404(bot_id, ws)
     b = db.set_bot_status(bot_id, "terminated")
     if not b:
-        raise HTTPException(status_code=404, detail="Bot not found")
+        raise HTTPException(status_code=404, detail="Wolf not found")
     return _bot_response(b)
 
 
@@ -191,7 +191,7 @@ def update_bot(bot_id: int, body: BotUpdate, ws: str = Depends(require_workspace
     updates = body.model_dump(exclude_none=True)
     b = db.update_bot(bot_id, **updates)
     if not b:
-        raise HTTPException(status_code=404, detail="Bot not found")
+        raise HTTPException(status_code=404, detail="Wolf not found")
     if updates:
         db.log_action(bot_id, "config_updated", ", ".join(f"{k}={v}" for k, v in updates.items()))
     return _bot_response(b)
@@ -213,7 +213,7 @@ def refresh_prices(bot_id: int, ws: str = Depends(require_workspace)):
 def run_screen(bot_id: int, ws: str = Depends(require_workspace)):
     b = _get_bot_or_404(bot_id, ws)
     if b["status"] == "terminated":
-        raise HTTPException(status_code=400, detail="Bot is terminated")
+        raise HTTPException(status_code=400, detail="Wolf is terminated")
     try:
         cash = int(b["availableCash"])
         result = screen(b["strategy"], max(cash, b["allocation"]), b)
@@ -290,7 +290,7 @@ def manual_trade(bot_id: int, body: ManualTradeRequest, ws: str = Depends(requir
 def update_target(bot_id: int, trade_id: int, body: TargetUpdateRequest, ws: str = Depends(require_workspace)):
     _get_bot_or_404(bot_id, ws)
     try:
-        trade = db.update_trade_target(trade_id, body.target, body.reason or "Bot updated sell target.")
+        trade = db.update_trade_target(trade_id, body.target, body.reason or "Wolf updated sell target.")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not trade:
@@ -327,7 +327,7 @@ def strategy_detail(strategy_id: str):
 def legacy_config(ws: str = Depends(require_workspace)):
     bots = db.list_bots(ws)
     if not bots:
-        return {"mode": "advisory", "budget": 10000, "paused": False, "behaviorSummary": "Deploy a bot to get started."}
+        return {"mode": "advisory", "budget": 10000, "paused": False, "behaviorSummary": "Deploy a Wolf to get started."}
     return _bot_response(bots[0])
 
 

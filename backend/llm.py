@@ -45,13 +45,13 @@ def _build_prompt(strategy_id: str, budget: int, candidates: list[dict], bot_con
     ctx = ""
     if bot_context:
         ctx = f"""
-Bot context:
+Wolf context:
 - Available cash: ₹{bot_context.get('availableCash', budget):,.0f}
 - Allocation pool: ₹{bot_context.get('allocation', budget):,.0f}
 - Mode: {bot_context.get('mode', 'advisory')} / level {bot_context.get('level', 'A')}
 """
 
-    return f"""You are an NSE paper-trading assistant. The user runs a bot AFTER market close (~4 PM IST).
+    return f"""You are an NSE paper-trading assistant for Wolf Capital. The user runs a Wolf AFTER market close (~4 PM IST).
 Trades are PLANNED today and executed at the NEXT morning open. Use end-of-day prices only.
 
 STRATEGY: {meta.get('name', strategy_id)}

@@ -9,6 +9,8 @@
 <body>
 <x-dc>
 <helmet>
+<title>Wolf Capital</title>
+<link rel="icon" href="/wolf_logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -32,6 +34,12 @@
   .app-header-inner{width:100%}
   .app-nav{max-width:100%}
   .app-nav-btn{white-space:nowrap}
+  .wolf-icon{display:block;object-fit:contain;flex:none}
+  .wolf-icon-sm{width:14px;height:14px}
+  .wolf-icon-md{width:28px;height:28px}
+  .wolf-icon-lg{width:48px;height:48px}
+  .wolf-icon-xl{width:72px;height:72px}
+  .wolf-icon-inline{display:inline-block;vertical-align:-2px}
   .bot-select{max-width:100%}
   .toolbar-row{width:100%}
   .toolbar-actions{max-width:100%}
@@ -113,8 +121,8 @@
   <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,249,245,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
     <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;">
-        <div style="width:28px;height:28px;border-radius:8px;background:var(--clay);display:flex;align-items:center;justify-content:center;color:#fff;flex:none;"><i class="ti ti-chart-candle" style="font-size:17px;"></i></div>
-        <span style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">NSE value bot</span>
+        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28">
+        <span style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
         <span style="font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:0.04em;color:var(--ink2);border:1px solid var(--line2);padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
       </div>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
@@ -155,16 +163,16 @@
   <!-- ===================== HOME ===================== -->
   <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
   <main class="app-main" style="max-width:900px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
-    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Your bots</p>
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Your Wolves</p>
     <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Dashboard</h1>
-    <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate bot with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
+    <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate Wolf with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
 
     <sc-if value="{{ noBots }}" hint-placeholder-val="{{ true }}">
       <div style="text-align:center;padding:56px 24px;background:var(--panel);border:1px dashed var(--line2);border-radius:16px;">
-        <i class="ti ti-robot" style="font-size:42px;color:var(--ink2);"></i>
-        <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No bots deployed yet</h2>
-        <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading bot.</p>
-        <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first bot</button>
+        <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-xl" width="72" height="72" style="margin:0 auto;">
+        <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No Wolves deployed yet</h2>
+        <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading Wolf.</p>
+        <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first Wolf</button>
       </div>
     </sc-if>
 
@@ -188,7 +196,7 @@
             <button onClick="{{ bulkPauseBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--ink);"><i class="ti ti-player-pause" style="font-size:16px;"></i>Pause selected</button>
             <button onClick="{{ bulkTerminateBots }}" style="display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid #E8C4BC;cursor:pointer;font-size:13px;font-weight:600;padding:9px 14px;border-radius:10px;color:var(--red);"><i class="ti ti-trash" style="font-size:16px;"></i>Terminate selected</button>
           </sc-if>
-          <button onClick="{{ goto.setup }}" style="display:flex;align-items:center;gap:7px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;"><i class="ti ti-plus" style="font-size:16px;"></i>Deploy another bot</button>
+          <button onClick="{{ goto.setup }}" style="display:flex;align-items:center;gap:7px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;"><i class="ti ti-plus" style="font-size:16px;"></i>Deploy another Wolf</button>
         </div>
       </div>
       <sc-if value="{{ bulkActionMsg }}" hint-placeholder-val="{{ false }}">
@@ -199,7 +207,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;">
         <sc-for list="{{ botCards }}" as="b" hint-placeholder-count="2">
           <div class="bot-card-wrap" style="display:flex;gap:10px;align-items:center;min-width:0;width:100%;">
-            <button onClick="{{ b.onToggleSelect }}" title="Select bot" style="flex:none;width:16px;height:16px;min-width:16px;border-radius:4px;border:1.5px solid {{ b.selectBorder }};background:{{ b.selectBg }};cursor:pointer;display:flex;align-items:center;justify-content:center;color:{{ b.selectCol }};padding:0;line-height:1;">
+            <button onClick="{{ b.onToggleSelect }}" title="Select Wolf" style="flex:none;width:16px;height:16px;min-width:16px;border-radius:4px;border:1.5px solid {{ b.selectBorder }};background:{{ b.selectBg }};cursor:pointer;display:flex;align-items:center;justify-content:center;color:{{ b.selectCol }};padding:0;line-height:1;">
               <sc-if value="{{ b.selected }}" hint-placeholder-val="{{ false }}"><i class="ti ti-check" style="font-size:10px;line-height:1;"></i></sc-if>
             </button>
             <button onClick="{{ b.onSelect }}" class="bot-card-btn" style="flex:1;text-align:left;cursor:pointer;background:var(--panel);border:1px solid {{ b.cardBorder }};border-radius:14px;padding:16px 18px;color:inherit;font:inherit;min-width:0;">
@@ -229,8 +237,8 @@
   <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
     <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 1 of 3 — Strategy</p>
-    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Deploy a new bot</h1>
-    <p style="color:var(--ink2);margin:0 0 22px;font-size:15px;line-height:1.5;max-width:54ch;">Pick a strategy and fund allocation. This creates a new bot instance — existing bots keep running separately.</p>
+    <h1 style="font-size:clamp(25px,4vw,33px);font-weight:700;letter-spacing:-0.022em;margin:0 0 7px;">Deploy a new Wolf</h1>
+    <p style="color:var(--ink2);margin:0 0 22px;font-size:15px;line-height:1.5;max-width:54ch;">Pick a strategy and fund allocation. This creates a new Wolf instance — existing Wolves keep running separately.</p>
 
     <div style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
       <span style="font-size:13px;color:var(--ink2);">Card layout</span>
@@ -295,7 +303,7 @@
     <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
       <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 2 of 3 — Allocation</p>
       <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">Set fund allocation</h2>
-      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">This is the bot's cash pool. When positions sell, proceeds return here for reinvestment.</p>
+      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">This is the Wolf's cash pool. When positions sell, proceeds return here for reinvestment.</p>
       <div class="budget-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;">
         <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:12px;padding:10px 15px;background:var(--panel);">
           <span style="font-size:19px;color:var(--ink2);">₹</span>
@@ -308,11 +316,11 @@
       </div>
     </div>
 
-    <!-- Step 3 — Bot mode & guardrails -->
+    <!-- Step 3 — Wolf mode & guardrails -->
     <div style="margin-top:32px;padding-top:30px;border-top:1px solid var(--line);">
-      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 3 of 3 — Bot mode</p>
-      <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">How should the bot behave?</h2>
-      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">Choose manual review or let the bot act on its own — with guardrails either way.</p>
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 9px;">Step 3 of 3 — Wolf mode</p>
+      <h2 style="font-size:clamp(20px,3vw,24px);font-weight:700;letter-spacing:-0.018em;margin:0 0 4px;">How should the Wolf behave?</h2>
+      <p style="color:var(--ink2);margin:0 0 20px;font-size:14px;">Choose manual review or let the Wolf act on its own — with guardrails either way.</p>
 
       <div class="mode-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:22px;">
         <button onClick="{{ on.modeAdvisory }}" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;color:inherit;font:inherit;">
@@ -320,15 +328,15 @@
             <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="ti ti-eye" style="font-size:19px;"></i></div>
             <span style="font-weight:650;font-size:15px;">Advisory</span>
           </div>
-          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Bot suggests picks. You review and log trades yourself.</p>
+          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Wolf suggests picks. You review and log trades yourself.</p>
           <sc-if value="{{ deployModeAdvisory }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
         </button>
         <button onClick="{{ on.modeAuto }}" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;color:inherit;font:inherit;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><i class="ti ti-robot" style="font-size:19px;"></i></div>
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><img src="/wolf_logo.png" alt="" class="wolf-icon" width="24" height="24"></div>
             <span style="font-weight:650;font-size:15px;">Autonomous</span>
           </div>
-          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Bot manages paper trades within your rules and budget.</p>
+          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Wolf manages paper trades within your rules and budget.</p>
           <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;"></div></sc-if>
         </button>
       </div>
@@ -348,7 +356,7 @@
           </button>
           <button onClick="{{ on.levelC }}" class="level-row" style="position:relative;text-align:left;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;color:inherit;font:inherit;width:100%;">
             <i class="ti ti-bolt" style="font-size:20px;color:var(--ink2);flex:none;"></i>
-            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level C — Full auto</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px;">Bot executes all trades and notifies you after.</div></div>
+            <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level C — Full auto</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px;">Wolf executes all trades and notifies you after.</div></div>
             <sc-if value="{{ deployLvlC }}" hint-placeholder-val="{{ false }}"><i class="ti ti-circle-check-filled" style="font-size:20px;color:var(--clay);"></i></sc-if>
           </button>
         </div>
@@ -409,7 +417,7 @@
         <button onClick="{{ deployBot }}" style="display:flex;align-items:center;gap:8px;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:14px 22px;border-radius:11px;">{{ deployBtnLabel }}<i class="ti ti-arrow-right" style="font-size:18px;"></i></button>
       </sc-if>
       <sc-if value="{{ noStrategy }}" hint-placeholder-val="{{ true }}">
-        <button disabled style="display:flex;align-items:center;gap:8px;background:var(--line2);color:#fff;border:none;cursor:not-allowed;font-size:15px;font-weight:600;padding:14px 22px;border-radius:11px;opacity:0.7;">Deploy bot<i class="ti ti-arrow-right" style="font-size:18px;"></i></button>
+        <button disabled style="display:flex;align-items:center;gap:8px;background:var(--line2);color:#fff;border:none;cursor:not-allowed;font-size:15px;font-weight:600;padding:14px 22px;border-radius:11px;opacity:0.7;">Deploy Wolf<i class="ti ti-arrow-right" style="font-size:18px;"></i></button>
       </sc-if>
     </div>
   </main>
@@ -421,8 +429,8 @@
     <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:60px 20px;">
         <i class="ti ti-list-search" style="font-size:40px;color:var(--ink2);"></i>
-        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No bot selected</h2>
-        <p style="color:var(--ink2);margin:0 0 20px;">Deploy a bot or pick one from the dashboard.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No Wolf selected</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">Deploy a Wolf or pick one from the dashboard.</p>
         <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
       </div>
     </sc-if>
@@ -458,7 +466,7 @@
 
       <sc-if value="{{ hasBotMsg }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--ink2);">
-          <i class="ti ti-robot" style="color:var(--clay);"></i> {{ botActionMsg }}
+          <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-sm wolf-icon-inline" width="14" height="14"> {{ botActionMsg }}
         </div>
       </sc-if>
 
@@ -470,7 +478,7 @@
         <button onClick="{{ rescreen }}" style="display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--ink2);padding:9px 14px;border-radius:10px;"><i class="ti ti-refresh" style="font-size:15px;"></i>Re-screen</button>
       </div>
       <div class="meta-row" style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink2);margin-bottom:22px;">
-        <span><i class="ti ti-robot" style="font-size:14px;vertical-align:-2px;"></i> {{ activeBotLabel }}</span>
+        <span><img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-sm wolf-icon-inline" width="14" height="14"> {{ activeBotLabel }}</span>
         <span><i class="ti ti-search" style="font-size:14px;vertical-align:-2px;"></i> Checked {{ screenedN }} stocks</span>
         <span><i class="ti ti-star" style="font-size:14px;vertical-align:-2px;color:var(--clay);"></i> <span style="color:var(--ink);font-weight:600;">{{ pickN }}</span> picks</span>
         <span><i class="ti ti-wallet" style="font-size:14px;vertical-align:-2px;"></i> Cash <span style="font-family:var(--mono);color:var(--ink);font-weight:600;">{{ cashFmt }}</span></span>
@@ -483,7 +491,7 @@
               <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--clay);opacity:0.35;animation:pulse-ring 2s ease-in-out infinite;"></div>
               <div style="position:absolute;inset:8px;border-radius:50%;border:2px solid var(--clay);opacity:0.2;animation:pulse-ring 2s ease-in-out infinite 0.4s;"></div>
               <div style="position:absolute;inset:16px;border-radius:50%;background:var(--clay);color:#fff;display:flex;align-items:center;justify-content:center;animation:pulse-core 2s ease-in-out infinite;box-shadow:0 4px 14px rgba(194,97,63,0.35);">
-                <i class="{{ scanIcon }}" style="font-size:26px;{{ scanIconSpin }}"></i>
+                <img src="/wolf_logo.png" alt="" class="wolf-icon" width="40" height="40">
               </div>
             </div>
             <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;letter-spacing:-0.01em;">{{ loadTitle }}</h2>
@@ -497,7 +505,8 @@
             <sc-for list="{{ loadStepCards }}" as="st" hint-placeholder-count="4">
               <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:{{ st.bg }};border:1px solid {{ st.border }};opacity:{{ st.opacity }};transition:all 0.3s ease;">
                 <div style="width:32px;height:32px;border-radius:8px;background:{{ st.iconBg }};display:flex;align-items:center;justify-content:center;flex:none;">
-                  <i class="{{ st.icon }}" style="font-size:16px;color:{{ st.iconCol }};{{ st.iconAnim }}"></i>
+                  <sc-if value="{{ st.wolfIcon }}" hint-placeholder-val="{{ false }}"><img src="/wolf_logo.png" alt="" class="wolf-icon" width="20" height="20"></sc-if>
+                  <sc-if value="{{ st.tiIcon }}" hint-placeholder-val="{{ true }}"><i class="{{ st.icon }}" style="font-size:16px;color:{{ st.iconCol }};{{ st.iconAnim }}"></i></sc-if>
                 </div>
                 <div style="flex:1;text-align:left;">
                   <div style="font-size:13px;font-weight:{{ st.weight }};color:{{ st.textCol }};">{{ st.label }}</div>
@@ -587,8 +596,8 @@
     <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:60px 20px;">
         <i class="ti ti-report-money" style="font-size:40px;color:var(--ink2);"></i>
-        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No bot selected</h2>
-        <p style="color:var(--ink2);margin:0 0 20px;">Pick a bot from the dashboard to view its portfolio.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:14px 0 6px;">No Wolf selected</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">Pick a Wolf from the dashboard to view its portfolio.</p>
         <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
       </div>
     </sc-if>
@@ -611,7 +620,7 @@
             </button>
           </sc-if>
           <sc-if value="{{ canTerminate }}" hint-placeholder-val="{{ false }}">
-            <button onClick="{{ terminateBot }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--red);padding:9px 14px;border-radius:10px;">Terminate bot</button>
+            <button onClick="{{ terminateBot }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--red);padding:9px 14px;border-radius:10px;">Terminate Wolf</button>
           </sc-if>
         </div>
       </div>
@@ -745,7 +754,7 @@
   <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
     <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 7px;">Action log</p>
-    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 20px;">What the bot did</h1>
+    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:700;letter-spacing:-0.022em;margin:0 0 20px;">What the Wolf did</h1>
     <sc-if value="{{ noLog }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:48px 20px;color:var(--ink2);">No activity yet. Run a screen or change settings to get started.</div>
     </sc-if>
@@ -767,7 +776,7 @@
   </sc-if>
 
   <footer class="footer-row" style="max-width:1080px;margin:0 auto;padding:26px clamp(16px,4vw,32px);border-top:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
-    <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">Paper trading · EOD data via yfinance · decides after close · not financial advice</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:6px;"><img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-sm" width="14" height="14"> Wolf Capital · Paper trading · EOD data via yfinance · decides after close · not financial advice</span>
     <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">NSE · ₹ INR</span>
   </footer>
 
@@ -962,7 +971,7 @@ class Component extends DCLogic {
   _loadStepPlan(strategy, isDeploy){
     const sub = { value:'Value filters', winners:'Momentum rules', box:'Box patterns', dip:'RSI dip signals' }[strategy] || 'Strategy rules';
     const steps = [];
-    if (isDeploy) steps.push({ label: 'Creating bot', sub: 'Fund pool setup', icon: 'ti ti-robot' });
+    if (isDeploy) steps.push({ label: 'Creating Wolf', sub: 'Fund pool setup', wolfIcon: true });
     steps.push(
       { label: 'Loading universe', sub: 'Nifty 200 list', icon: 'ti ti-list-numbers' },
       { label: 'Fetching EOD data', sub: 'yfinance · throttled', icon: 'ti ti-cloud-download' },
@@ -991,7 +1000,7 @@ class Component extends DCLogic {
         loadStepIdx: idx,
         loadProgress: Math.min(94, base + wobble),
         loadStatus: steps[idx].label,
-        loadTitle: isDeploy ? 'Deploying your bot' : 'Scanning market',
+        loadTitle: isDeploy ? 'Deploying your Wolf' : 'Scanning market',
         isScanning: true,
       });
     };
@@ -1042,7 +1051,7 @@ class Component extends DCLogic {
   }
 
   _fallbackPickReport(trade, bot){
-    const strat = bot?.strategyName || 'This bot';
+    const strat = bot?.strategyName || 'This Wolf';
     return {
       ticker: trade.ticker,
       name: trade.name,
@@ -1056,7 +1065,7 @@ class Component extends DCLogic {
       }],
       signals: [],
       tradePlan: [
-        { label: 'Entry price', value: '₹' + trade.entry.toFixed(2), hint: 'When the bot bought' },
+        { label: 'Entry price', value: '₹' + trade.entry.toFixed(2), hint: 'When the Wolf bought' },
         { label: 'Current price', value: '₹' + trade.ltp.toFixed(2), hint: 'Latest EOD mark' },
         { label: 'Sell target', value: '₹' + Math.round(trade.target).toLocaleString('en-IN'), hint: 'Auto-exit when reached' },
         { label: 'Stop-loss', value: '₹' + (trade.stopLoss || 0).toFixed(2), hint: 'Risk limit' },
@@ -1088,7 +1097,7 @@ class Component extends DCLogic {
         analysisType: 'Fundamental only',
         summary: 'Hold financially healthy companies trading below fair value. Ignore daily noise.',
         sections: [
-          { title: 'How it works', body: 'Find financially healthy Nifty 200 companies trading below their estimated worth. Buy and hold for 1–3+ years — the bot ignores short-term price swings and focuses on business quality and valuation.' },
+          { title: 'How it works', body: 'Find financially healthy Nifty 200 companies trading below their estimated worth. Buy and hold for 1–3+ years — the Wolf ignores short-term price swings and focuses on business quality and valuation.' },
           { title: 'What we screen for', body: 'Low debt (current ratio ≥ 2), steady earnings, reasonable valuation (P/E ≤ 15, P/B ≤ 1.5, Graham number ≤ 22.5), decent ROE, and adequate liquidity. Price charts are not used.' },
           { title: 'When we sell', body: 'Exit when price reaches fair value, or if fundamentals deteriorate — not on routine market dips.' },
           { title: 'Risk & horizon', body: 'Lower turnover, long-term focus. Best if you want quality compounders at a discount rather than quick trades.' },
@@ -1293,10 +1302,10 @@ class Component extends DCLogic {
     const s = this.state;
     const mode = s.deployMode;
     const level = s.deployLevel;
-    if (mode === 'advisory') return 'Advisory mode — the bot suggests picks and you decide whether to log each paper trade yourself.';
-    if (level === 'A') return 'Autonomous (approval gate) — the bot finds trades and waits for your OK before executing anything.';
+    if (mode === 'advisory') return 'Advisory mode — the Wolf suggests picks and you decide whether to log each paper trade yourself.';
+    if (level === 'A') return 'Autonomous (approval gate) — the Wolf finds trades and waits for your OK before executing anything.';
     if (level === 'B') return 'Autonomous (auto under ₹' + s.auto_threshold.toLocaleString('en-IN') + ') — trades below that execute immediately; larger ones ask first.';
-    return 'Autonomous (full auto) — the bot executes trades within your guardrails and notifies you after each action.';
+    return 'Autonomous (full auto) — the Wolf executes trades within your guardrails and notifies you after each action.';
   }
 
   async togglePause(){
@@ -1314,7 +1323,7 @@ class Component extends DCLogic {
 
   async terminateBot(){
     const botId = this.state.activeBotId;
-    if (!botId || !confirm('Terminate this bot? It will stop all automated actions. History is kept.')) return;
+    if (!botId || !confirm('Terminate this Wolf? It will stop all automated actions. History is kept.')) return;
     const res = await this._fetch(this._botPath(botId, 'terminate'), { method: 'POST' });
     if (res.ok) {
       await this._loadAll();
@@ -1353,7 +1362,7 @@ class Component extends DCLogic {
       return b && b.status !== 'terminated';
     });
     if (!ids.length) return;
-    if (!confirm(`Pause ${ids.length} bot${ids.length === 1 ? '' : 's'}?`)) return;
+    if (!confirm(`Pause ${ids.length} Wolf${ids.length === 1 ? '' : 'ves'}?`)) return;
     const results = await Promise.all(ids.map(id =>
       this._fetch(this._botPath(id, 'pause'), { method: 'POST' }).then(r => r.ok)
     ));
@@ -1367,8 +1376,8 @@ class Component extends DCLogic {
     this.setState({
       selectedBotIds: [],
       bulkActionMsg: ok === ids.length
-        ? `Paused ${ok} bot${ok === 1 ? '' : 's'}.`
-        : `Paused ${ok} of ${ids.length} bots.`,
+        ? `Paused ${ok} Wolf${ok === 1 ? '' : 'ves'}.`
+        : `Paused ${ok} of ${ids.length} Wolves.`,
     });
   }
 
@@ -1378,7 +1387,7 @@ class Component extends DCLogic {
       return b && b.status !== 'terminated';
     });
     if (!ids.length) return;
-    if (!confirm(`Terminate ${ids.length} bot${ids.length === 1 ? '' : 's'}? They will stop all automated actions. History is kept.`)) return;
+    if (!confirm(`Terminate ${ids.length} Wolf${ids.length === 1 ? '' : 'ves'}? They will stop all automated actions. History is kept.`)) return;
     const results = await Promise.all(ids.map(id =>
       this._fetch(this._botPath(id, 'terminate'), { method: 'POST' }).then(r => r.ok)
     ));
@@ -1391,8 +1400,8 @@ class Component extends DCLogic {
       activeBotId: stillActive ? this.state.activeBotId : null,
       activeBot: stillActive ? this.state.activeBot : null,
       bulkActionMsg: ok === ids.length
-        ? `Terminated ${ok} bot${ok === 1 ? '' : 's'}.`
-        : `Terminated ${ok} of ${ids.length} bots.`,
+        ? `Terminated ${ok} Wolf${ok === 1 ? '' : 'ves'}.`
+        : `Terminated ${ok} of ${ids.length} Wolves.`,
     });
   }
 
@@ -1548,7 +1557,7 @@ class Component extends DCLogic {
     if (!botId || !shares || shares < 1) return;
     const bot = this._activeBot();
     if (bot?.paused) {
-      alert('Bot is paused — resume to log trades.');
+      alert('Wolf is paused — resume to log trades.');
       return;
     }
     try {
@@ -1635,10 +1644,10 @@ class Component extends DCLogic {
     const bannerBorder = isTerminated ? '#E8C4BC' : isPaused ? '#E8D5A8' : '#C5D9C5';
     const bannerCol = isTerminated ? 'var(--red)' : isPaused ? '#8A6516' : 'var(--green)';
     const bannerIcon = isTerminated ? 'ti ti-circle-x' : isPaused ? 'ti ti-player-pause-filled' : 'ti ti-player-play-filled';
-    const bannerText = isTerminated ? 'Bot terminated' : isPaused ? 'Bot is paused — no buys, no sells' : 'Bot is running';
+    const bannerText = isTerminated ? 'Wolf terminated' : isPaused ? 'Wolf is paused — no buys, no sells' : 'Wolf is running';
     const pauseIcon = isPaused ? 'ti ti-player-play' : 'ti ti-player-pause';
     const pauseBtnStyle = 'display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);';
-    const pauseBtnTitle = isPaused ? 'Resume bot' : 'Pause bot';
+    const pauseBtnTitle = isPaused ? 'Resume Wolf' : 'Pause Wolf';
 
     const modeAdvisory = (bot?.mode || s.deployMode) === 'advisory';
     const modeAuto = (bot?.mode || s.deployMode) === 'autonomous';
@@ -1725,6 +1734,8 @@ class Component extends DCLogic {
         ...st,
         done,
         active,
+        wolfIcon: !!st.wolfIcon,
+        tiIcon: !st.wolfIcon,
         bg: active ? '#FBF3EF' : done ? '#F5FAF5' : 'var(--paper)',
         border: active ? '#E8C4BC' : done ? '#C5D9C5' : 'var(--line)',
         opacity: i > stepIdx + 1 ? '0.45' : '1',
@@ -1805,7 +1816,7 @@ class Component extends DCLogic {
     const botSelectStyle = 'font-family:inherit;font-size:13px;font-weight:550;border:1px solid var(--line2);border-radius:9px;padding:8px 32px 8px 12px;background:var(--panel);color:var(--ink);min-width:0;max-width:100%;width:100%;cursor:pointer;appearance:auto;-webkit-appearance:menulist;';
     const botOptions = s.bots.map(b => ({
       id: b.id,
-      label: 'Bot ' + b.id + (b.paused ? ' · paused' : ''),
+      label: 'Wolf ' + b.id + (b.paused ? ' · paused' : ''),
     }));
     const refreshBtnStyle = 'display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:' + (s.refreshing ? 'wait' : 'pointer') + ';font-size:13px;font-weight:550;color:var(--ink);padding:9px 14px;border-radius:10px;opacity:' + (s.refreshing ? '0.7' : '1') + ';';
     const refreshIcon = s.refreshing ? 'ti ti-loader-2' : 'ti ti-refresh';
@@ -1830,7 +1841,7 @@ class Component extends DCLogic {
       refreshPrices: () => this.refreshPrices(),
       budget:s.budget, onSlider, onBudgetChange,
       strategySelected: !!s.strategy, noStrategy: !s.strategy, summaryText,
-      deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy bot',
+      deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy Wolf',
       rescreen: () => this.rescreen(),
       noBots: s.bots.length === 0, hasBots: s.bots.length > 0, botCards,
       hasBotSelection, botSelectionCount, allBotsSelected, someBotsSelected,
@@ -1848,7 +1859,7 @@ class Component extends DCLogic {
       llmSummary: s.llmSummary, hasLlmSummary: !!s.llmSummary,
       allocationFmt: fmt(allocation), deployedFmt: fmt(deployed), portfolioFmt: fmt(portfolio),
       screenedN: s.screenedN, loading: s.loading, isScanning, screenError: s.screenError, errorMsg: s.errorMsg,
-      loadTitle: s.loadTitle || (s.deploying ? 'Deploying your bot' : 'Scanning market'),
+      loadTitle: s.loadTitle || (s.deploying ? 'Deploying your Wolf' : 'Scanning market'),
       loadStatus: s.loadStatus || 'Starting…',
       loadProgressPct, loadStepCards, scanIcon, scanIconSpin,
       hasCands, noCands, botActionMsg: s.botActionMsg, hasBotMsg: !!s.botActionMsg,

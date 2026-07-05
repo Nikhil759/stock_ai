@@ -125,7 +125,7 @@ def init_db():
 
 
 def _bot_name(bot_id: int) -> str:
-    return f"Bot {bot_id}"
+    return f"Wolf {bot_id}"
 
 
 def _migrate_workspace(conn):
@@ -150,7 +150,7 @@ def _migrate_pick_report(conn):
 
 
 def _migrate_bot_names(conn):
-    """Normalize bot display names to Bot 1, Bot 2, … by id."""
+    """Normalize Wolf display names to Wolf 1, Wolf 2, … by id."""
     rows = conn.execute("SELECT id FROM bots ORDER BY id").fetchall()
     for row in rows:
         conn.execute(
@@ -503,11 +503,11 @@ def execute_buy(bot_id: int, trade: dict, cost: float, source: str = "manual") -
     init_db()
     bot = get_bot(bot_id)
     if not bot:
-        raise ValueError("Bot not found")
+        raise ValueError("Wolf not found")
     if bot["status"] == "terminated":
-        raise ValueError("Bot is terminated")
+        raise ValueError("Wolf is terminated")
     if bot["status"] == "paused":
-        raise ValueError("Bot is paused")
+        raise ValueError("Wolf is paused")
     if bot["availableCash"] < cost - 0.01:
         raise ValueError(f"Insufficient cash (₹{bot['availableCash']:,.0f} available)")
 

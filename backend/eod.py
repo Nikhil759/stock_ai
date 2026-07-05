@@ -63,7 +63,7 @@ def refresh_prices(bot_id: int) -> dict:
     """Manual refresh — update LTP; auto-exit only when bot is running."""
     bot = db.get_bot(bot_id)
     if not bot:
-        return {"error": "Bot not found"}
+        return {"error": "Wolf not found"}
     if bot["status"] == "terminated":
         return {"skipped": True, "reason": "terminated"}
     if not db.get_trades(bot_id, status="open"):
@@ -75,7 +75,7 @@ def refresh_prices(bot_id: int) -> dict:
 def run_eod(bot_id: int) -> dict:
     bot = db.get_bot(bot_id)
     if not bot:
-        return {"error": "Bot not found"}
+        return {"error": "Wolf not found"}
 
     if bot["status"] == "terminated":
         return {"skipped": True, "reason": "terminated"}

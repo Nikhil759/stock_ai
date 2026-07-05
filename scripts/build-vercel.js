@@ -30,6 +30,7 @@ const htmlSrc = path.join(root, 'Trading Bot.dc.html');
 const htmlDst = path.join(out, 'index.html');
 fs.copyFileSync(htmlSrc, htmlDst);
 fs.copyFileSync(path.join(root, 'support.js'), path.join(out, 'support.js'));
+fs.copyFileSync(path.join(root, 'wolf_logo.png'), path.join(out, 'wolf_logo.png'));
 
 const config = `window.__API_BASE__ = ${JSON.stringify(apiBase)};\n`;
 fs.writeFileSync(path.join(out, 'config.js'), config);
