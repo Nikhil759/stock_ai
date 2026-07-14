@@ -8,3 +8,18 @@ python-dotenv
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 apscheduler>=3.10.0
+# Wolf Capital Phase 1 — Supabase Postgres data layer
+psycopg2-binary>=2.9.9
+# Phase A — Kite quote for order book / circuit limits (read-only)
+kiteconnect>=5.0.0
+pyotp>=2.9.0
+# Phase B — technical indicator engine (pure Python, Python 3.14 OK)
+ta>=0.11.0
+# Phase D — batch LLM scoring (Gemini)
+google-genai>=1.0.0
+pydantic>=2.0.0
+# Phase E/F — health status + Supabase Auth (dashboard)
+supabase>=2.0.0
+httpx>=0.28.0
+itsdangerous>=2.0.0
+jinja2>=3.1.0

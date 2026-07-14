@@ -21,51 +21,22 @@ HONEST CAVEATS:
 """
 from __future__ import annotations
 import json
-import threading
 from datetime import date, datetime
 from urllib.parse import quote
 
 from ..dossier import Events
 from ..config import CACHE_DIR as _BASE_CACHE_DIR
+from . import nse_client
 
 _CACHE_DIR = _BASE_CACHE_DIR / "events"
 _MEM: dict[str, list] = {}
 
-_NSE_BASE = "https://www.nseindia.com"
+_NSE_BASE = nse_client.NSE_BASE
 _BOARD_MEETINGS_URL = _NSE_BASE + "/api/corporate-board-meetings?index=equities&symbol={symbol}"
 _CORP_ACTIONS_URL = _NSE_BASE + "/api/corporates-corporateActions?index=equities&symbol={symbol}"
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": _NSE_BASE + "/companies-listing/corporate-filings-event-calendar",
-}
-
-_session_lock = threading.Lock()
-_session = None
+_EVENTS_REFERER = _NSE_BASE + "/companies-listing/corporate-filings-event-calendar"
 
 _EARNINGS_KEYWORDS = ("financial result", "results", "audited")
-
-
-def _get_session():
-    """Lazily create one cookie-warmed requests session, shared across the
-    build's worker threads (NSE requires its anti-bot cookies to be set
-    before the API will respond)."""
-    global _session
-    with _session_lock:
-        if _session is None:
-            import requests
-            s = requests.Session()
-            s.headers.update(_HEADERS)
-            try:
-                s.get(_NSE_BASE + "/", timeout=15)
-            except Exception as e:
-                print(f"[events] NSE session warm-up failed: {e}")
-            _session = s
-        return _session
 
 
 # ---------- nested-lookup helper (defensive, same style as fundamentals_ext.py) ----------
@@ -112,16 +83,17 @@ def _fetch_json(url: str, cache_key: str) -> list | None:
             pass
 
     try:
-        session = _get_session()
-        resp = session.get(url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
+        data = nse_client.fetch_json(
+            url,
+            referer=_EVENTS_REFERER,
+            label=f"events:{cache_key}",
+        )
         if data is not None:
             cache_file.write_text(json.dumps(data))
             _MEM[cache_key] = data
             return data
     except Exception as e:
-        print(f"[events] {cache_key}: {e}")
+        print(f"[FETCH] events {cache_key}: {e}")
     return None
 
 
@@ -193,7 +165,7 @@ def fetch_events(ticker: str) -> Events:
         e.recent_corporate_actions = recent
         return e
     except Exception as e:
-        print(f"[events] {ticker}: {e}")
+        print(f"[FETCH] events {ticker}: {e}")
         return Events()
 
 

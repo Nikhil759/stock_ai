@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wolf Capital · Health Check</title>
+  <link rel="icon" href="/wolf_logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <style>
+    :root{
+      --paper:#FAF6EE;--panel:#FFFEFA;--ink:#26211A;--ink2:#6F685A;
+      --line:#E9E1D0;--line2:#DBD1BC;--clay:#BF5B2D;--green:#3E7A52;--red:#B04938;
+      --wolf-fur:#E8792F;--wolf-tint:#FBF2E5;--wolf-glow:rgba(216,118,50,0.16);--wolf-mist:#F4EBDB;
+      --mono:'Geist Mono',ui-monospace,'SF Mono',monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Hanken Grotesk',system-ui,sans-serif;
+      background:var(--paper);
+      background-image:radial-gradient(1100px 480px at 88% -12%,rgba(226,124,55,0.05),transparent 60%),
+                        radial-gradient(900px 460px at -8% 4%,rgba(101,124,88,0.045),transparent 55%);
+      background-attachment:fixed;
+      color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit}
+    header.app-header{
+      position:sticky;top:0;z-index:30;background:rgba(250,246,238,0.85);
+      backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+    }
+    .app-header-inner{
+      max-width:920px;margin:0 auto;padding:13px clamp(16px,4vw,32px);
+      display:flex;align-items:center;gap:14px;
+    }
+    .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+    .brand img{width:28px;height:28px;display:block;filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2))}
+    .brand-name{font-weight:700;font-size:15.5px;letter-spacing:-0.01em}
+    .brand-pill{
+      font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;
+      color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;
+      padding:2px 7px;border-radius:999px;
+    }
+    .top-link{
+      display:flex;align-items:center;gap:6px;height:37px;padding:0 12px;
+      border:1px solid var(--line2);border-radius:10px;background:var(--panel);
+      color:var(--ink2);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap;
+    }
+    .top-link:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow);color:var(--ink)}
+    .top-link.danger{color:var(--red)}
+    main{max-width:920px;margin:0 auto;padding:clamp(20px,4vw,36px) clamp(16px,4vw,32px) 64px}
+    .eyebrow{
+      font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;
+      text-transform:uppercase;color:var(--clay);margin:0 0 8px;
+    }
+    h1{font-size:clamp(24px,3.4vw,30px);font-weight:800;letter-spacing:-0.02em;margin:0 0 8px}
+    .sub{color:var(--ink2);margin:0 0 28px;font-size:14.5px;line-height:1.5}
+    .sub code{
+      font-family:var(--mono);background:var(--wolf-mist);border:1px solid var(--line);
+      border-radius:5px;padding:1px 6px;font-size:12.5px;
+    }
+    .gate{
+      margin-top:16px;padding:28px;background:var(--panel);border:1px solid var(--line);
+      border-radius:16px;text-align:left;box-shadow:0 2px 12px rgba(160,90,40,0.06);
+    }
+    .gate-icon{
+      width:44px;height:44px;border-radius:12px;background:var(--wolf-tint);border:1px solid #EDD3B6;
+      display:flex;align-items:center;justify-content:center;color:var(--clay);font-size:20px;margin-bottom:14px;
+    }
+    .gate.denied .gate-icon{background:rgba(176,73,56,0.1);border-color:rgba(176,73,56,0.25);color:var(--red)}
+    .gate h2{font-size:18px;font-weight:700;margin:0 0 6px}
+    .gate p{color:var(--ink2);margin:0 0 16px;font-size:14px;line-height:1.55}
+    .btn-primary{
+      display:inline-flex;align-items:center;gap:8px;background:var(--clay);color:#fff;
+      border:none;text-decoration:none;font-size:14px;font-weight:650;padding:11px 18px;
+      border-radius:11px;box-shadow:0 2px 8px rgba(191,91,45,0.22);
+    }
+    .btn-primary:hover{filter:brightness(1.04)}
+    .btn-secondary{
+      display:inline-flex;align-items:center;gap:8px;background:var(--panel);color:var(--ink);
+      border:1px solid var(--line2);text-decoration:none;font-size:14px;font-weight:600;padding:10px 16px;
+      border-radius:11px;
+    }
+    .btn-secondary:hover{background:var(--wolf-tint)}
+    section{margin-bottom:30px}
+    section h2{
+      font-size:12px;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink2);
+      font-weight:700;margin:0 0 12px;
+    }
+    .strip{display:grid;gap:10px}
+    .day-card{
+      background:var(--panel);border:1px solid var(--line);border-radius:14px;
+      padding:14px 16px;transition:box-shadow 0.15s ease;
+    }
+    .day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
+    .day-date{font-family:var(--mono);font-size:13px;font-weight:600}
+    .chip{
+      font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;
+      letter-spacing:0.01em;white-space:nowrap;border:1px solid transparent;
+    }
+    .chip.ok{background:rgba(62,122,82,0.12);color:var(--green);border-color:rgba(62,122,82,0.25)}
+    .chip.bad{background:rgba(176,73,56,0.12);color:var(--red);border-color:rgba(176,73,56,0.25)}
+    .chip.warn{background:rgba(191,91,45,0.12);color:var(--clay);border-color:rgba(191,91,45,0.28)}
+    .chip.idle{background:var(--wolf-mist);color:var(--ink2);border-color:var(--line)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .mini-chip{
+      font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;
+      background:var(--wolf-mist);color:var(--ink2);border:1px solid var(--line);cursor:default;
+    }
+    .mini-chip.ok{background:rgba(62,122,82,0.1);color:var(--green);border-color:rgba(62,122,82,0.22)}
+    .mini-chip.bad{background:rgba(176,73,56,0.1);color:var(--red);border-color:rgba(176,73,56,0.22)}
+    .mini-chip.warn{background:rgba(191,91,45,0.1);color:var(--clay);border-color:rgba(191,91,45,0.24)}
+    details.stage{
+      background:var(--panel);border:1px solid var(--line);border-radius:12px;
+      margin-bottom:8px;overflow:hidden;
+    }
+    details.stage summary{
+      cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;
+      padding:12px 14px;font-size:14px;font-weight:600;
+    }
+    details.stage summary::-webkit-details-marker{display:none}
+    details.stage summary::after{
+      content:'\ea62';font-family:'tabler-icons' !important;margin-left:auto;color:var(--ink2);font-size:15px;
+    }
+    details.stage[open] summary::after{content:'\ea61'}
+    .stage-body{
+      padding:0 14px 14px 14px;color:var(--ink2);font-size:13px;line-height:1.55;
+      white-space:pre-wrap;border-top:1px solid var(--line);padding-top:11px;font-family:var(--mono);
+    }
+    .empty{
+      color:var(--ink2);font-style:italic;font-size:13.5px;background:var(--wolf-mist);
+      border:1px dashed var(--line2);border-radius:12px;padding:18px;text-align:center;
+    }
+    .footer-note{color:var(--ink2);font-size:12.5px;margin-top:8px;display:flex;align-items:center;gap:6px}
+    .footer-note .auth-avatar-chip{
+      width:22px;height:22px;border-radius:999px;background:var(--clay);color:#fff;
+      display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <img src="/wolf_logo.png" alt="">
+        <span class="brand-name">Wolf Capital</span>
+        <span class="brand-pill">OPS</span>
+      </div>
+      <a class="top-link" href="/app"><i class="ti ti-arrow-left" style="font-size:15px;"></i>Trading UI</a>
+      {% if authorized %}
+        <a class="top-link danger" href="/health/logout"><i class="ti ti-logout" style="font-size:15px;"></i>Log out</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main>
+    <p class="eyebrow">Ops · Pipeline Health</p>
+    <h1>Health Check</h1>
+    <p class="sub">Morning ingestion status, sourced live from Supabase <code>health_status</code>.</p>
+
+    {% if not authorized %}
+      <div class="gate {% if email %}denied{% endif %}">
+        <div class="gate-icon">
+          <i class="ti {% if email %}ti-shield-x{% else %}ti-shield-lock{% endif %}"></i>
+        </div>
+        {% if email %}
+          <h2>Not authorized</h2>
+          <p>Signed in as <strong>{{ email }}</strong>, but this account can’t view pipeline health.</p>
+          <a class="btn-secondary" href="/health/logout"><i class="ti ti-logout" style="font-size:15px;"></i>Switch account</a>
+        {% else %}
+          <h2>Sign in required</h2>
+          <p>Log in with the authorized Google account to view pipeline health.</p>
+          {% if not allowed_configured %}
+            <p style="color:var(--red);font-weight:600;">Set <code>AUTHORIZED_EMAIL</code> in <code>.env</code> first.</p>
+          {% endif %}
+          <a class="btn-primary" href="/health/login"><i class="ti ti-brand-google" style="font-size:15px;"></i>Log in with Google</a>
+        {% endif %}
+      </div>
+    {% else %}
+
+      <section>
+        <h2>Last 5 days</h2>
+        {% if not recent %}
+          <p class="empty">No health rows yet — run morning ingestion to create today’s status.</p>
+        {% else %}
+          <div class="strip">
+            {% for day in recent %}
+              <div class="day-card">
+                <div class="day-head">
+                  <span class="day-date">{{ day.date }}</span>
+                  <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
+                </div>
+                <div class="chips">
+                  {% for s in day.stages %}
+                    <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Today’s live checklist</h2>
+        {% if not_started %}
+          <p class="empty">Not started — the pipeline hasn’t written a row for today yet.</p>
+        {% endif %}
+        {% for s in today_rows %}
+          <details class="stage">
+            <summary>
+              <span class="chip {{ s.chip }}">{{ s.status or "not started" }}</span>
+              <span>{{ s.label }}</span>
+            </summary>
+            <div class="stage-body">{{ s.detail }}</div>
+          </details>
+        {% else %}
+          {% if not not_started %}
+            <p class="empty">No stage detail yet.</p>
+          {% endif %}
+        {% endfor %}
+      </section>
+
+      <p class="footer-note">
+        <span class="auth-avatar-chip">{{ email[0]|upper if email else "?" }}</span>
+        Signed in as {{ email }}
+      </p>
+    {% endif %}
+  </main>
+</body>
+</html>

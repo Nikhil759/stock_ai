@@ -3,6 +3,7 @@ backend/cache/
 backend/dossier_cache/
 backend/bot.db
 backend/.venv/
+.venv/
 public/
 __pycache__/
 *.pyc
@@ -11,4 +12,5 @@ dossiers/
 data/
 intentions/
 logs/
+market_context/
 .kite_token_*

@@ -86,19 +86,53 @@
   .deploy-summary{min-width:0}
   .mono-val{overflow-wrap:anywhere;word-break:break-word}
   .cand-footer,.cand-actions{width:100%;max-width:100%}
-  .app-header-tools{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
-  .install-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);font-size:12.5px;font-weight:600;padding:0 11px;height:36px;border-radius:9px;white-space:nowrap}
+  .app-header-tools{display:flex;align-items:center;gap:8px;flex:none;min-width:0}
+  .install-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);font-size:12.5px;font-weight:600;padding:0 12px;height:37px;border-radius:10px;white-space:nowrap}
   .install-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow);color:var(--ink)}
   .install-label{display:inline}
+  .auth-login-btn{background:var(--clay)!important;color:#fff!important;border-color:var(--clay)!important;box-shadow:0 2px 8px rgba(191,91,45,0.22)}
+  .auth-login-btn:hover{color:#fff!important;box-shadow:inset 0 0 0 99px rgba(255,255,255,0.12),0 2px 8px rgba(191,91,45,0.22)}
+  .auth-menu-wrap{position:relative}
+  .auth-profile-btn{
+    display:flex;align-items:center;gap:7px;height:37px;padding:3px 10px 3px 3px;
+    border:1px solid var(--line2);border-radius:999px;background:var(--panel);
+    cursor:pointer;font-family:inherit;
+  }
+  .auth-profile-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow)}
+  .auth-avatar-chip{
+    width:29px;height:29px;border-radius:999px;background:var(--clay);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;
+    flex:none;box-shadow:0 1px 3px rgba(120,60,20,0.25);
+  }
+  .auth-menu-backdrop{position:fixed;inset:0;z-index:39;background:transparent}
+  .auth-menu{
+    position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:228px;
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    box-shadow:0 16px 34px rgba(38,33,26,0.16);padding:7px;
+    animation:modal-in 0.15s ease;
+  }
+  .auth-menu-email{
+    padding:9px 11px 8px;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--line);
+    margin-bottom:5px;word-break:break-all;font-family:var(--mono);
+  }
+  .auth-menu-item{
+    display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:9px;
+    font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;
+  }
+  .auth-menu-item:hover{background:var(--wolf-tint)}
+  .auth-menu-item-danger{color:var(--red)}
+  .auth-menu-item-danger:hover{background:rgba(176,73,56,0.08)}
+  .auth-menu-note{padding:8px 11px;font-size:12px;color:var(--ink2);font-style:italic;line-height:1.4}
   @media (max-width:520px){.install-label{display:none}}
   .modal-panel{max-width:100%}
   .signal-row{min-width:0}
   @media (max-width:720px){
-    .app-header-inner{flex-direction:column;align-items:stretch!important;gap:10px!important}
-    .app-header-brand{margin-right:0!important;width:100%}
-    .app-header-tools{display:flex;align-items:center;gap:8px;width:100%}
-    .app-header-tools .bot-select{flex:1;min-width:0!important;width:auto}
-    .app-nav{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap!important}
+    .app-header-inner{flex-wrap:nowrap!important;gap:8px!important}
+    .app-header-brand{margin-right:0!important;flex:none}
+    .app-header-brand .brand-text{display:none}
+    .app-header-tools{display:flex;align-items:center;gap:6px;flex:none}
+    .app-header-tools .bot-select{max-width:110px;min-width:0!important}
+    .app-nav{flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap!important}
     .app-nav::-webkit-scrollbar{display:none}
     .app-nav-btn{flex:1 0 auto;padding:8px 11px!important;font-size:12px!important}
     .app-main{padding-left:16px!important;padding-right:16px!important;padding-top:22px!important;padding-bottom:28px!important}
@@ -155,11 +189,11 @@
 <div class="app-root" style="--paper:#FAF6EE;--panel:#FFFEFA;--ink:#26211A;--ink2:#6F685A;--line:#E9E1D0;--line2:#DBD1BC;--clay:#BF5B2D;--green:#3E7A52;--red:#B04938;--wolf-fur:#E8792F;--wolf-tint:#FBF2E5;--wolf-glow:rgba(216,118,50,0.16);--wolf-mist:#F4EBDB;--mono:'Geist Mono',ui-monospace,'SF Mono',monospace;font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);background-image:radial-gradient(1100px 480px at 88% -12%,rgba(226,124,55,0.05),transparent 60%),radial-gradient(900px 460px at -8% 4%,rgba(101,124,88,0.045),transparent 55%);background-attachment:fixed;color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
 
   <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,246,238,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
-    <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;">
+    <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:nowrap;">
+      <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;flex:none;">
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28" style="filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2));">
-        <span style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
-        <span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
+        <span class="brand-text" style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
+        <span class="brand-text" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
       </div>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
@@ -169,6 +203,33 @@
         <button class="app-nav-btn" onClick="{{ goto.activity }}" style="{{ nav.activity }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
       </nav>
       <div class="app-header-tools">
+      <sc-if value="{{ authNotLoggedIn }}" hint-placeholder-val="{{ true }}">
+        <a href="/health/login" class="install-btn auth-login-btn" title="Log in with Google" style="text-decoration:none;">
+          <i class="ti ti-brand-google" style="font-size:15px;"></i>
+          <span class="install-label">Log in</span>
+        </a>
+      </sc-if>
+      <sc-if value="{{ authLoggedIn }}" hint-placeholder-val="{{ false }}">
+        <div class="auth-menu-wrap">
+          <button class="auth-profile-btn" onClick="{{ toggleAuthMenu }}" title="{{ authProfileTitle }}">
+            <span class="auth-avatar-chip">{{ authInitial }}</span>
+            <i class="{{ authMenuChevron }}" style="font-size:14px;color:var(--ink2);"></i>
+          </button>
+          <sc-if value="{{ showAuthMenu }}" hint-placeholder-val="{{ false }}">
+            <div class="auth-menu-backdrop" onClick="{{ closeAuthMenu }}"></div>
+            <div class="auth-menu">
+              <div class="auth-menu-email">{{ authEmail }}</div>
+              <sc-if value="{{ authAuthorized }}" hint-placeholder-val="{{ false }}">
+                <a href="/health" class="auth-menu-item"><i class="ti ti-activity" style="font-size:15px;"></i>Health Check</a>
+              </sc-if>
+              <sc-if value="{{ authNotAuthorized }}" hint-placeholder-val="{{ false }}">
+                <div class="auth-menu-note">This account can’t view Health Check.</div>
+              </sc-if>
+              <a href="/health/logout" class="auth-menu-item auth-menu-item-danger"><i class="ti ti-logout" style="font-size:15px;"></i>Log out</a>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
       <sc-if value="{{ showInstallBtn }}" hint-placeholder-val="{{ false }}">
         <button class="install-btn" onClick="{{ onInstallApp }}" title="{{ installBtnTitle }}">
           <i class="ti ti-download" style="font-size:15px;"></i>
@@ -1033,12 +1094,45 @@ class Component extends DCLogic {
       closedTradesOpen: false,
       showInstallBtn: false,
       showIosInstallTip: false,
+      authEmail: '',
+      authInitial: '?',
+      authLoggedIn: false,
+      authAuthorized: false,
+      showAuthMenu: false,
     };
     this._deferredPrompt = null;
     this._iosInstall = false;
     this._scanTimer = null;
     if (typeof window !== 'undefined') this._initPwa();
+    this._loadAuthSession();
     this._loadAll();
+  }
+
+  async _loadAuthSession(){
+    try {
+      const r = await fetch('/api/ops/me', { credentials: 'include' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const email = (data.email || '').trim();
+      const loggedIn = Boolean(data.logged_in && email);
+      const authorized = Boolean(data.authorized);
+      this.setState({
+        authEmail: email,
+        authInitial: email ? email[0].toUpperCase() : '?',
+        authLoggedIn: loggedIn,
+        authAuthorized: authorized,
+      });
+    } catch {
+      /* keep login button visible — defaults already show it */
+    }
+  }
+
+  toggleAuthMenu(){
+    this.setState({ showAuthMenu: !this.state.showAuthMenu });
+  }
+
+  closeAuthMenu(){
+    this.setState({ showAuthMenu: false });
   }
 
   _isStandalonePwa(){
@@ -2083,7 +2177,21 @@ class Component extends DCLogic {
       : '';
     const hasDailyNote = !!dailyNoteText && s.screen === 'tracker';
 
+    const authLoggedIn = !!s.authLoggedIn;
+    const authAuthorized = !!s.authAuthorized;
+    const authProfileTitle = authLoggedIn
+      ? (authAuthorized ? `${s.authEmail} · Health Check available` : `${s.authEmail} · not authorized for Health Check`)
+      : 'Not signed in';
+
     return {
+      authEmail: s.authEmail, authInitial: s.authInitial,
+      authLoggedIn, authNotLoggedIn: !authLoggedIn,
+      authAuthorized, authNotAuthorized: authLoggedIn && !authAuthorized,
+      authProfileTitle,
+      showAuthMenu: !!s.showAuthMenu,
+      authMenuChevron: s.showAuthMenu ? 'ti ti-chevron-up' : 'ti ti-chevron-down',
+      toggleAuthMenu: () => this.toggleAuthMenu(),
+      closeAuthMenu: () => this.closeAuthMenu(),
       isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
       isGrid:s.layout==='grid', isList:s.layout==='list',
       nav, tog, on, sel, goto, onBotSwitch, strategyCards,

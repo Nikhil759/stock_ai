@@ -1,15 +1,25 @@
-"""Kite Connect auth — manual login with daily token cache.
+"""Kite Connect auth — daily token cache with optional TOTP auto-login.
 
-Callers use get_kite() only. A future TOTP auto-login can plug in behind
-_authenticate() without changing the public API.
+Callers use get_kite() only.
+
+Auth order when a fresh token is needed:
+  1. If KITE_USER_ID + KITE_PASSWORD + KITE_TOTP_SECRET are set → TOTP auto-login
+  2. Else → interactive browser login (paste request_token)
+
+Access tokens expire ~6 AM IST each day. Schedule:
+  python -m scripts.refresh_kite_token
+before the morning dossier build / fund-manager jobs.
 """
 
 from __future__ import annotations
 
 import os
+import re
 from datetime import date
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
+import requests
 from dotenv import load_dotenv
 from kiteconnect import KiteConnect
 
@@ -19,6 +29,9 @@ _ROOT = find_repo_root()
 load_dotenv(_ROOT / ".env")
 
 _kite: KiteConnect | None = None
+
+_LOGIN_URL = "https://kite.zerodha.com/api/login"
+_TWOFA_URL = "https://kite.zerodha.com/api/twofa"
 
 
 def _token_path() -> Path:
@@ -38,6 +51,20 @@ def _api_secret() -> str:
     if not secret:
         raise RuntimeError("KITE_API_SECRET not set in .env")
     return secret
+
+
+def _totp_credentials() -> tuple[str, str, str] | None:
+    """Return (user_id, password, totp_secret) if all three are configured."""
+    user_id = os.getenv("KITE_USER_ID", "").strip()
+    password = os.getenv("KITE_PASSWORD", "").strip()
+    totp_secret = os.getenv("KITE_TOTP_SECRET", "").strip().replace(" ", "")
+    if user_id and password and totp_secret:
+        return user_id, password, totp_secret
+    return None
+
+
+def totp_configured() -> bool:
+    return _totp_credentials() is not None
 
 
 def login_url() -> str:
@@ -63,6 +90,15 @@ def _exchange_request_token(request_token: str) -> str:
     return session["access_token"]
 
 
+def _extract_request_token(url: str) -> str | None:
+    qs = parse_qs(urlparse(url).query)
+    tokens = qs.get("request_token") or []
+    if tokens:
+        return tokens[0]
+    m = re.search(r"request_token=([A-Za-z0-9]+)", url)
+    return m.group(1) if m else None
+
+
 def _authenticate_interactive() -> str:
     """Manual browser login — paste request_token from redirect URL."""
     url = login_url()
@@ -79,16 +115,156 @@ def _authenticate_interactive() -> str:
 
 
 def _authenticate_totp() -> str:
-    """Placeholder for future TOTP auto-login — not implemented yet."""
-    raise NotImplementedError("TOTP auto-login not configured")
+    """Headless login via Zerodha password + TOTP → request_token → access_token.
+
+    Uses undocumented kite.zerodha.com login/twofa endpoints (community-standard
+    for daily algo auth). Requires External TOTP enabled on the Zerodha account.
+    """
+    creds = _totp_credentials()
+    if creds is None:
+        raise RuntimeError(
+            "TOTP auto-login needs KITE_USER_ID, KITE_PASSWORD, and KITE_TOTP_SECRET in .env"
+        )
+    user_id, password, totp_secret = creds
+
+    try:
+        import pyotp
+    except ImportError as e:
+        raise RuntimeError(
+            "pyotp is required for TOTP auto-login — pip install pyotp"
+        ) from e
+
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "X-Kite-Version": "3",
+        }
+    )
+
+    print("[kite] TOTP auto-login: step 1/3 password…")
+    login_resp = session.post(
+        _LOGIN_URL,
+        data={"user_id": user_id, "password": password},
+        timeout=30,
+    )
+    login_resp.raise_for_status()
+    login_body = login_resp.json()
+    if login_body.get("status") != "success":
+        raise RuntimeError(f"Kite password login failed: {login_body.get('message')}")
+    request_id = login_body["data"]["request_id"]
+
+    otp = pyotp.TOTP(totp_secret).now()
+    print("[kite] TOTP auto-login: step 2/3 twofa…")
+    twofa_resp = session.post(
+        _TWOFA_URL,
+        data={
+            "user_id": user_id,
+            "request_id": request_id,
+            "twofa_value": otp,
+            "twofa_type": "totp",
+            "skip_session": "true",
+        },
+        timeout=30,
+    )
+    twofa_resp.raise_for_status()
+    twofa_body = twofa_resp.json()
+    if twofa_body.get("status") != "success":
+        raise RuntimeError(f"Kite TOTP twofa failed: {twofa_body.get('message')}")
+
+    print("[kite] TOTP auto-login: step 3/3 connect redirect…")
+    connect_url = login_url()
+    try:
+        # Redirect to localhost often raises ConnectionError; token is in the URL.
+        redirect = session.get(connect_url, allow_redirects=True, timeout=30)
+        final_url = redirect.url
+    except requests.exceptions.RequestException as e:
+        final_url = ""
+        # requests may expose the failed redirect URL on the error response
+        resp = getattr(e, "response", None)
+        if resp is not None and resp.url:
+            final_url = resp.url
+        err = str(e)
+        if "request_token=" in err:
+            final_url = err
+        if not final_url and hasattr(e, "request") and e.request is not None:
+            # Walk redirect history if present on a partial response
+            pass
+
+    request_token = _extract_request_token(final_url) if final_url else None
+
+    if request_token is None:
+        # Some environments leave the token only in redirect history
+        try:
+            redirect = session.get(connect_url, allow_redirects=False, timeout=30)
+            location = redirect.headers.get("Location", "")
+            request_token = _extract_request_token(location)
+            # Follow one more hop if still on kite.zerodha.com/connect/...
+            hops = 0
+            while request_token is None and location and hops < 5:
+                hops += 1
+                nxt = session.get(location, allow_redirects=False, timeout=30)
+                location = nxt.headers.get("Location", "")
+                request_token = _extract_request_token(location) or _extract_request_token(
+                    nxt.url
+                )
+        except requests.exceptions.RequestException as e:
+            m = re.search(r"request_token=([A-Za-z0-9]+)", str(e))
+            if m:
+                request_token = m.group(1)
+
+    if not request_token:
+        raise RuntimeError(
+            "TOTP login succeeded but could not extract request_token from redirect. "
+            "Check Kite app redirect URL (e.g. http://127.0.0.1)."
+        )
+
+    access_token = _exchange_request_token(request_token)
+    _save_token(access_token)
+    print(f"[kite] TOTP auto-login OK — cached {_token_path().name}")
+    return access_token
+
+
+def refresh_access_token(*, force: bool = False) -> str:
+    """Ensure today's access token exists. Prefer TOTP when configured.
+
+    Returns the access token string. Safe to call from cron.
+    """
+    global _kite
+    if not force:
+        cached = _load_cached_token()
+        if cached:
+            kite = _build_kite(cached)
+            if _verify_token(kite):
+                _kite = kite
+                return cached
+            print("[kite] cached token invalid — refreshing")
+
+    if _token_path().exists() and force:
+        _token_path().unlink()
+
+    if totp_configured():
+        token = _authenticate_totp()
+    else:
+        token = _authenticate_interactive()
+
+    kite = _build_kite(token)
+    if not _verify_token(kite):
+        raise RuntimeError("Kite token refresh produced an invalid session")
+    _kite = kite
+    return token
 
 
 def _authenticate() -> str:
-    """Resolve an access token: cache hit, else interactive (TOTP later)."""
+    """Resolve an access token: cache hit, else TOTP or interactive."""
     cached = _load_cached_token()
     if cached:
         return cached
-    # Future: if os.getenv("KITE_TOTP_SECRET"): return _authenticate_totp()
+    if totp_configured():
+        return _authenticate_totp()
     return _authenticate_interactive()
 
 
@@ -109,8 +285,8 @@ def _verify_token(kite: KiteConnect) -> bool:
 def get_kite(*, force_login: bool = False) -> KiteConnect:
     """Return an authenticated KiteConnect instance.
 
-    Reuses today's cached token. Prompts for browser login if missing or
-    invalid. Set force_login=True to discard cache and re-authenticate.
+    Reuses today's cached token. If missing/invalid: TOTP auto-login when
+    configured, otherwise interactive browser login.
     """
     global _kite
     if _kite is not None and not force_login:
@@ -125,7 +301,11 @@ def get_kite(*, force_login: bool = False) -> KiteConnect:
     if not _verify_token(kite):
         if _token_path().exists():
             _token_path().unlink()
-        access_token = _authenticate_interactive()
+        # Prefer TOTP retry if configured; else fall back to interactive
+        if totp_configured():
+            access_token = _authenticate_totp()
+        else:
+            access_token = _authenticate_interactive()
         kite = _build_kite(access_token)
         if not _verify_token(kite):
             raise RuntimeError("Kite authentication failed after re-login")

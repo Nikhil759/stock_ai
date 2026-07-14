@@ -27,50 +27,23 @@ HONEST CAVEATS — read before trusting output:
 """
 from __future__ import annotations
 import json
-import threading
 from datetime import date
 from urllib.parse import quote
 
 from ..dossier import Fundamentals
 from ..config import CACHE_DIR as _BASE_CACHE_DIR
+from . import nse_client
 
 _CACHE_DIR = _BASE_CACHE_DIR / "fundamentals"
 _MEM: dict[str, list] = {}   # in-run cache
 
-_NSE_BASE = "https://www.nseindia.com"
+_NSE_BASE = nse_client.NSE_BASE
 _SHAREHOLDING_URL = (
     _NSE_BASE + "/api/corporate-share-holdings-master?index=equities&symbol={symbol}"
 )
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": _NSE_BASE + "/companies-listing/corporate-filings-shareholding-pattern",
-}
-
-_session_lock = threading.Lock()
-_session = None
-
-
-def _get_session():
-    """Lazily create one cookie-warmed requests session, shared across the
-    build's worker threads (NSE requires its anti-bot cookies to be set
-    before the API will respond)."""
-    global _session
-    with _session_lock:
-        if _session is None:
-            import requests
-            s = requests.Session()
-            s.headers.update(_HEADERS)
-            try:
-                s.get(_NSE_BASE + "/", timeout=15)
-            except Exception as e:
-                print(f"[fundamentals_ext] NSE session warm-up failed: {e}")
-            _session = s
-        return _session
+_SHAREHOLDING_REFERER = (
+    _NSE_BASE + "/companies-listing/corporate-filings-shareholding-pattern"
+)
 
 
 # ---------- nested-lookup helper (defensive) ----------
@@ -121,18 +94,19 @@ def _fetch_raw(symbol: str) -> list | None:
             pass
 
     try:
-        session = _get_session()
         # quote() so tickers like "M&M" / "M&MFIN" don't split the query string
         url = _SHAREHOLDING_URL.format(symbol=quote(symbol, safe=""))
-        resp = session.get(url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
+        data = nse_client.fetch_json(
+            url,
+            referer=_SHAREHOLDING_REFERER,
+            label=f"shareholding:{symbol}",
+        )
         if data:
             cache_file.write_text(json.dumps(data))
             _MEM[symbol] = data
             return data
     except Exception as e:
-        print(f"[fundamentals_ext] {symbol}: {e}")
+        print(f"[FETCH] fundamentals_ext {symbol}: {e}")
     return None
 
 

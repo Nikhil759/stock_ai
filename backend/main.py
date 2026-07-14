@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Literal
+import sys
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -18,6 +19,9 @@ from strategies import STRATEGY_NAMES, VALID_STRATEGIES, get_strategy, list_stra
 from workspace import is_valid_workspace_id, normalize_workspace_id
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 UI_FILE = ROOT / "Trading Bot.dc.html"
 
 load_dotenv(ROOT / ".env")
@@ -30,6 +34,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Phase F — ops health dashboard (FastAPI + HTML, Supabase Google OAuth PKCE)
+from dashboard.auth_router import install_session_middleware, router as health_router
+
+install_session_middleware(app)
+app.include_router(health_router)
+
+
+# Explicit aliases — some reload paths left IncludedRouter candidates empty for /api/ops/*.
+from fastapi import Request as _Request
+from dashboard.auth_router import api_ops_me as _api_ops_me
+
+
+@app.get("/api/ops/me")
+async def ops_me_alias(request: _Request):
+    return await _api_ops_me(request)
 
 
 class DeployRequest(BaseModel):
@@ -368,12 +388,17 @@ def legacy_config(ws: str = Depends(require_workspace)):
 
 
 @app.get("/")
-def index():
+def index(code: str | None = None):
+    # Supabase sometimes redirects to Site URL (/) with ?code= — forward to PKCE callback.
+    if code:
+        return RedirectResponse(f"/health/auth/callback?code={code}", status_code=303)
     return RedirectResponse("/app")
 
 
 @app.get("/app")
-def app_page():
+def app_page(code: str | None = None):
+    if code:
+        return RedirectResponse(f"/health/auth/callback?code={code}", status_code=303)
     if not UI_FILE.exists():
         raise HTTPException(status_code=404, detail="UI file not found")
     return FileResponse(UI_FILE, media_type="text/html")

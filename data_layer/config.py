@@ -48,4 +48,4 @@ VIX_CALM = 15
 VIX_ELEVATED = 22
 
 # --- schema version ---
-DOSSIER_VERSION = "1.1"
+DOSSIER_VERSION = "1.3"

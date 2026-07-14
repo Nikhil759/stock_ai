@@ -9,7 +9,7 @@ import pandas as pd
 
 from ..dossier import MarketContext
 from ..config import VIX_CALM, VIX_ELEVATED
-from .technicals import _sma
+from .indicators import last_sma as _sma
 from .chart_shape import _slope_label
 
 

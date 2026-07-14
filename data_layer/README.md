@@ -18,10 +18,16 @@ data_layer/
   fetch/
     prices.py          # Phase 0 — yfinance bars/index (working)
     fundamentals.py    # Phase 0 — yfinance basics (working)
-    fundamentals_ext.py# Phase 2 — NSE shareholding (promoter_holding_pct; FII/pledge need XBRL, deferred)
+    fundamentals_ext.py# Phase 2 — NSE shareholding (via nse_client)
     news.py            # Phase 3 — Marketaux news + sentiment (built)
     events.py          # Phase 3 — NSE board meetings + corporate actions (built)
+    nse_client.py      # Phase A — shared NSE session / retry / [FETCH] logs
+    orderbook.py       # Phase A — Kite quote depth + circuit limits
+    kite_session.py    # Phase A — TOTP token refresh before orderbook
+    bigmoves.py        # Phase A — bulk / block / insider trades
+    marketmood.py      # Phase A — FII/DII daily flow → market_context/mood_*.json
 dossiers/              # output: <TICKER>.json  (created on first run)
+market_context/        # output: mood_{date}.json (FII/DII, once per day)
 data/history.sqlite    # append-only snapshots  (created on first run)
 ```
 
@@ -39,6 +45,11 @@ python -m data_layer.build --close  # post-close snapshot
   per-quarter XBRL filings, not the JSON endpoint; deferred. (built)
 - **3** News + Events — `news.py` (Marketaux) and `events.py` (NSE board
   meetings + corporate actions). (built)
+- **A** Order book (Kite), big trades, market mood. (built)
+- **B** `ta` library indicators + PKScreener-inspired chart_shape signals
+  (consolidation %, volume ratio, Stage 2, named patterns). (built)
+  Engine is `ta` (pure Python — works on Python 3.14). `compute/indicators.py`
+  remains only for small helpers used by market_context / chart_shape.
 
 Each phase leaves the whole thing runnable; empty blocks are valid, not errors.
 

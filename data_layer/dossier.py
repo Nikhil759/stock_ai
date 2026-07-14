@@ -70,6 +70,16 @@ class Technicals:
     return_1m: Optional[float] = None
     return_3m: Optional[float] = None
     return_6m: Optional[float] = None
+    # Phase B — pandas-ta indicators (extension; existing fields above kept)
+    dma_20: Optional[float] = None
+    atr: Optional[float] = None
+    macd: Optional[float] = None
+    macd_signal: Optional[float] = None
+    macd_hist: Optional[float] = None
+    adx: Optional[float] = None
+    bb_upper: Optional[float] = None
+    bb_middle: Optional[float] = None
+    bb_lower: Optional[float] = None
 
 
 @dataclass
@@ -81,6 +91,13 @@ class ChartShape:
     distance_note: Optional[str] = None
     box_width_pct: Optional[float] = None       # 20-day range width; Darvas box filter
     breakout_above_box: Optional[bool] = None  # close above prior 20d box high (+0.2%)
+    # Phase B — PKScreener-inspired signals
+    consolidation_percentage: Optional[float] = None
+    is_consolidating: Optional[bool] = None
+    volume_ratio: Optional[float] = None
+    volume_confirmed_breakout: Optional[bool] = None
+    stage: Optional[str] = None  # "stage2_uptrend" | "not_stage2"
+    patterns: list = field(default_factory=list)
 
 
 @dataclass
@@ -123,6 +140,9 @@ class Dossier:
     market_context: MarketContext = field(default_factory=MarketContext)
     news: NewsBlock = field(default_factory=NewsBlock)
     events: Events = field(default_factory=Events)
+    # Phase A uplift — null when the fetcher failed; empty arrays are OK for big_trades
+    order_book: Optional[dict] = None
+    big_trades: Optional[dict] = None
 
     # ---- serialization ----
     def to_dict(self) -> dict:
@@ -142,6 +162,8 @@ class Dossier:
             market_context=MarketContext(**d.get("market_context", {})),
             news=NewsBlock(**d.get("news", {})),
             events=Events(**d.get("events", {})),
+            order_book=d.get("order_book"),
+            big_trades=d.get("big_trades"),
         )
 
     @classmethod
