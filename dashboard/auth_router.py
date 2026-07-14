@@ -50,11 +50,23 @@ def authorized_email() -> str:
     return (os.getenv("AUTHORIZED_EMAIL") or "").strip().lower()
 
 
+def _normalize_origin(raw: str) -> str:
+    val = raw.strip().rstrip("/")
+    if not val:
+        return ""
+    if not val.startswith(("http://", "https://")):
+        val = "https://" + val
+    return val
+
+
 def redirect_url() -> str:
-    return (
-        os.getenv("APP_REDIRECT_URL")
-        or "http://127.0.0.1:8000/health/auth/callback"
-    ).strip()
+    explicit = (os.getenv("APP_REDIRECT_URL") or "").strip()
+    if explicit:
+        return explicit
+    frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
+    if frontend:
+        return f"{frontend}/health/auth/callback"
+    return "http://127.0.0.1:8000/health/auth/callback"
 
 
 def session_secret() -> str:
@@ -63,15 +75,6 @@ def session_secret() -> str:
         or os.getenv("SUPABASE_ANON_KEY")
         or "dev-insecure-session-secret"
     )
-
-
-def _normalize_origin(raw: str) -> str:
-    val = raw.strip().rstrip("/")
-    if not val:
-        return ""
-    if not val.startswith(("http://", "https://")):
-        val = "https://" + val
-    return val
 
 
 def allowed_origins() -> list[str]:

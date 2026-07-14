@@ -72,13 +72,17 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 - `SUPABASE_DATABASE_URL` — reads `health_status` for the dashboard
 - `SUPABASE_PROJECT_URL` (or `SUPABASE_URL`) + `SUPABASE_ANON_KEY` — OAuth
 - `AUTHORIZED_EMAIL` — the only email allowed to view `/health`
-- `APP_REDIRECT_URL` — **must be the production callback URL**, e.g.
-  `https://<your-app>.up.railway.app/health/auth/callback` (also add this
-  exact URL as a Redirect URL in the Supabase Auth settings)
+- `APP_REDIRECT_URL` — OAuth callback URL. With a Vercel frontend, use
+  `https://<vercel-app>/health/auth/callback` (Vercel proxies it to Railway).
+  Add the same URL in Supabase Auth → Redirect URLs.
 - `DASHBOARD_SESSION_SECRET` — any random string
 - `FRONTEND_URL` — your Vercel app URL (e.g. `https://wolf-capital.vercel.app`).
-  Required when the Trading UI is on Vercel but auth runs on Railway — enables
-  CORS with credentials and sends users back to Vercel after Google login.
+  Used for post-login redirect. If `APP_REDIRECT_URL` is unset, the OAuth
+  callback defaults to `FRONTEND_URL/health/auth/callback`.
+
+**Vercel:** set `RAILWAY_PUBLIC_URL` to your Railway API host. The Vercel build
+generates rewrites that proxy `/health/*` and `/api/ops/*` to Railway so login
+cookies stay on the Vercel domain (first-party).
 
 Verify cron API: `GET /health` on the cron service (public URL) → `count: 200`.
 

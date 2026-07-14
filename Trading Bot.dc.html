@@ -1110,7 +1110,9 @@ class Component extends DCLogic {
 
   async _loadAuthSession(){
     try {
-      const r = await fetch(this._api('/api/ops/me'), { credentials: 'include' });
+      // Same-origin only — on Vercel these paths are proxied to Railway so the
+      // session cookie stays first-party (cross-origin Railway cookies are blocked).
+      const r = await fetch('/api/ops/me', { credentials: 'include' });
       if (!r.ok) return;
       const data = await r.json();
       const email = (data.email || '').trim();
@@ -1145,9 +1147,9 @@ class Component extends DCLogic {
     const ret = this._authReturnTo();
     const q = ret ? `?return_to=${ret}` : '';
     return {
-      authLoginUrl: this._api('/health/login') + q,
-      authHealthUrl: this._api('/health'),
-      authLogoutUrl: this._api('/health/logout') + q,
+      authLoginUrl: '/health/login' + q,
+      authHealthUrl: '/health',
+      authLogoutUrl: '/health/logout' + q,
     };
   }
 

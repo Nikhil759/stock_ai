@@ -37,5 +37,45 @@ fs.copyFileSync(path.join(root, 'sw.js'), path.join(out, 'sw.js'));
 const config = `window.__API_BASE__ = ${JSON.stringify(apiBase)};\n`;
 fs.writeFileSync(path.join(out, 'config.js'), config);
 
+// Auth/session must be same-origin on Vercel (first-party cookies). Proxy
+// /health/* and /api/ops/* to Railway so login survives the OAuth redirect.
+const rewrites = [{ source: '/app', destination: '/index.html' }];
+if (apiBase) {
+  rewrites.push(
+    { source: '/health', destination: `${apiBase}/health` },
+    { source: '/health/:path*', destination: `${apiBase}/health/:path*` },
+    { source: '/api/ops/:path*', destination: `${apiBase}/api/ops/:path*` },
+  );
+}
+
+const vercelConfig = {
+  buildCommand: 'npm run build',
+  outputDirectory: 'public',
+  rewrites,
+  headers: [
+    {
+      source: '/sw.js',
+      headers: [
+        { key: 'Cache-Control', value: 'no-cache' },
+        { key: 'Service-Worker-Allowed', value: '/' },
+      ],
+    },
+    {
+      source: '/manifest.webmanifest',
+      headers: [
+        { key: 'Content-Type', value: 'application/manifest+json' },
+      ],
+    },
+  ],
+};
+
+fs.writeFileSync(
+  path.join(root, 'vercel.json'),
+  JSON.stringify(vercelConfig, null, 2) + '\n'
+);
+
 console.log('Built public/ for Vercel');
 console.log('  API base:', apiBase || '(same origin)');
+if (apiBase) {
+  console.log('  Auth proxy: /health/* and /api/ops/* ->', apiBase);
+}
