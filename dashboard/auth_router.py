@@ -301,13 +301,13 @@ async def health_page(request: Request):
             import logging
 
             logging.exception("health page: failed to load health_status from database")
+            from db.connection import connection_hint
+
+            detail = str(e).strip() or type(e).__name__
             db_error = (
                 "Could not load pipeline health from the database. "
-                "On Railway (stock_ai), set SUPABASE_DATABASE_URL and ensure the "
-                "health_status table exists (run health_status/schema.sql in Supabase)."
+                f"{detail}{connection_hint(e)}"
             )
-            if os.getenv("RAILWAY_ENVIRONMENT"):
-                db_error += f" ({type(e).__name__})"
 
     return TEMPLATES.TemplateResponse(
         request,
@@ -419,12 +419,23 @@ async def api_health_status(request: Request, n: int = 5):
         return JSONResponse({"error": "Not authorized"}, status_code=403)
     from health_status import get_recent_statuses, get_status
     from datetime import date
+    from db.connection import connection_hint
 
-    return {
-        "today": get_status(date.today()),
-        "recent": get_recent_statuses(n),
-        "email": _session_email(request),
-    }
+    try:
+        return {
+            "today": get_status(date.today()),
+            "recent": get_recent_statuses(n),
+            "email": _session_email(request),
+        }
+    except Exception as e:
+        return JSONResponse(
+            {
+                "error": "Database unavailable",
+                "detail": str(e),
+                "hint": connection_hint(e).strip() or None,
+            },
+            status_code=503,
+        )
 
 
 def install_session_middleware(app) -> None:
