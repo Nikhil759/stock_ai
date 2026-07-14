@@ -6,6 +6,9 @@
 #   Volume:         attach one volume (e.g. mount /data) — persists bot.db + intentions/
 #   Variables:      GEMINI_API_KEY, DOSSIER_API_URL, DOSSIER_API_TOKEN,
 #                   FUND_MANAGER_FILL_PRICE=intention
+#                   SUPABASE_DATABASE_URL (health dashboard reads health_status)
+#                   FRONTEND_URL, APP_REDIRECT_URL, DASHBOARD_SESSION_SECRET,
+#                   AUTHORIZED_EMAIL, SUPABASE_ANON_KEY, SUPABASE_PROJECT_URL
 #
 # Fund manager cron runs in-process (no separate cron services):
 #   FUND_SELECTOR_CRON  default 30 3 * * 1-5  (~9:00 AM IST weekdays)

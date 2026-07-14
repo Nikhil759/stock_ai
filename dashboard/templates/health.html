@@ -180,6 +180,14 @@
       </div>
     {% else %}
 
+      {% if db_error %}
+        <div class="gate denied">
+          <div class="gate-icon"><i class="ti ti-database-off"></i></div>
+          <h2>Database unavailable</h2>
+          <p>{{ db_error }}</p>
+        </div>
+      {% endif %}
+
       <section>
         <h2>Last 5 days</h2>
         {% if not recent %}

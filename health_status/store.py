@@ -299,29 +299,37 @@ def _pg_upsert(row: dict) -> dict:
 def _pg_get_status(day_s: str) -> dict | None:
     from db.connection import get_connection
 
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT date, started_at, stages, overall_status "
-                "FROM health_status WHERE date = %s",
-                (day_s,),
-            )
-            r = cur.fetchone()
-            if not r:
-                return None
-            cols = [d[0] for d in cur.description]
-            return _row_from_db(dict(zip(cols, r)))
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT date, started_at, stages, overall_status "
+                    "FROM health_status WHERE date = %s",
+                    (day_s,),
+                )
+                r = cur.fetchone()
+                if not r:
+                    return None
+                cols = [d[0] for d in cur.description]
+                return _row_from_db(dict(zip(cols, r)))
+    except Exception as e:
+        print(f"[HEALTH STATUS] postgres get_status failed: {e}")
+        raise
 
 
 def _pg_get_recent(n: int) -> list[dict]:
     from db.connection import get_connection
 
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT date, started_at, stages, overall_status "
-                "FROM health_status ORDER BY date DESC LIMIT %s",
-                (n,),
-            )
-            cols = [d[0] for d in cur.description]
-            return [_row_from_db(dict(zip(cols, r))) for r in cur.fetchall()]
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT date, started_at, stages, overall_status "
+                    "FROM health_status ORDER BY date DESC LIMIT %s",
+                    (n,),
+                )
+                cols = [d[0] for d in cur.description]
+                return [_row_from_db(dict(zip(cols, r))) for r in cur.fetchall()]
+    except Exception as e:
+        print(f"[HEALTH STATUS] postgres get_recent failed: {e}")
+        raise

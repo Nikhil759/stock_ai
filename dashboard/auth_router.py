@@ -277,23 +277,37 @@ async def health_page(request: Request):
     recent = []
     today_row = None
     today_rows: list[dict] = []
+    db_error: str | None = None
     if authed:
-        from health_status import get_recent_statuses, get_status
         from datetime import date
 
-        recent_raw = get_recent_statuses(5)
-        for r in recent_raw:
-            stages = r.get("stages") or {}
-            recent.append(
-                {
-                    "date": r.get("date"),
-                    "overall": r.get("overall_status") or "unknown",
-                    "overall_chip": _stage_chip(r.get("overall_status")),
-                    "stages": _flatten_stages(stages),
-                }
+        try:
+            from health_status import get_recent_statuses, get_status
+
+            recent_raw = get_recent_statuses(5)
+            for r in recent_raw:
+                stages = r.get("stages") or {}
+                recent.append(
+                    {
+                        "date": r.get("date"),
+                        "overall": r.get("overall_status") or "unknown",
+                        "overall_chip": _stage_chip(r.get("overall_status")),
+                        "stages": _flatten_stages(stages),
+                    }
+                )
+            today_row = get_status(date.today())
+            today_rows = _flatten_stages((today_row or {}).get("stages") or {})
+        except Exception as e:
+            import logging
+
+            logging.exception("health page: failed to load health_status from database")
+            db_error = (
+                "Could not load pipeline health from the database. "
+                "On Railway (stock_ai), set SUPABASE_DATABASE_URL and ensure the "
+                "health_status table exists (run health_status/schema.sql in Supabase)."
             )
-        today_row = get_status(date.today())
-        today_rows = _flatten_stages((today_row or {}).get("stages") or {})
+            if os.getenv("RAILWAY_ENVIRONMENT"):
+                db_error += f" ({type(e).__name__})"
 
     return TEMPLATES.TemplateResponse(
         request,
@@ -306,7 +320,8 @@ async def health_page(request: Request):
             "recent": recent,
             "today": today_row,
             "today_rows": today_rows,
-            "not_started": authed and today_row is None,
+            "not_started": authed and not db_error and today_row is None,
+            "db_error": db_error,
         },
     )
 

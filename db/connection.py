@@ -23,6 +23,10 @@ def get_database_url() -> str:
         raise RuntimeError(
             "SUPABASE_DATABASE_URL or DATABASE_URL must be set in the environment"
         )
+    # Supabase direct connections from cloud hosts (Railway) require SSL.
+    if "supabase.co" in url and "sslmode=" not in url:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}sslmode=require"
     return url
 
 
