@@ -54,10 +54,28 @@ run.
 
 1. Root Directory: `/`
 2. Config file: `railway.json`
-3. Volume attached (dossiers persist here)
-4. **Variables:** `DOSSIER_API_TOKEN` (shared with `stock_ai`), plus `MARKETAUX_API_KEY` etc.
+3. Volume attached (dossiers + shortlist cache persist here)
+4. **Variables:** `DOSSIER_API_TOKEN` (shared with `stock_ai`), `GEMINI_API_KEY`
+   (Phase D batch scoring), `SUPABASE_DATABASE_URL` (Phase E health_status),
+   plus `MARKETAUX_API_KEY` etc.
 5. Start command (from `railway.json`): `uvicorn data_layer.serve:app …`
-6. Scheduled builds run inside the API via APScheduler (`30 2 * * 1-5` UTC weekdays)
+6. Scheduled job runs inside the API via APScheduler (`30 2 * * 1-5` UTC
+   weekdays): dossier build → funnels → batch LLM scoring → shortlist cache →
+   `health_status` upserts (`cron/morning_ingestion.run_pipeline`). Manual
+   dossier-only rebuild is still available via `POST /api/build`.
+
+### `stock_ai` web service — Phase E/F variables
+
+The Trading UI now also serves the `/health` ops dashboard (Supabase Google
+OAuth, PKCE). Add these on the `stock_ai` service:
+
+- `SUPABASE_DATABASE_URL` — reads `health_status` for the dashboard
+- `SUPABASE_PROJECT_URL` (or `SUPABASE_URL`) + `SUPABASE_ANON_KEY` — OAuth
+- `AUTHORIZED_EMAIL` — the only email allowed to view `/health`
+- `APP_REDIRECT_URL` — **must be the production callback URL**, e.g.
+  `https://<your-app>.up.railway.app/health/auth/callback` (also add this
+  exact URL as a Redirect URL in the Supabase Auth settings)
+- `DASHBOARD_SESSION_SECRET` — any random string
 
 Verify cron API: `GET /health` on the cron service (public URL) → `count: 200`.
 

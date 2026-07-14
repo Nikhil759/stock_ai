@@ -52,6 +52,7 @@ def _dossier_stats() -> dict:
 
 
 def _run_build_job() -> None:
+    """Dossier build only — used by /api/build and the volume-empty bootstrap."""
     global _build_running
     with _build_lock:
         if _build_running:
@@ -65,6 +66,34 @@ def _run_build_job() -> None:
         log.info("build complete: %d dossiers (as_of=%s)", stats["count"], stats["as_of"])
     except Exception:
         log.exception("dossier build failed")
+    finally:
+        _build_running = False
+
+
+def _run_full_pipeline_job() -> None:
+    """Scheduled job: build dossiers -> funnels -> batch scoring -> health_status.
+
+    This replaces the old build-only scheduled job now that Phase C/D/E live
+    in this repo — one daily run keeps dossiers, shortlists, and the ops
+    health dashboard all in sync.
+    """
+    global _build_running
+    with _build_lock:
+        if _build_running:
+            log.info("pipeline already running — skip")
+            return
+        _build_running = True
+    try:
+        log.info("starting full morning pipeline (build + funnels + scoring)")
+        from cron.morning_ingestion import run_pipeline
+
+        run_pipeline()
+        stats = _dossier_stats()
+        log.info(
+            "full pipeline complete: %d dossiers (as_of=%s)", stats["count"], stats["as_of"]
+        )
+    except Exception:
+        log.exception("full morning pipeline failed")
     finally:
         _build_running = False
 
@@ -118,13 +147,13 @@ def _start_scheduler() -> None:
     minute, hour, dom, month, dow = parts
     sched = BackgroundScheduler(timezone="UTC")
     sched.add_job(
-        _run_build_job,
+        _run_full_pipeline_job,
         CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),
-        id="dossier_build",
+        id="morning_pipeline",
         replace_existing=True,
     )
     sched.start()
-    log.info("scheduled dossier build: %s UTC", BUILD_CRON)
+    log.info("scheduled full morning pipeline: %s UTC", BUILD_CRON)
 
 
 @app.on_event("startup")

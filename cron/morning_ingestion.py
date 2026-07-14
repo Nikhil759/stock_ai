@@ -167,31 +167,31 @@ def run_scoring(
     return shortlists
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(
-        description="Morning ingestion + Phase C funnels + Phase D batch scoring"
-    )
-    ap.add_argument("--skip-build", action="store_true")
-    ap.add_argument("--skip-scoring", action="store_true")
-    ap.add_argument("--strategies", type=str, default="")
-    ap.add_argument("--max-candidates", type=int, default=0)
-    ap.add_argument("--tickers", type=str, default="")
-    ap.add_argument("--close", action="store_true")
-    args = ap.parse_args()
+def run_pipeline(
+    *,
+    skip_build: bool = False,
+    skip_scoring: bool = False,
+    strategies: list[str] | None = None,
+    max_candidates: int = 0,
+    tickers: list[str] | None = None,
+    close: bool = False,
+) -> None:
+    """Library entrypoint — build (optional) -> funnels -> batch scoring.
 
+    Raises on failure (never calls sys.exit) so it's safe to call from a
+    long-running process (e.g. the data-layer-cron scheduler), not just the
+    CLI below.
+    """
     start_run(date.today())
 
     try:
-        if not args.skip_build:
+        if not skip_build:
             from data_layer.build import run as build_run
 
-            subset = [
-                t.strip().upper() for t in args.tickers.split(",") if t.strip()
-            ] or None
             try:
                 build_run(
-                    snapshot="post_close" if args.close else "pre_open",
-                    tickers=subset,
+                    snapshot="post_close" if close else "pre_open",
+                    tickers=tickers or None,
                 )
             except Exception as e:
                 update_stage(
@@ -209,9 +209,9 @@ def main() -> None:
                 {"status": "failed", "detail": "no dossiers found"},
             )
             finalize("failed")
-            sys.exit(1)
+            raise RuntimeError("no dossiers found")
 
-        _record_prep_from_dossiers(dossiers, skipped_build=args.skip_build)
+        _record_prep_from_dossiers(dossiers, skipped_build=skip_build)
 
         results = run_funnels(dossiers)
 
@@ -224,26 +224,24 @@ def main() -> None:
             )
         )
 
-        if args.skip_scoring:
-            print("\n[BATCH SCORING] skipped (--skip-scoring)")
+        if skip_scoring:
+            print("\n[BATCH SCORING] skipped (skip_scoring=True)")
             finalize()
             return
 
-        strategies = [
-            s.strip().lower()
-            for s in args.strategies.split(",")
-            if s.strip()
-        ] or list(ALL_STRATEGIES)
+        strategies = [s.strip().lower() for s in (strategies or []) if s.strip()] or list(
+            ALL_STRATEGIES
+        )
         unknown = [s for s in strategies if s not in ALL_STRATEGIES]
         if unknown:
             print(f"[BATCH SCORING] unknown strategies: {unknown}")
             finalize("failed")
-            sys.exit(1)
+            raise ValueError(f"unknown strategies: {unknown}")
 
         shortlists = run_scoring(
             results,
             strategies,
-            max_candidates=args.max_candidates or 0,
+            max_candidates=max_candidates or 0,
         )
         print("\n[SHORTLIST CACHE] summary:")
         print(
@@ -259,12 +257,35 @@ def main() -> None:
             )
         )
         finalize()
-    except SystemExit:
-        raise
     except Exception as e:
         print(f"[HEALTH STATUS] pipeline aborted: {e}")
         finalize("failed")
         raise
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="Morning ingestion + Phase C funnels + Phase D batch scoring"
+    )
+    ap.add_argument("--skip-build", action="store_true")
+    ap.add_argument("--skip-scoring", action="store_true")
+    ap.add_argument("--strategies", type=str, default="")
+    ap.add_argument("--max-candidates", type=int, default=0)
+    ap.add_argument("--tickers", type=str, default="")
+    ap.add_argument("--close", action="store_true")
+    args = ap.parse_args()
+
+    try:
+        run_pipeline(
+            skip_build=args.skip_build,
+            skip_scoring=args.skip_scoring,
+            strategies=[s.strip().lower() for s in args.strategies.split(",") if s.strip()],
+            max_candidates=args.max_candidates,
+            tickers=[t.strip().upper() for t in args.tickers.split(",") if t.strip()],
+            close=args.close,
+        )
+    except Exception:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
