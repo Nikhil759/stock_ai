@@ -28,18 +28,24 @@ load_dotenv(ROOT / ".env")
 
 app = FastAPI(title="Wolf Capital", version="0.4.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Phase F — ops health dashboard (FastAPI + HTML, Supabase Google OAuth PKCE)
-from dashboard.auth_router import install_session_middleware, router as health_router
+from dashboard.auth_router import (
+    allowed_origins,
+    install_session_middleware,
+    router as health_router,
+)
 
 install_session_middleware(app)
 app.include_router(health_router)
+
+_cors_origins = allowed_origins()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Explicit aliases — some reload paths left IncludedRouter candidates empty for /api/ops/*.

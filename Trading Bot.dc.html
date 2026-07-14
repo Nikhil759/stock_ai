@@ -204,7 +204,7 @@
       </nav>
       <div class="app-header-tools">
       <sc-if value="{{ authNotLoggedIn }}" hint-placeholder-val="{{ true }}">
-        <a href="/health/login" class="install-btn auth-login-btn" title="Log in with Google" style="text-decoration:none;">
+        <a href="{{ authLoginUrl }}" class="install-btn auth-login-btn" title="Log in with Google" style="text-decoration:none;">
           <i class="ti ti-brand-google" style="font-size:15px;"></i>
           <span class="install-label">Log in</span>
         </a>
@@ -220,12 +220,12 @@
             <div class="auth-menu">
               <div class="auth-menu-email">{{ authEmail }}</div>
               <sc-if value="{{ authAuthorized }}" hint-placeholder-val="{{ false }}">
-                <a href="/health" class="auth-menu-item"><i class="ti ti-activity" style="font-size:15px;"></i>Health Check</a>
+                <a href="{{ authHealthUrl }}" class="auth-menu-item"><i class="ti ti-activity" style="font-size:15px;"></i>Health Check</a>
               </sc-if>
               <sc-if value="{{ authNotAuthorized }}" hint-placeholder-val="{{ false }}">
                 <div class="auth-menu-note">This account can’t view Health Check.</div>
               </sc-if>
-              <a href="/health/logout" class="auth-menu-item auth-menu-item-danger"><i class="ti ti-logout" style="font-size:15px;"></i>Log out</a>
+              <a href="{{ authLogoutUrl }}" class="auth-menu-item auth-menu-item-danger"><i class="ti ti-logout" style="font-size:15px;"></i>Log out</a>
             </div>
           </sc-if>
         </div>
@@ -1110,7 +1110,7 @@ class Component extends DCLogic {
 
   async _loadAuthSession(){
     try {
-      const r = await fetch('/api/ops/me', { credentials: 'include' });
+      const r = await fetch(this._api('/api/ops/me'), { credentials: 'include' });
       if (!r.ok) return;
       const data = await r.json();
       const email = (data.email || '').trim();
@@ -1133,6 +1133,22 @@ class Component extends DCLogic {
 
   closeAuthMenu(){
     this.setState({ showAuthMenu: false });
+  }
+
+  _authReturnTo(){
+    if (typeof window === 'undefined') return '';
+    const path = window.location.pathname || '/app';
+    return encodeURIComponent(window.location.origin + path + window.location.search);
+  }
+
+  _authUrls(){
+    const ret = this._authReturnTo();
+    const q = ret ? `?return_to=${ret}` : '';
+    return {
+      authLoginUrl: this._api('/health/login') + q,
+      authHealthUrl: this._api('/health'),
+      authLogoutUrl: this._api('/health/logout') + q,
+    };
   }
 
   _isStandalonePwa(){
@@ -2184,6 +2200,7 @@ class Component extends DCLogic {
       : 'Not signed in';
 
     return {
+      ...this._authUrls(),
       authEmail: s.authEmail, authInitial: s.authInitial,
       authLoggedIn, authNotLoggedIn: !authLoggedIn,
       authAuthorized, authNotAuthorized: authLoggedIn && !authAuthorized,

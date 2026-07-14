@@ -76,6 +76,9 @@ OAuth, PKCE). Add these on the `stock_ai` service:
   `https://<your-app>.up.railway.app/health/auth/callback` (also add this
   exact URL as a Redirect URL in the Supabase Auth settings)
 - `DASHBOARD_SESSION_SECRET` — any random string
+- `FRONTEND_URL` — your Vercel app URL (e.g. `https://wolf-capital.vercel.app`).
+  Required when the Trading UI is on Vercel but auth runs on Railway — enables
+  CORS with credentials and sends users back to Vercel after Google login.
 
 Verify cron API: `GET /health` on the cron service (public URL) → `count: 200`.
 

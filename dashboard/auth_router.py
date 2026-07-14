@@ -65,6 +65,59 @@ def session_secret() -> str:
     )
 
 
+def _normalize_origin(raw: str) -> str:
+    val = raw.strip().rstrip("/")
+    if not val:
+        return ""
+    if not val.startswith(("http://", "https://")):
+        val = "https://" + val
+    return val
+
+
+def allowed_origins() -> list[str]:
+    """Origins permitted for CORS + post-login return_to redirects."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for key in ("FRONTEND_URL", "RAILWAY_PUBLIC_URL", "RAILWAY_URL"):
+        origin = _normalize_origin(os.getenv(key, ""))
+        if origin and origin not in seen:
+            seen.add(origin)
+            out.append(origin)
+    for origin in ("http://127.0.0.1:8000", "http://localhost:8000"):
+        if origin not in seen:
+            seen.add(origin)
+            out.append(origin)
+    return out
+
+
+def _default_app_url() -> str:
+    frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
+    if frontend:
+        return f"{frontend}/app"
+    for key in ("RAILWAY_PUBLIC_URL", "RAILWAY_URL"):
+        origin = _normalize_origin(os.getenv(key, ""))
+        if origin:
+            return f"{origin}/app"
+    return "/app"
+
+
+def _safe_return_url(raw: str | None) -> str | None:
+    """Reject open redirects — only allow configured frontend/API origins."""
+    if not raw or not str(raw).strip():
+        return None
+    url = str(raw).strip()
+    for origin in allowed_origins():
+        if url == origin or url.startswith(origin + "/"):
+            return url
+    return None
+
+
+def _post_auth_redirect(request: Request) -> str:
+    stored = request.session.pop("return_to", None)
+    safe = _safe_return_url(stored)
+    return safe or _default_app_url()
+
+
 def _pkce_pair() -> tuple[str, str]:
     verifier = secrets.token_urlsafe(64)
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
@@ -256,10 +309,13 @@ async def health_page(request: Request):
 
 
 @router.get("/health/login")
-async def health_login(request: Request):
+async def health_login(request: Request, return_to: str | None = None):
     """Start Google OAuth via Supabase Auth (PKCE)."""
     verifier, challenge = _pkce_pair()
     request.session["pkce_verifier"] = verifier
+    safe_return = _safe_return_url(return_to)
+    if safe_return:
+        request.session["return_to"] = safe_return
 
     params = {
         "provider": "google",
@@ -317,14 +373,14 @@ async def health_auth_callback(request: Request, code: str | None = None):
     request.session.pop("pkce_verifier", None)
     request.session["user_email"] = email
     request.session["access_token"] = data.get("access_token")
-    # Land back on Trading UI so the profile chip is visible immediately.
-    return RedirectResponse("/app", status_code=303)
+    return RedirectResponse(_post_auth_redirect(request), status_code=303)
 
 
 @router.get("/health/logout")
-async def health_logout(request: Request):
+async def health_logout(request: Request, return_to: str | None = None):
+    dest = _safe_return_url(return_to) or _default_app_url()
     request.session.clear()
-    return RedirectResponse("/app", status_code=303)
+    return RedirectResponse(dest, status_code=303)
 
 
 @router.get("/api/ops/me")
@@ -355,4 +411,10 @@ async def api_health_status(request: Request, n: int = 5):
 
 def install_session_middleware(app) -> None:
     """Call once when mounting the dashboard on the FastAPI app."""
-    app.add_middleware(SessionMiddleware, secret_key=session_secret())
+    # Cross-site session cookies (Vercel UI -> Railway API) need SameSite=None.
+    is_prod = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+    kwargs: dict[str, Any] = {"secret_key": session_secret()}
+    if is_prod:
+        kwargs["same_site"] = "none"
+        kwargs["https_only"] = True
+    app.add_middleware(SessionMiddleware, **kwargs)
