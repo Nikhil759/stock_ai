@@ -171,6 +171,15 @@
       width:22px;height:22px;border-radius:999px;background:var(--clay);color:#fff;
       display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
     }
+    .ops-bar{
+      display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:24px;
+      padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    }
+    .ops-bar p{margin:0;font-size:13.5px;color:var(--ink2);line-height:1.45}
+    .ops-bar-msg.ok{color:var(--green);font-weight:600}
+    .ops-bar-msg.bad{color:var(--red);font-weight:600}
+    .ops-bar-msg.warn{color:var(--clay);font-weight:600}
+    #run-pipeline-btn:disabled{opacity:0.65;cursor:wait}
   </style>
 </head>
 <body>
@@ -220,6 +229,17 @@
           <p>{{ db_error }}</p>
         </div>
       {% endif %}
+
+      <div class="ops-bar">
+        {% if cron_api_configured %}
+          <button type="button" id="run-pipeline-btn" class="btn-primary">
+            <i class="ti ti-player-play" style="font-size:15px;"></i>Run full pipeline
+          </button>
+          <p id="run-pipeline-msg">Build dossiers → funnels → LLM scoring (~1–2 min to start updating).</p>
+        {% else %}
+          <p><strong>Manual run unavailable.</strong> Set <code>DOSSIER_API_URL</code> on <code>stock_ai</code> to trigger <code>data-layer-cron</code>.</p>
+        {% endif %}
+      </div>
 
       <section>
         {% if not recent %}
@@ -283,5 +303,42 @@
       </p>
     {% endif %}
   </main>
+  {% if authorized and cron_api_configured %}
+  <script>
+    (function () {
+      const btn = document.getElementById('run-pipeline-btn');
+      const msg = document.getElementById('run-pipeline-msg');
+      if (!btn || !msg) return;
+
+      btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        msg.className = '';
+        msg.textContent = 'Starting pipeline on data-layer-cron…';
+        try {
+          const r = await fetch('/api/ops/run-pipeline', {
+            method: 'POST',
+            credentials: 'include',
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.status === 'started') {
+            msg.className = 'ops-bar-msg ok';
+            msg.textContent = 'Pipeline started. Refresh this page in a few minutes to see live stage updates.';
+          } else if (r.status === 409 || data.status === 'already_running') {
+            msg.className = 'ops-bar-msg warn';
+            msg.textContent = 'Pipeline is already running on data-layer-cron.';
+          } else {
+            msg.className = 'ops-bar-msg bad';
+            msg.textContent = data.detail || data.error || data.message || ('Request failed (' + r.status + ')');
+          }
+        } catch (e) {
+          msg.className = 'ops-bar-msg bad';
+          msg.textContent = 'Could not reach the API: ' + (e && e.message ? e.message : String(e));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

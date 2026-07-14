@@ -322,8 +322,37 @@ async def health_page(request: Request):
             "today_rows": today_rows,
             "not_started": authed and not db_error and today_row is None,
             "db_error": db_error,
+            "cron_api_configured": bool(
+                (os.getenv("DOSSIER_API_URL") or "").strip()
+            ),
         },
     )
+
+
+@router.post("/api/ops/run-pipeline")
+async def api_run_pipeline(request: Request):
+    """Trigger full morning pipeline on data-layer-cron (authorized ops only)."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    import sys
+    from pathlib import Path
+
+    backend = Path(__file__).resolve().parents[1] / "backend"
+    if str(backend) not in sys.path:
+        sys.path.insert(0, str(backend))
+    from dossier_sync import trigger_pipeline_run
+
+    try:
+        result = trigger_pipeline_run()
+        if not result.get("started"):
+            return JSONResponse(result, status_code=409)
+        return result
+    except Exception as e:
+        return JSONResponse(
+            {"error": "Pipeline trigger failed", "detail": str(e)},
+            status_code=502,
+        )
 
 
 @router.get("/health/login")

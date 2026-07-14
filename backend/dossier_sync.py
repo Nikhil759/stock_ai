@@ -75,3 +75,35 @@ def sync_dossiers_from_api() -> dict:
         "as_of": meta.get("as_of"),
         "cache_dir": str(_CACHE_DIR),
     }
+
+
+def trigger_pipeline_run() -> dict:
+    """Ask data-layer-cron to start the full morning pipeline in the background."""
+    cfg = _api_config()
+    if cfg is None:
+        return {"started": False, "message": "DOSSIER_API_URL not set on stock_ai"}
+
+    api_url, token = cfg
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    log.info("triggering full pipeline on %s", api_url)
+    try:
+        resp = requests.post(
+            f"{api_url}/api/pipeline",
+            headers=headers,
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        log.error("pipeline trigger failed: %s", exc)
+        raise RuntimeError(f"Could not reach dossier API at {api_url}: {exc}") from exc
+
+    if resp.status_code == 409:
+        try:
+            data = resp.json()
+        except Exception:
+            data = {"status": "already_running"}
+        return {"started": False, **data}
+    if resp.status_code >= 400:
+        raise RuntimeError(f"Pipeline trigger failed ({resp.status_code}): {resp.text}")
+
+    data = resp.json() if resp.content else {}
+    return {"started": True, **data}

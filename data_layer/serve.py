@@ -131,6 +131,15 @@ def trigger_build(_: None = Depends(_verify_token)):
     return {"status": "started"}
 
 
+@app.post("/api/pipeline")
+def trigger_pipeline(_: None = Depends(_verify_token)):
+    """Start full morning pipeline (build → funnels → LLM scoring → health_status)."""
+    if _build_running:
+        return JSONResponse({"status": "already_running"}, status_code=409)
+    threading.Thread(target=_run_full_pipeline_job, daemon=True).start()
+    return {"status": "started"}
+
+
 def _start_scheduler() -> None:
     try:
         from apscheduler.schedulers.background import BackgroundScheduler
