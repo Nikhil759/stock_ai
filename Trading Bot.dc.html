@@ -303,7 +303,12 @@
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-xl" width="72" height="72" style="margin:0 auto;filter:drop-shadow(0 4px 10px rgba(160,85,35,0.18));">
         <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No Wolves deployed yet</h2>
         <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading Wolf.</p>
-        <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first Wolf</button>
+        <sc-if value="{{ authNotLoggedIn }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ authLoginUrl }}" style="display:inline-block;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;text-decoration:none;">Log in to deploy your first Wolf</a>
+        </sc-if>
+        <sc-if value="{{ authLoggedIn }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ goto.setup }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;">Deploy your first Wolf</button>
+        </sc-if>
       </div>
     </sc-if>
 

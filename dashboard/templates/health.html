@@ -89,6 +89,39 @@
       font-size:12px;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink2);
       font-weight:700;margin:0 0 12px;
     }
+    details.recent-dropdown{
+      background:var(--panel);border:1px solid var(--line);border-radius:14px;
+      overflow:hidden;
+    }
+    details.recent-dropdown summary{
+      cursor:pointer;list-style:none;display:flex;align-items:center;gap:14px;
+      padding:14px 16px;user-select:none;
+    }
+    details.recent-dropdown summary::-webkit-details-marker{display:none}
+    details.recent-dropdown summary::after{
+      content:'\ea62';font-family:'tabler-icons' !important;margin-left:auto;
+      color:var(--ink2);font-size:15px;flex-shrink:0;
+    }
+    details.recent-dropdown[open] summary::after{content:'\ea61'}
+    details.recent-dropdown summary:hover{background:var(--wolf-tint)}
+    .recent-summary-label{
+      font-size:12px;text-transform:uppercase;letter-spacing:0.07em;
+      color:var(--ink2);font-weight:700;white-space:nowrap;
+    }
+    .dot-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .run-dot{
+      width:11px;height:11px;border-radius:50%;flex-shrink:0;
+      border:2px solid rgba(255,255,255,0.85);
+      box-shadow:0 0 0 1px var(--line2);
+    }
+    .run-dot.ok{background:var(--green);box-shadow:0 0 0 1px rgba(62,122,82,0.35)}
+    .run-dot.bad{background:var(--red);box-shadow:0 0 0 1px rgba(176,73,56,0.35)}
+    .run-dot.warn{background:var(--clay);box-shadow:0 0 0 1px rgba(191,91,45,0.35)}
+    .run-dot.idle{background:var(--line2);box-shadow:0 0 0 1px var(--line)}
+    .recent-dropdown-body{
+      border-top:1px solid var(--line);padding:12px 16px 16px;
+      display:grid;gap:10px;
+    }
     .strip{display:grid;gap:10px}
     .day-card{
       background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -189,25 +222,38 @@
       {% endif %}
 
       <section>
-        <h2>Last 5 days</h2>
         {% if not recent %}
+          <h2>Last 5 days</h2>
           <p class="empty">No health rows yet — run morning ingestion to create today’s status.</p>
         {% else %}
-          <div class="strip">
-            {% for day in recent %}
-              <div class="day-card">
-                <div class="day-head">
-                  <span class="day-date">{{ day.date }}</span>
-                  <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
+          <details class="recent-dropdown">
+            <summary>
+              <span class="recent-summary-label">Last 5 days</span>
+              <span class="dot-strip" aria-label="Pipeline run status for the last {{ recent|length }} day(s)">
+                {% for day in recent %}
+                  <span
+                    class="run-dot {{ day.overall_chip }}"
+                    title="{{ day.date }} · {{ day.overall }}"
+                  ></span>
+                {% endfor %}
+              </span>
+            </summary>
+            <div class="recent-dropdown-body">
+              {% for day in recent %}
+                <div class="day-card">
+                  <div class="day-head">
+                    <span class="day-date">{{ day.date }}</span>
+                    <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
+                  </div>
+                  <div class="chips">
+                    {% for s in day.stages %}
+                      <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
+                    {% endfor %}
+                  </div>
                 </div>
-                <div class="chips">
-                  {% for s in day.stages %}
-                    <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endfor %}
-          </div>
+              {% endfor %}
+            </div>
+          </details>
         {% endif %}
       </section>
 
