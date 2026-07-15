@@ -13,6 +13,11 @@ from db.connection import get_connection
 
 Row = dict[str, Any]
 
+# selection_runs.run_type — must match db/schema.sql CHECK constraint
+RUN_TYPE_BIRTH = "birth"
+RUN_TYPE_DAILY_REVIEW = "daily_review"
+VALID_RUN_TYPES = frozenset({RUN_TYPE_BIRTH, RUN_TYPE_DAILY_REVIEW})
+
 
 def _row(result: Any) -> Row | None:
     return dict(result) if result is not None else None
@@ -57,6 +62,25 @@ def get_user(user_id: UUID) -> Row | None:
             return _row(cur.fetchone())
 
 
+def get_user_by_email(email: str) -> Row | None:
+    """Resolve public.users row from auth.users email."""
+    normalized = email.strip().lower()
+    if not normalized:
+        return None
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT u.*
+                FROM users u
+                JOIN auth.users au ON au.id = u.id
+                WHERE lower(au.email) = %s
+                """,
+                (normalized,),
+            )
+            return _row(cur.fetchone())
+
+
 def create_wolf(
     user_id: UUID,
     wolf_id: str,
@@ -97,6 +121,101 @@ def get_wolf(wolf_id: str) -> Row | None:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT * FROM wolves WHERE wolf_id = %s", (wolf_id,))
             return _row(cur.fetchone())
+
+
+def get_wolf_for_user(wolf_id: str, user_id: UUID) -> Row | None:
+    wolf = get_wolf(wolf_id)
+    if wolf is None or str(wolf.get("user_id")) != str(user_id):
+        return None
+    return wolf
+
+
+def set_wolf_status(wolf_id: str, status: str) -> Row:
+    if status not in ("active", "paused", "closed"):
+        raise ValueError(f"invalid wolf status {status!r}")
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if status == "closed":
+                cur.execute(
+                    """
+                    UPDATE wolves
+                    SET status = %s, closed_at = now()
+                    WHERE wolf_id = %s
+                    RETURNING *
+                    """,
+                    (status, wolf_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    UPDATE wolves
+                    SET status = %s, closed_at = NULL
+                    WHERE wolf_id = %s
+                    RETURNING *
+                    """,
+                    (status, wolf_id),
+                )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"wolf not found: {wolf_id}")
+            return dict(row)
+
+
+def list_intents_for_wolf(wolf_id: str, limit: int = 50) -> list[Row]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM wolf_intents
+                WHERE wolf_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+                """,
+                (wolf_id, limit),
+            )
+            return _rows(cur.fetchall())
+
+
+def list_holdings_for_wolf(
+    wolf_id: str,
+    *,
+    status: str | None = None,
+) -> list[Row]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if status:
+                cur.execute(
+                    """
+                    SELECT * FROM wolf_holdings
+                    WHERE wolf_id = %s AND status = %s
+                    ORDER BY opened_at
+                    """,
+                    (wolf_id, status),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT * FROM wolf_holdings
+                    WHERE wolf_id = %s
+                    ORDER BY opened_at
+                    """,
+                    (wolf_id,),
+                )
+            return _rows(cur.fetchall())
+
+
+def list_trades_for_wolf(wolf_id: str) -> list[Row]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM trades
+                WHERE wolf_id = %s
+                ORDER BY executed_at, trade_id
+                """,
+                (wolf_id,),
+            )
+            return _rows(cur.fetchall())
 
 
 def list_wolves_for_user(user_id: UUID) -> list[Row]:
@@ -182,10 +301,12 @@ def upsert_holding(
     quantity: int,
     avg_buy_price: Decimal | float | int,
     sell_target: Decimal | float | int | None = None,
+    stop_loss: Decimal | float | int | None = None,
 ) -> Row:
     """Update an open position for (wolf_id, symbol), or insert one if none exists."""
     avg = Decimal(str(avg_buy_price))
     target = Decimal(str(sell_target)) if sell_target is not None else None
+    stop = Decimal(str(stop_loss)) if stop_loss is not None else None
 
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -203,22 +324,24 @@ def upsert_holding(
                     UPDATE wolf_holdings
                     SET quantity = %s,
                         avg_buy_price = %s,
-                        sell_target = %s
+                        sell_target = %s,
+                        stop_loss = COALESCE(%s, stop_loss)
                     WHERE holding_id = %s
                     RETURNING *
                     """,
-                    (quantity, avg, target, existing["holding_id"]),
+                    (quantity, avg, target, stop, existing["holding_id"]),
                 )
             else:
                 cur.execute(
                     """
                     INSERT INTO wolf_holdings (
-                        wolf_id, symbol, quantity, avg_buy_price, sell_target, status
+                        wolf_id, symbol, quantity, avg_buy_price,
+                        sell_target, stop_loss, status
                     )
-                    VALUES (%s, %s, %s, %s, %s, 'open')
+                    VALUES (%s, %s, %s, %s, %s, %s, 'open')
                     RETURNING *
                     """,
-                    (wolf_id, symbol, quantity, avg, target),
+                    (wolf_id, symbol, quantity, avg, target, stop),
                 )
             row = cur.fetchone()
             assert row is not None
@@ -236,6 +359,79 @@ def close_holding(wolf_id: str, symbol: str) -> None:
                 """,
                 (wolf_id, symbol),
             )
+
+
+def list_open_holdings(wolf_id: str) -> list[Row]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM wolf_holdings
+                WHERE wolf_id = %s AND status = 'open'
+                ORDER BY symbol
+                """,
+                (wolf_id,),
+            )
+            return _rows(cur.fetchall())
+
+
+def set_budget_available(wolf_id: str, amount: Decimal | float | int) -> Row:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE wolves
+                SET budget_available = %s
+                WHERE wolf_id = %s
+                RETURNING *
+                """,
+                (Decimal(str(amount)), wolf_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"wolf not found: {wolf_id}")
+            return dict(row)
+
+
+def reduce_holding_quantity(wolf_id: str, symbol: str, sell_qty: int) -> Row | None:
+    """Decrease open quantity; close row when quantity reaches zero."""
+    if sell_qty <= 0:
+        raise ValueError("sell_qty must be positive")
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM wolf_holdings
+                WHERE wolf_id = %s AND symbol = %s AND status = 'open'
+                """,
+                (wolf_id, symbol),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            remaining = int(row["quantity"]) - sell_qty
+            if remaining <= 0:
+                cur.execute(
+                    """
+                    UPDATE wolf_holdings
+                    SET status = 'closed', closed_at = now(), quantity = 0
+                    WHERE holding_id = %s
+                    RETURNING *
+                    """,
+                    (row["holding_id"],),
+                )
+            else:
+                cur.execute(
+                    """
+                    UPDATE wolf_holdings
+                    SET quantity = %s
+                    WHERE holding_id = %s
+                    RETURNING *
+                    """,
+                    (remaining, row["holding_id"]),
+                )
+            updated = cur.fetchone()
+            return dict(updated) if updated else None
 
 
 def log_intent(
@@ -320,6 +516,68 @@ def save_snapshot(
             return dict(row)
 
 
+def allocate_wolf_id() -> str:
+    """Next sequential wolf_id (W0001, W0002, …)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT wolf_id FROM wolves
+                WHERE wolf_id ~ '^W[0-9]+$'
+                ORDER BY CAST(SUBSTRING(wolf_id FROM 2) AS INTEGER) DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+    if row:
+        n = int(row[0][1:]) + 1
+    else:
+        n = 1
+    return f"W{n:04d}"
+
+
+def set_birth_intent_once(wolf_id: str, intent_text: str) -> Row:
+    """Persist birth_intent JSON once — never overwrite an existing value."""
+    payload = Json({"text": intent_text})
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE wolves
+                SET birth_intent = %s
+                WHERE wolf_id = %s AND birth_intent IS NULL
+                RETURNING *
+                """,
+                (payload, wolf_id),
+            )
+            row = cur.fetchone()
+            if row:
+                return dict(row)
+            cur.execute("SELECT * FROM wolves WHERE wolf_id = %s", (wolf_id,))
+            existing = cur.fetchone()
+            if not existing:
+                raise ValueError(f"wolf not found: {wolf_id}")
+            return dict(existing)
+
+
+def patch_selection_run_gate_results(run_id: int, gate_results: Any) -> Row:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE selection_runs
+                SET gate_results = %s
+                WHERE run_id = %s
+                RETURNING *
+                """,
+                (Json(gate_results), run_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"selection_run not found: {run_id}")
+            return dict(row)
+
+
 def save_selection_run(
     wolf_id: str,
     run_type: str,
@@ -329,6 +587,11 @@ def save_selection_run(
     gemini_raw_response: str | None = None,
     gate_results: Any = None,
 ) -> Row:
+    if run_type not in VALID_RUN_TYPES:
+        raise ValueError(
+            f"invalid selection_runs.run_type {run_type!r}; "
+            f"expected one of {sorted(VALID_RUN_TYPES)}"
+        )
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(

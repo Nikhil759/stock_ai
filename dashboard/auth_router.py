@@ -135,6 +135,29 @@ def _session_email(request: Request) -> str | None:
     return email.strip().lower() if isinstance(email, str) and email.strip() else None
 
 
+def session_user_id(request: Request):
+    """Return logged-in user's UUID from session, or None."""
+    from uuid import UUID
+
+    raw = request.session.get("user_id")
+    if isinstance(raw, str) and raw.strip():
+        try:
+            return UUID(raw.strip())
+        except ValueError:
+            pass
+    email = _session_email(request)
+    if not email:
+        return None
+    from db import repository as repo
+
+    user = repo.get_user_by_email(email)
+    if user and user.get("id"):
+        uid = UUID(str(user["id"]))
+        request.session["user_id"] = str(uid)
+        return uid
+    return None
+
+
 def is_authorized(request: Request) -> bool:
     allowed = authorized_email()
     if not allowed:
@@ -430,6 +453,9 @@ async def health_auth_callback(request: Request, code: str | None = None):
 
     request.session.pop("pkce_verifier", None)
     request.session["user_email"] = email
+    user_id = (user.get("id") or "").strip()
+    if user_id:
+        request.session["user_id"] = user_id
     request.session["access_token"] = data.get("access_token")
     return RedirectResponse(_post_auth_redirect(request), status_code=303)
 
@@ -445,8 +471,10 @@ async def health_logout(request: Request, return_to: str | None = None):
 async def api_ops_me(request: Request):
     """Current session identity for the Trading UI header (cookies required)."""
     email = _session_email(request)
+    uid = session_user_id(request)
     return {
         "email": email,
+        "user_id": str(uid) if uid else None,
         "authorized": is_authorized(request),
         "logged_in": bool(email),
     }

@@ -153,6 +153,7 @@ def main() -> None:
         quantity=2,
         avg_buy_price=1400.00,
         sell_target=1540.00,
+        stop_loss=1288.00,
     )
     print(f"Upserted holding id={holding['holding_id']}")
 

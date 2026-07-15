@@ -146,6 +146,7 @@ CREATE TABLE wolf_holdings (
     quantity        INTEGER NOT NULL,
     avg_buy_price   NUMERIC(12,2) NOT NULL,
     sell_target     NUMERIC(12,2),
+    stop_loss       NUMERIC(12,2),           -- frozen at buy; enforced by Wolf Executor
     opened_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     closed_at       TIMESTAMPTZ,
     status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
@@ -223,7 +224,7 @@ CREATE TABLE portfolio_snapshots (
 CREATE TABLE selection_runs (
     run_id              SERIAL PRIMARY KEY,
     wolf_id             TEXT NOT NULL REFERENCES wolves(wolf_id),
-    run_type            TEXT NOT NULL CHECK (run_type IN ('morning_deploy','post_close_review')),
+    run_type            TEXT NOT NULL CHECK (run_type IN ('birth','daily_review')),
     run_date            DATE NOT NULL,
     shortlist_json      JSONB,       -- the ~30 stocks after the math funnel
     final_picks_json    JSONB,       -- the 1-3 stocks Gemini selected

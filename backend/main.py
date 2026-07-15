@@ -1,11 +1,14 @@
-"""FastAPI server — multi-bot deployments with allocation pools."""
+"""FastAPI server — Wolf Capital (Supabase-backed /api/bots/*)."""
 
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
+import logging
+import os
 import sys
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,8 +16,6 @@ from pydantic import BaseModel, Field
 
 import bot
 import database as db
-import eod
-from screener import screen
 from strategies import STRATEGY_NAMES, VALID_STRATEGIES, get_strategy, list_strategies
 from workspace import is_valid_workspace_id, normalize_workspace_id
 
@@ -22,13 +23,23 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from deploy.deploy_wolf import (
+    build_deploy_screen_response,
+    deploy_new_wolf,
+    guardrails_from_deploy_request,
+    resolve_deploy_user_id,
+)
+import wolf_api
+from db import repository as repo
+from dashboard.auth_router import session_user_id
+
 UI_FILE = ROOT / "Trading Bot.dc.html"
+log = logging.getLogger(__name__)
 
 load_dotenv(ROOT / ".env")
 
-app = FastAPI(title="Wolf Capital", version="0.4.0")
+app = FastAPI(title="Wolf Capital", version="0.5.0")
 
-# Phase F — ops health dashboard (FastAPI + HTML, Supabase Google OAuth PKCE)
 from dashboard.auth_router import (
     allowed_origins,
     install_session_middleware,
@@ -47,8 +58,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Explicit aliases — some reload paths left IncludedRouter candidates empty for /api/ops/*.
 from fastapi import Request as _Request
 from dashboard.auth_router import api_ops_me as _api_ops_me
 
@@ -70,11 +79,6 @@ class DeployRequest(BaseModel):
     stop_loss_pct: float = Field(15, ge=5, le=50)
     name: str | None = None
     run_screen: bool = True
-
-
-class ScreenRequest(BaseModel):
-    strategy: str = Field(..., pattern="^(value|winners|box|dip)$")
-    allocation: int = Field(..., ge=10000, le=1000000)
 
 
 class BotUpdate(BaseModel):
@@ -108,11 +112,13 @@ class TargetUpdateRequest(BaseModel):
 @app.on_event("startup")
 def startup():
     from logging_setup import setup_app_logging
-    from fund_scheduler import start_fund_scheduler
 
     setup_app_logging(verbose=True)
-    db.init_db()
-    start_fund_scheduler()
+    if os.getenv("WOLF_ENABLE_SQLITE_CRON", "").strip().lower() in ("1", "true", "yes"):
+        db.init_db()
+        from fund_scheduler import start_fund_scheduler
+
+        start_fund_scheduler()
 
 
 def _bot_response(b: dict) -> dict:
@@ -131,8 +137,28 @@ def require_workspace(x_workspace_id: str = Header(..., alias="X-Workspace-Id"))
     return ws
 
 
-def _get_bot_or_404(bot_id: int, workspace_id: str) -> dict:
-    b = db.get_bot(bot_id, workspace_id=workspace_id)
+def _resolve_user(
+    request: Request,
+    x_user_id: str | None = None,
+) -> UUID | None:
+    uid = session_user_id(request)
+    if uid:
+        return uid
+    return resolve_deploy_user_id(x_user_id)
+
+
+def _require_user(request: Request, x_user_id: str | None = None) -> UUID:
+    uid = _resolve_user(request, x_user_id)
+    if not uid:
+        raise HTTPException(
+            status_code=401,
+            detail="Log in required — use Google sign-in before deploying a Wolf.",
+        )
+    return uid
+
+
+def _get_wolf_or_404(wolf_id: str, user_id: UUID) -> dict:
+    b = wolf_api.get_bot_for_user(user_id, wolf_id)
     if not b:
         raise HTTPException(status_code=404, detail="Wolf not found")
     return b
@@ -143,221 +169,329 @@ def health():
     return {"status": "ok"}
 
 
-# --- Bots ---
+# --- Bots (Supabase) ---
 
 @app.get("/api/bots")
-def list_bots(include_terminated: bool = False, ws: str = Depends(require_workspace)):
+def list_bots(
+    request: Request,
+    include_terminated: bool = False,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _resolve_user(request, x_user_id)
+    if not user_id:
+        return {"bots": [], "workspaceId": ws}
+    bots = wolf_api.list_bots_for_user(
+        user_id, include_terminated=include_terminated
+    )
     return {
-        "bots": [_bot_response(b) for b in db.list_bots(ws, include_terminated)],
+        "bots": [_bot_response(b) for b in bots],
         "workspaceId": ws,
     }
 
 
-@app.get("/api/bots/{bot_id}")
-def get_bot(bot_id: int, ws: str = Depends(require_workspace)):
-    return _bot_response(_get_bot_or_404(bot_id, ws))
+@app.get("/api/bots/{wolf_id}")
+def get_bot(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    return _bot_response(_get_wolf_or_404(wolf_id, user_id))
 
 
 @app.post("/api/bots/deploy")
-def deploy_bot(req: DeployRequest, ws: str = Depends(require_workspace)):
+def deploy_bot(
+    req: DeployRequest,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
     if req.strategy not in VALID_STRATEGIES:
         raise HTTPException(status_code=400, detail="Unknown strategy")
 
-    deployed = db.deploy_bot(
-        strategy=req.strategy,
-        allocation=req.allocation,
-        workspace_id=ws,
-        mode=req.mode,
-        level=req.level,
-        auto_threshold=req.auto_threshold,
-        max_daily_loss_pct=req.max_daily_loss_pct,
-        max_deployed_pct=req.max_deployed_pct,
-        max_per_stock_pct=req.max_per_stock_pct,
-        stop_loss_pct=req.stop_loss_pct,
-        name=req.name,
-    )
-    bot_id = deployed["id"]
+    user_id = _require_user(request, x_user_id)
     screen_result = None
 
-    if req.run_screen:
-        try:
-            result = screen(req.strategy, req.allocation, deployed)
-            if result.get("supported"):
-                setup_msg = (
-                    f"Wolf #{bot_id} created · ₹{req.allocation:,} pool · "
-                    f"{req.mode} mode · {STRATEGY_NAMES.get(req.strategy, req.strategy)}"
-                )
-                result["reasoningLog"] = [
-                    {"phase": "setup", "message": setup_msg},
-                    *(result.get("reasoningLog") or []),
-                ]
-                bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), deployed)
-                result["botAction"] = bot_result
-                pipeline_payload = result.get("pipelinePayload")
-                if pipeline_payload:
-                    pipeline_payload["botId"] = bot_id
-                    db.save_birth_intention(bot_id, pipeline_payload)
-                    from fund_manager.intentions import write_birth_intention_file
-                    write_birth_intention_file(bot_id, pipeline_payload)
-            screen_result = result
-        except Exception as exc:
-            screen_result = {
-                "strategy": req.strategy,
-                "supported": False,
-                "pipeline": "dossier",
-                "message": f"Screening failed: {exc}",
-            }
-
-    return {"bot": _bot_response(db.get_bot(bot_id, ws)), "screen": screen_result, "workspaceId": ws}
-
-
-@app.post("/api/bots/{bot_id}/pause")
-def pause_bot(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    b = db.set_bot_status(bot_id, "paused")
-    if not b:
-        raise HTTPException(status_code=404, detail="Wolf not found")
-    return _bot_response(b)
-
-
-@app.post("/api/bots/{bot_id}/resume")
-def resume_bot(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    b = db.set_bot_status(bot_id, "running")
-    if not b:
-        raise HTTPException(status_code=404, detail="Wolf not found")
-    return _bot_response(b)
-
-
-@app.post("/api/bots/{bot_id}/terminate")
-def terminate_bot(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    b = db.set_bot_status(bot_id, "terminated")
-    if not b:
-        raise HTTPException(status_code=404, detail="Wolf not found")
-    return _bot_response(b)
-
-
-@app.put("/api/bots/{bot_id}")
-def update_bot(bot_id: int, body: BotUpdate, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    updates = body.model_dump(exclude_none=True)
-    b = db.update_bot(bot_id, **updates)
-    if not b:
-        raise HTTPException(status_code=404, detail="Wolf not found")
-    if updates:
-        db.log_action(bot_id, "config_updated", ", ".join(f"{k}={v}" for k, v in updates.items()))
-    return _bot_response(b)
-
-
-@app.post("/api/bots/{bot_id}/eod")
-def run_eod(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    return eod.run_eod(bot_id)
-
-
-@app.post("/api/bots/{bot_id}/refresh")
-def refresh_prices(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    return eod.refresh_prices(bot_id)
-
-
-@app.post("/api/bots/{bot_id}/screen")
-def run_screen(bot_id: int, ws: str = Depends(require_workspace)):
-    b = _get_bot_or_404(bot_id, ws)
-    if b["status"] == "terminated":
-        raise HTTPException(status_code=400, detail="Wolf is terminated")
     try:
-        cash = int(b["availableCash"])
-        result = screen(b["strategy"], max(cash, b["allocation"]), b)
-        if result.get("supported"):
-            bot_result = bot.process_screen_results(bot_id, result.get("candidates", []), b)
-            result["botAction"] = bot_result
-        result["bot"] = _bot_response(db.get_bot(bot_id, ws))
-        return result
+        guardrails = guardrails_from_deploy_request(
+            stop_loss_pct=req.stop_loss_pct,
+            max_daily_loss_pct=req.max_daily_loss_pct,
+            max_deployed_pct=req.max_deployed_pct,
+            max_per_stock_pct=req.max_per_stock_pct,
+        )
+        wolf_result = deploy_new_wolf(
+            user_id=user_id,
+            strategy=req.strategy,
+            budget=req.allocation,
+            guardrails=guardrails,
+            wolf_name=req.name,
+        )
+        screen_result = build_deploy_screen_response(
+            wolf_result,
+            strategy=req.strategy,
+            allocation=req.allocation,
+        )
+        bot_row = wolf_api.get_bot_for_user(user_id, wolf_result["wolf_id"])
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        log.exception("Supabase deploy failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Deploy failed: {exc}",
+        ) from exc
+
+    return {
+        "bot": _bot_response(bot_row),
+        "screen": screen_result,
+        "workspaceId": ws,
+        "wolf": wolf_result["wolf"],
+    }
 
 
-@app.get("/api/bots/{bot_id}/trades")
-def list_trades(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    return {"trades": db.get_trades(bot_id)}
+@app.post("/api/bots/{wolf_id}/pause")
+def pause_bot(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    repo.set_wolf_status(wolf_id, "paused")
+    return _bot_response(_get_wolf_or_404(wolf_id, user_id))
 
 
-@app.get("/api/bots/{bot_id}/trades/{trade_id}/report")
-def trade_pick_report(bot_id: int, trade_id: int, ws: str = Depends(require_workspace)):
-    from pick_report import rebuild_pick_report_for_trade
+@app.post("/api/bots/{wolf_id}/resume")
+def resume_bot(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    repo.set_wolf_status(wolf_id, "active")
+    return _bot_response(_get_wolf_or_404(wolf_id, user_id))
 
-    bot = _get_bot_or_404(bot_id, ws)
-    trade = db.get_trade(trade_id, bot_id)
+
+@app.post("/api/bots/{wolf_id}/terminate")
+def terminate_bot(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    repo.set_wolf_status(wolf_id, "closed")
+    return _bot_response(_get_wolf_or_404(wolf_id, user_id))
+
+
+@app.put("/api/bots/{wolf_id}")
+def update_bot(
+    wolf_id: str,
+    body: BotUpdate,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    # Name/guardrail updates deferred — autonomous wolves use deploy-time guardrails.
+    return _bot_response(_get_wolf_or_404(wolf_id, user_id))
+
+
+@app.post("/api/bots/{wolf_id}/eod")
+def run_eod(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    _require_user(request, x_user_id)
+    raise HTTPException(
+        status_code=501,
+        detail="EOD not yet wired to Supabase — coming in daily cron (Part 4).",
+    )
+
+
+@app.post("/api/bots/{wolf_id}/refresh")
+def refresh_prices(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    trades = wolf_api.holdings_to_trades(wolf_id)
+    updated = [
+        {"ticker": t["ticker"], "ltp": t["ltp"]}
+        for t in trades
+        if t.get("status") == "open"
+    ]
+    return {"updated": updated, "count": len(updated)}
+
+
+@app.post("/api/bots/{wolf_id}/screen")
+def run_screen(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    b = _get_wolf_or_404(wolf_id, user_id)
+    if b["terminated"]:
+        raise HTTPException(status_code=400, detail="Wolf is terminated")
+    raise HTTPException(
+        status_code=501,
+        detail="Re-screen is not available post-deploy — daily cron handles reviews.",
+    )
+
+
+@app.get("/api/bots/{wolf_id}/trades")
+def list_trades(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    return {"trades": wolf_api.holdings_to_trades(wolf_id)}
+
+
+@app.get("/api/bots/{wolf_id}/trades/{trade_id}/report")
+def trade_pick_report(
+    wolf_id: str,
+    trade_id: int,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    b = _get_wolf_or_404(wolf_id, user_id)
+    trades = wolf_api.holdings_to_trades(wolf_id)
+    trade = next((t for t in trades if t.get("id") == trade_id), None)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found")
-    report = rebuild_pick_report_for_trade(trade, bot)
-    db.update_trade_pick_report(trade_id, report)
+    sym = trade.get("ticker", "")
+    intents = repo.list_intents_for_wolf(wolf_id, limit=20)
+    rationale = next(
+        (i.get("rationale") for i in intents if i.get("symbol") == sym),
+        f"Birth deploy position in {sym}.",
+    )
+    report = {
+        "ticker": sym,
+        "summary": rationale,
+        "sections": [{"title": "Why this stock", "body": rationale}],
+        "tradePlan": [
+            {"label": "Entry price", "value": f"₹{trade['entry']:,.2f}"},
+            {"label": "Current price", "value": f"₹{trade['ltp']:,.2f}"},
+            {"label": "Target", "value": f"₹{trade.get('target', 0):,.0f}"},
+        ],
+    }
     return {"pickReport": report, "tradeId": trade_id}
 
 
-@app.get("/api/bots/{bot_id}/pending")
-def list_pending(bot_id: int, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    return {"pending": db.get_pending(bot_id)}
+@app.get("/api/bots/{wolf_id}/pending")
+def list_pending(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    return {"pending": []}
 
 
-@app.post("/api/bots/{bot_id}/pending/{pending_id}/resolve")
-def resolve_pending(bot_id: int, pending_id: int, body: ApproveRequest, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    result = db.resolve_pending(bot_id, pending_id, body.approve)
-    if not result:
-        raise HTTPException(status_code=404, detail="Pending trade not found")
-    return result
+@app.post("/api/bots/{wolf_id}/pending/{pending_id}/resolve")
+def resolve_pending(
+    wolf_id: str,
+    pending_id: int,
+    body: ApproveRequest,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    _require_user(request, x_user_id)
+    raise HTTPException(status_code=501, detail="Advisory pending trades are not enabled.")
 
 
-@app.get("/api/bots/{bot_id}/log")
-def action_log(bot_id: int, limit: int = 30, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    return {"log": db.get_action_log(bot_id, limit)}
+@app.get("/api/bots/{wolf_id}/log")
+def action_log(
+    wolf_id: str,
+    request: Request,
+    limit: int = 30,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    return {"log": wolf_api.intents_to_action_log(wolf_id, limit=limit)}
 
 
-@app.get("/api/bots/{bot_id}/daily-note")
-def bot_daily_note(bot_id: int, note_date: str | None = None, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    note = db.get_daily_note(bot_id, note_date)
-    if not note:
-        return {"note": None, "message": "No fund manager note for this date."}
-    return note
-
-
-@app.post("/api/bots/{bot_id}/trades/manual")
-def manual_trade(bot_id: int, body: ManualTradeRequest, ws: str = Depends(require_workspace)):
-    b = _get_bot_or_404(bot_id, ws)
-    candidate = {
-        "ticker": body.ticker,
-        "name": body.name,
-        "sector": body.sector,
-        "buyPrice": body.buy_price,
-        "sellPrice": body.sell_price,
-        "shares": body.qty,
-        "cost": body.qty * body.buy_price,
-        "canLog": True,
+@app.get("/api/bots/{wolf_id}/daily-note")
+def bot_daily_note(
+    wolf_id: str,
+    request: Request,
+    note_date: str | None = None,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    wolf = repo.get_wolf_for_user(wolf_id, user_id)
+    if not wolf:
+        raise HTTPException(status_code=404, detail="Wolf not found")
+    birth = wolf.get("birth_intent")
+    text = ""
+    if isinstance(birth, dict):
+        text = str(birth.get("text") or "")
+    elif isinstance(birth, str):
+        text = birth
+    if not text:
+        return {"note": None, "message": "No daily note yet — deploy or wait for daily review."}
+    return {
+        "note": {
+            "date": note_date,
+            "summary": text[:500],
+            "body": text,
+        }
     }
-    try:
-        trade = bot.manual_log_trade(bot_id, candidate, b)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"trade": trade, "bot": _bot_response(db.get_bot(bot_id, ws))}
 
 
-@app.patch("/api/bots/{bot_id}/trades/{trade_id}/target")
-def update_target(bot_id: int, trade_id: int, body: TargetUpdateRequest, ws: str = Depends(require_workspace)):
-    _get_bot_or_404(bot_id, ws)
-    try:
-        trade = db.update_trade_target(trade_id, body.target, body.reason or "Wolf updated sell target.")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if not trade:
-        raise HTTPException(status_code=404, detail="Trade not found")
-    return {"trade": trade}
+@app.post("/api/bots/{wolf_id}/trades/manual")
+def manual_trade(
+    wolf_id: str,
+    body: ManualTradeRequest,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    _require_user(request, x_user_id)
+    raise HTTPException(
+        status_code=501,
+        detail="Manual trades not yet wired to Supabase executor.",
+    )
+
+
+@app.patch("/api/bots/{wolf_id}/trades/{trade_id}/target")
+def update_target(
+    wolf_id: str,
+    trade_id: int,
+    body: TargetUpdateRequest,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    _require_user(request, x_user_id)
+    raise HTTPException(
+        status_code=501,
+        detail="Target updates not yet wired to Supabase holdings.",
+    )
 
 
 # --- Strategies ---
@@ -383,19 +517,35 @@ def strategy_detail(strategy_id: str):
     }
 
 
-# --- Legacy routes (redirect to first bot if exists) ---
+# --- Legacy routes ---
 
 @app.get("/api/config")
-def legacy_config(ws: str = Depends(require_workspace)):
-    bots = db.list_bots(ws)
+def legacy_config(
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _resolve_user(request, x_user_id)
+    if not user_id:
+        return {
+            "mode": "autonomous",
+            "budget": 10000,
+            "paused": False,
+            "behaviorSummary": "Log in and deploy a Wolf to get started.",
+        }
+    bots = wolf_api.list_bots_for_user(user_id)
     if not bots:
-        return {"mode": "advisory", "budget": 10000, "paused": False, "behaviorSummary": "Deploy a Wolf to get started."}
+        return {
+            "mode": "autonomous",
+            "budget": 10000,
+            "paused": False,
+            "behaviorSummary": "Deploy a Wolf to get started.",
+        }
     return _bot_response(bots[0])
 
 
 @app.get("/")
 def index(code: str | None = None):
-    # Supabase sometimes redirects to Site URL (/) with ?code= — forward to PKCE callback.
     if code:
         return RedirectResponse(f"/health/auth/callback?code={code}", status_code=303)
     return RedirectResponse("/app")
