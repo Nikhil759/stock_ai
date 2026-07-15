@@ -2198,7 +2198,6 @@ class Component extends DCLogic {
       ? (bot.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + bot.level)
       : '—';
     const trackerSummary = (s.lastScreenSummary || {})[s.activeBotId] || s.llmSummary || '';
-    const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker';
     const noteField = s.dailyNote?.note;
     const dailyNoteText = typeof noteField === 'string'
       ? noteField
@@ -2207,6 +2206,9 @@ class Component extends DCLogic {
       ? new Date(s.dailyNote.updatedAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
       : '';
     const hasDailyNote = !!dailyNoteText && s.screen === 'tracker';
+    const summaryDuplicatesNote = !!dailyNoteText
+      && trackerSummary.trim() === dailyNoteText.trim();
+    const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker' && !summaryDuplicatesNote;
 
     const authLoggedIn = !!s.authLoggedIn;
     const authAuthorized = !!s.authAuthorized;
