@@ -6,9 +6,12 @@ Auth order when a fresh token is needed:
   1. If KITE_USER_ID + KITE_PASSWORD + KITE_TOTP_SECRET are set → TOTP auto-login
   2. Else → interactive browser login (paste request_token)
 
-Access tokens expire ~6 AM IST each day. Schedule:
-  python -m scripts.refresh_kite_token
-before the morning dossier build / fund-manager jobs.
+Access tokens expire ~6 AM IST each day. On Railway, TOTP login is blocked —
+refresh locally and sync to Supabase:
+
+    python -m scripts.refresh_kite_token --sync
+
+Schedule on your Mac (~6:05 AM IST weekdays); see backend/README.md.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ import requests
 from dotenv import load_dotenv
 from kiteconnect import KiteConnect
 
+from data_paths import get_data_dir
 from repo_paths import find_repo_root
 
 _ROOT = find_repo_root()
@@ -36,7 +40,23 @@ _TWOFA_URL = "https://kite.zerodha.com/api/twofa"
 
 def _token_path() -> Path:
     today = date.today().isoformat()
-    return _ROOT / f".kite_token_{today}"
+    return get_data_dir() / f".kite_token_{today}"
+
+
+def _load_token_from_supabase() -> str | None:
+    """Best-effort read from kite_auth_tokens — never raises."""
+    try:
+        import sys
+
+        root = find_repo_root()
+        root_str = str(root)
+        if root_str not in sys.path:
+            sys.path.insert(0, root_str)
+        from db.kite_token_store import load_valid_token
+
+        return load_valid_token()
+    except Exception:
+        return None
 
 
 def _api_key() -> str:
@@ -74,10 +94,17 @@ def login_url() -> str:
 
 def _load_cached_token() -> str | None:
     path = _token_path()
-    if not path.exists():
-        return None
-    token = path.read_text(encoding="utf-8").strip()
-    return token or None
+    if path.exists():
+        token = path.read_text(encoding="utf-8").strip()
+        if token:
+            return token
+
+    token = _load_token_from_supabase()
+    if token:
+        return token
+
+    env = os.getenv("KITE_ACCESS_TOKEN", "").strip()
+    return env or None
 
 
 def _save_token(access_token: str) -> None:

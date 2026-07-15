@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.wolfcapital.kite-token-sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOU/stock_ai/.venv/bin/python</string>
+    <string>-m</string>
+    <string>scripts.refresh_kite_token</string>
+    <string>--sync</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/YOU/stock_ai/backend</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Weekday</key><integer>1</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>2</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>3</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>4</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>5</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/tmp/wolfcapital-kite-token.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/wolfcapital-kite-token.err</string>
+</dict>
+</plist>

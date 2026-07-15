@@ -79,22 +79,40 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 - `FRONTEND_URL` — your Vercel app URL (e.g. `https://wolf-capital.vercel.app`).
   Used for post-login redirect. If `APP_REDIRECT_URL` is unset, the OAuth
   callback defaults to `FRONTEND_URL/health/auth/callback`.
-- `KITE_API_KEY`, `KITE_API_SECRET`, `KITE_USER_ID`, `KITE_PASSWORD`,
-  `KITE_TOTP_SECRET` — live Zerodha LTPs for portfolio refresh (Kite app redirect
-  URL must be `http://127.0.0.1`). Duplicating Marketaux keys here is only needed
-  for the health dashboard config check; news fetch still runs on data-layer-cron.
+- `KITE_API_KEY`, `KITE_API_SECRET` — live Zerodha LTPs (token synced from your Mac;
+  see **Kite token sync** below). Do **not** put TOTP creds on Railway — Zerodha
+  blocks login from cloud IPs.
 
 **In-process APScheduler on `stock_ai`** (`fund_scheduler.py`, UTC cron expressions):
 
 | Job | Default cron | IST (approx.) |
 |-----|--------------|---------------|
-| Kite token refresh | `30 0 * * 1-5` | 6:00 AM weekdays |
 | Fund selector | `30 3 * * 1-5` | 9:00 AM weekdays |
 | Morning deploy | `45 3 * * 1-5` | 9:15 AM weekdays |
 
-Override with `KITE_REFRESH_CRON`, `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`.
+Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`.
 Scheduler auto-enables on Railway (`RAILWAY_ENVIRONMENT`); set
 `FUND_SCHEDULER_ENABLED=1` locally to test.
+
+### Kite token sync (local Mac → Supabase → Railway)
+
+Zerodha blocks TOTP auto-login from Railway. Refresh on your Mac and upsert to
+`kite_auth_tokens` in Supabase; `stock_ai` reads it for live LTPs.
+
+**Prerequisites:** `kite_auth_tokens` table exists (see `db/schema.sql`),
+`AUTHORIZED_EMAIL` matches your Google login, `SUPABASE_DATABASE_URL` in repo
+`.env`.
+
+```bash
+# One-off test (from backend/)
+python -m scripts.refresh_kite_token --sync
+
+# macOS cron — 6:05 AM IST weekdays (00:35 UTC)
+35 0 * * 1-5 cd /path/to/stock_ai/backend && /path/to/stock_ai/.venv/bin/python -m scripts.refresh_kite_token --sync
+```
+
+Repo `.env` needs `KITE_USER_ID`, `KITE_PASSWORD`, `KITE_TOTP_SECRET` (TOTP only
+on your Mac). Railway `stock_ai` only needs `KITE_API_KEY` + `KITE_API_SECRET`.
 
 **Vercel:** set `RAILWAY_PUBLIC_URL` to your Railway API host. The Vercel build
 generates rewrites that proxy `/health/*` and `/api/ops/*` to Railway so login

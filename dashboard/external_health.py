@@ -59,8 +59,8 @@ def _check_kite() -> dict[str, Any]:
         kite = mod.get_kite_nonblocking()
         if kite is None:
             raise RuntimeError(
-                "No verified session for today — from backend/ run "
-                "`python -m scripts.refresh_kite_token`"
+                "No verified session for today — run locally: "
+                "`python -m scripts.refresh_kite_token --sync`"
             )
         profile = kite.profile()
         return f"Session OK — logged in as {profile.get('user_name') or profile.get('user_id') or 'Kite user'}"

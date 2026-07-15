@@ -6,14 +6,15 @@
 #   Volume:         attach one volume (e.g. mount /data) — persists bot.db + intentions/
 #   Variables:      GEMINI_API_KEY, DOSSIER_API_URL, DOSSIER_API_TOKEN,
 #                   FUND_MANAGER_FILL_PRICE=intention
-#                   KITE_API_KEY, KITE_API_SECRET, KITE_USER_ID, KITE_PASSWORD,
-#                   KITE_TOTP_SECRET (for daily live-price token refresh on stock_ai)
-#                   SUPABASE_DATABASE_URL (health dashboard reads health_status)
+#                   KITE_API_KEY, KITE_API_SECRET (read token from Supabase)
+#                   SUPABASE_DATABASE_URL (health dashboard + kite_auth_tokens)
 #                   FRONTEND_URL, APP_REDIRECT_URL, DASHBOARD_SESSION_SECRET,
 #                   AUTHORIZED_EMAIL, SUPABASE_ANON_KEY, SUPABASE_PROJECT_URL
 #
+# Kite token: TOTP refresh runs on your Mac (not Railway — Zerodha blocks cloud
+# login). Local cron syncs to Supabase kite_auth_tokens; stock_ai reads it.
+#
 # Fund manager cron runs in-process (no separate cron services):
-#   KITE_REFRESH_CRON  default 30 0 * * 1-5  (6:00 AM IST weekdays — Zerodha token)
 #   FUND_SELECTOR_CRON  default 30 3 * * 1-5  (~9:00 AM IST weekdays)
 #   FUND_MORNING_CRON   default 45 3 * * 1-5  (~9:15 AM IST weekdays)
 #   FUND_SCHEDULER_ENABLED=1  (auto-on when RAILWAY_ENVIRONMENT is set)
