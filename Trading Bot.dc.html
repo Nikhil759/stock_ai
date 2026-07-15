@@ -77,6 +77,26 @@
   .trade-metrics,.trade-progress{min-width:0}
   .closed-trade-row{width:100%;text-align:left;cursor:pointer;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:inherit;font:inherit;transition:border-color 0.15s ease}
   .closed-trade-row:hover{border-color:#E2C9A9;background:var(--wolf-tint)}
+  .fund-manager-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:16px 18px;
+    margin-bottom:14px;
+  }
+  .fund-manager-card__head{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .fund-manager-card__label{
+    font-family:var(--mono);font-size:10px;letter-spacing:0.07em;text-transform:uppercase;
+    color:var(--clay);font-weight:600;
+  }
+  .fund-manager-card__time{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+  .fund-manager-card__body{
+    font-size:14px;line-height:1.6;color:var(--ink);
+    margin:0;white-space:pre-wrap;word-break:break-word;
+  }
   button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(216,118,50,0.55);outline-offset:2px}
   .app-nav-btn{transition:box-shadow 0.15s ease,color 0.15s ease}
   .app-nav-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow)}
@@ -198,9 +218,7 @@
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
         <button class="app-nav-btn" onClick="{{ goto.setup }}" style="{{ nav.setup }}"><i class="ti ti-rocket" style="font-size:15px;"></i>Deploy</button>
-        <button class="app-nav-btn" onClick="{{ goto.shortlist }}" style="{{ nav.shortlist }}"><i class="ti ti-list-search" style="font-size:15px;"></i>Shortlist</button>
         <button class="app-nav-btn" onClick="{{ goto.tracker }}" style="{{ nav.tracker }}"><i class="ti ti-report-money" style="font-size:15px;"></i>Tracker</button>
-        <button class="app-nav-btn" onClick="{{ goto.activity }}" style="{{ nav.activity }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
       </nav>
       <div class="app-header-tools">
       <sc-if value="{{ authNotLoggedIn }}" hint-placeholder-val="{{ true }}">
@@ -790,15 +808,21 @@
       </sc-if>
 
       <sc-if value="{{ hasDailyNote }}" hint-placeholder-val="{{ false }}">
-        <div style="background:var(--paper);border:1px solid var(--line2);border-radius:11px;padding:14px 16px;margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-            <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--clay);font-weight:600;">Fund manager · today</div>
-            <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">{{ dailyNoteUpdated }}</span>
+        <div class="fund-manager-card">
+          <div class="fund-manager-card__head">
+            <div class="fund-manager-card__label">Fund manager · today</div>
+            <span class="fund-manager-card__time">{{ dailyNoteUpdated }}</span>
           </div>
-          <pre style="font-family:var(--sans,inherit);font-size:13px;line-height:1.55;color:var(--ink);margin:0;white-space:pre-wrap;word-break:break-word;">{{ dailyNoteText }}</pre>
+          <p class="fund-manager-card__body">{{ dailyNoteText }}</p>
         </div>
       </sc-if>
 
+      <div style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;margin-bottom:16px;width:fit-content;max-width:100%;">
+        <button onClick="{{ setTrackerTabHoldings }}" style="{{ trackerTabHoldingsStyle }}"><i class="ti ti-briefcase" style="font-size:15px;"></i>Holdings</button>
+        <button onClick="{{ setTrackerTabActivity }}" style="{{ trackerTabActivityStyle }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
+      </div>
+
+      <sc-if value="{{ trackerTabHoldings }}" hint-placeholder-val="{{ true }}">
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:12px;margin-bottom:14px;">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Allocation</div>
@@ -832,8 +856,8 @@
       <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;margin-bottom:14px;">
         <i class="ti ti-report-money" style="font-size:36px;color:var(--ink2);"></i>
         <h2 style="font-size:20px;font-weight:700;margin:14px 0 6px;">No paper trades yet</h2>
-        <p style="color:var(--ink2);margin:0 0 20px;">Run a screen and log a candidate to start tracking.</p>
-        <button onClick="{{ goto.shortlist }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">View shortlist</button>
+        <p style="color:var(--ink2);margin:0 0 20px;">Deploy picks will show up here once the Wolf executes trades.</p>
+        <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
       </div>
     </sc-if>
 
@@ -915,30 +939,26 @@
       </div>
     </sc-if>
     </sc-if>
-  </main>
-  </sc-if>
 
-  <!-- ===================== ACTIVITY ===================== -->
-  <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
-  <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
-    <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">Action log</p>
-    <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0 0 20px;">What the Wolf did</h1>
-    <sc-if value="{{ noLog }}" hint-placeholder-val="{{ false }}">
-      <div style="text-align:center;padding:48px 20px;color:var(--ink2);">No activity yet. Run a screen or change settings to get started.</div>
-    </sc-if>
-    <sc-if value="{{ hasLog }}" hint-placeholder-val="{{ true }}">
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <sc-for list="{{ actionLog }}" as="a" hint-placeholder-count="3">
-          <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
-              <span style="font-weight:600;font-size:14px;text-transform:capitalize;">{{ a.actionLabel }}</span>
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">{{ a.timeFmt }}</span>
+    <sc-if value="{{ trackerTabActivity }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ noLog }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;color:var(--ink2);">No activity yet. Deploy actions and trade events will appear here.</div>
+      </sc-if>
+      <sc-if value="{{ hasLog }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <sc-for list="{{ actionLog }}" as="a" hint-placeholder-count="3">
+            <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+                <span style="font-weight:600;font-size:14px;text-transform:capitalize;">{{ a.actionLabel }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);">{{ a.timeFmt }}</span>
+              </div>
+              <p style="font-size:13.5px;margin:6px 0 0;color:var(--ink);">{{ a.detail }}</p>
+              <sc-if value="{{ a.hasReason }}" hint-placeholder-val="{{ false }}"><p style="font-size:12.5px;margin:4px 0 0;color:var(--ink2);">{{ a.reasoning }}</p></sc-if>
             </div>
-            <p style="font-size:13.5px;margin:6px 0 0;color:var(--ink);">{{ a.detail }}</p>
-            <sc-if value="{{ a.hasReason }}" hint-placeholder-val="{{ false }}"><p style="font-size:12.5px;margin:4px 0 0;color:var(--ink2);">{{ a.reasoning }}</p></sc-if>
-          </div>
-        </sc-for>
-      </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </sc-if>
     </sc-if>
   </main>
   </sc-if>
@@ -1053,7 +1073,8 @@ class Component extends DCLogic {
     super(props);
     const workspaceId = typeof window !== 'undefined' ? this._resolveWorkspaceId() : '';
     this.state = {
-      screen: props.startScreen ?? 'home',
+      screen: props.startScreen === 'activity' ? 'tracker' : (props.startScreen ?? 'home'),
+      trackerTab: props.startScreen === 'activity' ? 'activity' : 'holdings',
       workspaceId,
       activeBotId: null,
       bots: [],
@@ -1960,12 +1981,15 @@ class Component extends DCLogic {
       setup: () => this.setState({ screen:'setup', strategy: null, screenError: false }),
       shortlist: () => this.setState({ screen:'shortlist' }),
       tracker: async () => {
-        this.setState({ screen: 'tracker' });
+        this.setState({ screen: 'tracker', trackerTab: 'holdings' });
         try { if (s.activeBotId) await this._loadBotData(s.activeBotId); } catch (e) { console.error('loadBotData failed:', e); }
       },
       activity: async () => {
-        this.setState({ screen: 'activity' });
-        try { await this._refreshLog(); } catch (e) { console.error('refreshLog failed:', e); }
+        this.setState({ screen: 'tracker', trackerTab: 'activity' });
+        try {
+          if (s.activeBotId) await this._loadBotData(s.activeBotId);
+          await this._refreshLog();
+        } catch (e) { console.error('loadBotData failed:', e); }
       },
     };
     const onBotSwitch = e => this.selectBot(parseInt(e.target.value, 10));
@@ -1984,8 +2008,11 @@ class Component extends DCLogic {
     const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
     const nav = {
       home: navStyle(s.screen==='home'), setup:navStyle(s.screen==='setup'),
-      shortlist:navStyle(s.screen==='shortlist'), tracker:navStyle(s.screen==='tracker'), activity:navStyle(s.screen==='activity'),
+      tracker: navStyle(s.screen==='tracker'),
     };
+    const trackerTabBtnStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 14px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
+    const trackerTabHoldings = s.trackerTab === 'holdings';
+    const trackerTabActivity = s.trackerTab === 'activity';
     const togStyle = a => 'display:flex;align-items:center;gap:6px;border:none;cursor:pointer;font-size:12.5px;font-weight:550;padding:6px 11px;border-radius:7px;background:' + (a?'var(--ink)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + ';';
     const tog = { grid:togStyle(s.layout==='grid'), list:togStyle(s.layout==='list') };
 
@@ -2158,7 +2185,7 @@ class Component extends DCLogic {
         selectBg: selected ? 'var(--clay)' : 'var(--paper)',
         selectCol: selected ? '#fff' : 'transparent',
         onToggleSelect: () => { if (!terminated) this.toggleBotSelect(b.id); },
-        onSelect: () => { this.selectBot(b.id); this.setState({ screen: 'tracker', strategy: b.strategy }); },
+        onSelect: () => { this.selectBot(b.id); this.setState({ screen: 'tracker', strategy: b.strategy, trackerTab: 'holdings' }); },
       };
     });
 
@@ -2226,7 +2253,7 @@ class Component extends DCLogic {
       authMenuChevron: s.showAuthMenu ? 'ti ti-chevron-up' : 'ti ti-chevron-down',
       toggleAuthMenu: () => this.toggleAuthMenu(),
       closeAuthMenu: () => this.closeAuthMenu(),
-      isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker', isActivity:s.screen==='activity',
+      isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker',
       isGrid:s.layout==='grid', isList:s.layout==='list',
       nav, tog, on, sel, goto, onBotSwitch, strategyCards,
       togglePause: () => this.togglePause(), terminateBot: () => this.terminateBot(),
@@ -2250,6 +2277,14 @@ class Component extends DCLogic {
       activeBotId: s.activeBotId, botOptions, botSelectStyle, activeBotLabel,
       activeBotName, activeBotStrategy, activeBotModeLabel,
       trackerActive: !!s.activeBotId,
+      trackerTabHoldings, trackerTabActivity,
+      trackerTabHoldingsStyle: trackerTabBtnStyle(trackerTabHoldings),
+      trackerTabActivityStyle: trackerTabBtnStyle(trackerTabActivity),
+      setTrackerTabHoldings: () => this.setState({ trackerTab: 'holdings' }),
+      setTrackerTabActivity: async () => {
+        this.setState({ trackerTab: 'activity' });
+        try { await this._refreshLog(); } catch (e) { console.error('refreshLog failed:', e); }
+      },
       trackerSummary, hasTrackerSummary,
       dailyNoteText, dailyNoteUpdated, hasDailyNote,
       hasScreen: !!s.activeBotId || isScanning,
