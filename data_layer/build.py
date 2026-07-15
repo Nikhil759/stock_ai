@@ -22,12 +22,8 @@ from .dossier import Dossier, Meta
 from .storage import save_dossier, append_snapshot, init_db
 from .fetch.prices import fetch_bars, fetch_index_closes, fetch_latest_value
 from .fetch.fundamentals import fetch_fundamentals
-from .fetch.fundamentals_ext import enrich_fundamentals
 from .fetch.news import fetch_news
-from .fetch.events import fetch_events
 from .fetch.orderbook import fetch_order_books
-from .fetch.bigmoves import prefetch_bigmoves, fetch_big_trades
-from .fetch.marketmood import fetch_and_save_market_mood
 from .fetch.kite_session import ensure_kite_access_token
 from .compute.technicals import compute_technicals
 from .compute.chart_shape import compute_chart_shape
@@ -52,7 +48,6 @@ def build_one(
     try:
         bars = fetch_bars(ticker)
         fundamentals = fetch_fundamentals(ticker)
-        fundamentals = enrich_fundamentals(ticker, fundamentals)
 
         d = Dossier()
         d.meta = Meta(
@@ -70,15 +65,10 @@ def build_one(
             d.chart_shape = compute_chart_shape(bars, ticker=ticker)
 
         d.news = fetch_news(ticker, return_6m=d.technicals.return_6m)
-        d.events = fetch_events(ticker)
 
-        # Phase A uplift — always set keys (null / empty on failure, never omit)
+        # Kite order book (null when no token); NSE enrichment removed — yfinance
+        # fundamentals + Marketaux news + Gemini scoring cover the pipeline.
         d.order_book = order_books.get(ticker.strip().upper())
-        try:
-            d.big_trades = fetch_big_trades(ticker)
-        except Exception as e:
-            print(f"[FETCH] bigmoves {ticker} FAILED: {e}")
-            d.big_trades = None
 
         if config.FETCH_DELAY:
             time.sleep(config.FETCH_DELAY)
@@ -93,10 +83,8 @@ def run(snapshot: str = "pre_open", tickers: list[str] | None = None) -> None:
     universe = tickers if tickers is not None else load_universe()
     print(f"[build] {len(universe)} tickers, snapshot={snapshot}")
 
-    # Market-wide fetches once per run (not per stock)
-    ensure_kite_access_token()  # TOTP refresh before order-book quotes
-    fetch_and_save_market_mood()
-    prefetch_bigmoves()
+    # Kite token for order-book quotes (best-effort; build continues without it)
+    ensure_kite_access_token()
     order_books = fetch_order_books(universe)
 
     # shared market data, fetched once

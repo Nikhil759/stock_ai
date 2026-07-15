@@ -541,7 +541,7 @@ async def api_ops_me(request: Request):
 @router.get("/api/ops/external-health")
 async def api_external_health(request: Request):
     """Live status of every external service the pipeline/trading flow depends
-    on (Zerodha Kite, yfinance, NSE, Gemini, Marketaux, Supabase)."""
+    on (Zerodha Kite, yfinance, Gemini, Marketaux, Supabase)."""
     if not is_authorized(request):
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 

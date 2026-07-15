@@ -311,7 +311,7 @@
       <section>
         <h2>External APIs</h2>
         <div class="api-grid" id="api-grid">
-          {% for svc in ["Zerodha Kite", "yfinance", "NSE India", "Google Gemini", "Marketaux", "Supabase Postgres"] %}
+          {% for svc in ["Zerodha Kite", "yfinance", "Google Gemini", "Marketaux", "Supabase Postgres"] %}
             <div class="api-card">
               <div class="api-card-head">
                 <span class="api-card-name">{{ svc }}</span>
@@ -473,15 +473,13 @@
       const LABELS = {
         kite: 'Zerodha Kite',
         yfinance: 'yfinance',
-        nse: 'NSE India',
         gemini: 'Google Gemini',
         marketaux: 'Marketaux',
         supabase: 'Supabase Postgres',
       };
       const SUBS = {
         kite: 'Auth + live LTP',
-        yfinance: 'Price fallback',
-        nse: 'Technicals / fundamentals scrape',
+        yfinance: 'Prices + fundamentals',
         gemini: 'Dossier scoring + Wolf Brain',
         marketaux: 'News / sentiment',
         supabase: 'Wolves, trades, health runs',

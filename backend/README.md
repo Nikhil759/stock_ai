@@ -79,6 +79,22 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 - `FRONTEND_URL` — your Vercel app URL (e.g. `https://wolf-capital.vercel.app`).
   Used for post-login redirect. If `APP_REDIRECT_URL` is unset, the OAuth
   callback defaults to `FRONTEND_URL/health/auth/callback`.
+- `KITE_API_KEY`, `KITE_API_SECRET`, `KITE_USER_ID`, `KITE_PASSWORD`,
+  `KITE_TOTP_SECRET` — live Zerodha LTPs for portfolio refresh (Kite app redirect
+  URL must be `http://127.0.0.1`). Duplicating Marketaux keys here is only needed
+  for the health dashboard config check; news fetch still runs on data-layer-cron.
+
+**In-process APScheduler on `stock_ai`** (`fund_scheduler.py`, UTC cron expressions):
+
+| Job | Default cron | IST (approx.) |
+|-----|--------------|---------------|
+| Kite token refresh | `30 0 * * 1-5` | 6:00 AM weekdays |
+| Fund selector | `30 3 * * 1-5` | 9:00 AM weekdays |
+| Morning deploy | `45 3 * * 1-5` | 9:15 AM weekdays |
+
+Override with `KITE_REFRESH_CRON`, `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`.
+Scheduler auto-enables on Railway (`RAILWAY_ENVIRONMENT`); set
+`FUND_SCHEDULER_ENABLED=1` locally to test.
 
 **Vercel:** set `RAILWAY_PUBLIC_URL` to your Railway API host. The Vercel build
 generates rewrites that proxy `/health/*` and `/api/ops/*` to Railway so login

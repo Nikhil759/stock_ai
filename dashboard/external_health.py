@@ -16,7 +16,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
 _REPO = Path(__file__).resolve().parents[1]
+load_dotenv(_REPO / ".env")
 
 
 def _timed(fn):
@@ -36,8 +39,14 @@ def _check_kite() -> dict[str, Any]:
 
     def run():
         import importlib.util
+        import sys
 
-        path = _REPO / "backend" / "fund_manager" / "kite_auth.py"
+        backend = _REPO / "backend"
+        backend_str = str(backend)
+        if backend_str not in sys.path:
+            sys.path.insert(0, backend_str)
+
+        path = backend / "fund_manager" / "kite_auth.py"
         spec = importlib.util.spec_from_file_location("_health_kite_auth", path)
         if spec is None or spec.loader is None:
             raise RuntimeError("could not load kite_auth.py")
@@ -50,8 +59,8 @@ def _check_kite() -> dict[str, Any]:
         kite = mod.get_kite_nonblocking()
         if kite is None:
             raise RuntimeError(
-                "No verified session for today — run "
-                "`python -m backend.scripts.refresh_kite_token`"
+                "No verified session for today — from backend/ run "
+                "`python -m scripts.refresh_kite_token`"
             )
         profile = kite.profile()
         return f"Session OK — logged in as {profile.get('user_name') or profile.get('user_id') or 'Kite user'}"
@@ -87,32 +96,6 @@ def _check_yfinance() -> dict[str, Any]:
         "id": "yfinance",
         "label": "yfinance",
         "sub": "Price fallback",
-        "status": "ok" if ok else "down",
-        "detail": detail,
-        "latency_ms": ms,
-    }
-
-
-def _check_nse() -> dict[str, Any]:
-    def run():
-        import requests
-
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            ),
-        }
-        resp = requests.get("https://www.nseindia.com", headers=headers, timeout=8)
-        if resp.status_code >= 400:
-            raise RuntimeError(f"HTTP {resp.status_code}")
-        return f"Reachable (HTTP {resp.status_code})"
-
-    ok, detail, ms = _timed(run)
-    return {
-        "id": "nse",
-        "label": "NSE India",
-        "sub": "Technicals / fundamentals scrape",
         "status": "ok" if ok else "down",
         "detail": detail,
         "latency_ms": ms,
@@ -190,7 +173,6 @@ def _check_supabase() -> dict[str, Any]:
 CHECKS = (
     _check_kite,
     _check_yfinance,
-    _check_nse,
     _check_gemini,
     _check_marketaux,
     _check_supabase,

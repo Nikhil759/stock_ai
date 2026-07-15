@@ -1,18 +1,25 @@
-"""In-process fund manager schedule — selector + morning deploy on stock_ai."""
+"""In-process fund manager schedule — Kite token refresh, selector, morning deploy."""
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import os
+import sys
 import threading
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+_kite_lock = threading.Lock()
+_kite_running = False
 _selector_lock = threading.Lock()
 _selector_running = False
 _morning_lock = threading.Lock()
 _morning_running = False
 
+# 00:30 UTC = 6:00 AM IST — Zerodha access tokens expire ~6 AM IST each day.
+KITE_REFRESH_CRON = os.getenv("KITE_REFRESH_CRON", "30 0 * * 1-5").strip()
 SELECTOR_CRON = os.getenv("FUND_SELECTOR_CRON", "30 3 * * 1-5").strip()
 MORNING_CRON = os.getenv("FUND_MORNING_CRON", "45 3 * * 1-5").strip()
 
@@ -25,6 +32,55 @@ def _scheduler_enabled() -> bool:
         return True
     # Default on when deployed to Railway; off locally to avoid surprise LLM calls.
     return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_VOLUME_MOUNT_PATH"))
+
+
+def _load_kite_auth():
+    """Load kite_auth by file path — avoids fund_manager.__init__ heavy imports."""
+    backend = Path(__file__).resolve().parent
+    path = backend / "fund_manager" / "kite_auth.py"
+    backend_str = str(backend)
+    if backend_str not in sys.path:
+        sys.path.insert(0, backend_str)
+    spec = importlib.util.spec_from_file_location("_fund_sched_kite_auth", path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _run_kite_refresh_job() -> None:
+    global _kite_running
+    with _kite_lock:
+        if _kite_running:
+            log.info("kite refresh already running — skip")
+            return
+        _kite_running = True
+    try:
+        log.info("starting daily Kite token refresh")
+        kite_auth = _load_kite_auth()
+        if kite_auth is None:
+            log.warning("kite refresh SKIP — kite_auth.py not found")
+            return
+        if not kite_auth.totp_configured():
+            log.warning(
+                "kite refresh SKIP — set KITE_USER_ID / KITE_PASSWORD / KITE_TOTP_SECRET"
+            )
+            return
+        token = kite_auth.refresh_access_token(force=True)
+        kite = kite_auth.get_kite()
+        profile = kite.profile()
+        log.info(
+            "kite refresh OK — %s (%s) token=%s (%d chars)",
+            profile.get("user_name"),
+            profile.get("user_id"),
+            kite_auth._token_path().name,
+            len(token),
+        )
+    except Exception:
+        log.exception("kite refresh failed")
+    finally:
+        _kite_running = False
 
 
 def _run_selector_job() -> None:
@@ -95,6 +151,7 @@ def start_fund_scheduler() -> None:
         return
 
     sched = BackgroundScheduler(timezone="UTC")
+    _add_cron_job(sched, KITE_REFRESH_CRON, "kite_refresh", _run_kite_refresh_job)
     _add_cron_job(sched, SELECTOR_CRON, "fund_selector", _run_selector_job)
     _add_cron_job(sched, MORNING_CRON, "fund_morning", _run_morning_job)
     sched.start()

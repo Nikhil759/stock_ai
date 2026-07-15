@@ -91,12 +91,18 @@ def _exchange_request_token(request_token: str) -> str:
 
 
 def _extract_request_token(url: str) -> str | None:
+    """Pull request_token from a redirect URL or requests exception message."""
+    if not url:
+        return None
+    # Prefer regex — works on bare URLs and on ConnectionError strings like
+    # "... url: /?request_token=Ab12... (Caused by ...)" where parse_qs would
+    # capture trailing junk and break the token exchange.
+    m = re.search(r"request_token=([A-Za-z0-9]+)", url)
+    if m:
+        return m.group(1)
     qs = parse_qs(urlparse(url).query)
     tokens = qs.get("request_token") or []
-    if tokens:
-        return tokens[0]
-    m = re.search(r"request_token=([A-Za-z0-9]+)", url)
-    return m.group(1) if m else None
+    return tokens[0] if tokens else None
 
 
 def _authenticate_interactive() -> str:
