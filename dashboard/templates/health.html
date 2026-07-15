@@ -245,6 +245,23 @@
     .api-kite-refresh:disabled{opacity:0.55;cursor:wait}
     .api-kite-refresh.spin i{animation:spin 0.9s linear infinite;display:inline-block}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .api-kite-manual{
+      display:none;margin-top:4px;padding-top:8px;border-top:1px dashed var(--line2);
+      flex-direction:column;gap:8px;
+    }
+    .api-kite-manual.open{display:flex}
+    .api-kite-manual p{margin:0;font-size:11px;color:var(--ink2);line-height:1.45}
+    .api-kite-manual a{color:var(--clay);font-weight:600;word-break:break-all}
+    .api-kite-manual-row{display:flex;gap:6px;align-items:stretch}
+    .api-kite-manual-row input{
+      flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line2);
+      border-radius:8px;background:var(--wolf-mist);font-size:11.5px;font-family:var(--mono);
+    }
+    .api-kite-manual-row button{
+      padding:7px 10px;border:1px solid var(--clay);border-radius:8px;
+      background:var(--clay);color:#fff;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+    }
+    .api-kite-manual-row button:disabled{opacity:0.6;cursor:wait}
     .api-card-name{font-size:13.5px;font-weight:700;color:var(--ink)}
     .api-card-sub{font-size:11px;color:var(--ink2);margin-top:-4px}
     .api-card-detail{font-size:12px;color:var(--ink2);line-height:1.45}
@@ -503,7 +520,17 @@
         const dotClass = status === 'ok' ? 'ok' : (status === 'warn' ? 'warn' : (status === 'down' ? 'bad' : 'idle'));
         const latency = (typeof latencyMs === 'number') ? `<div class="api-card-latency">${latencyMs} ms</div>` : '';
         const kiteRefresh = id === 'kite'
-          ? `<button type="button" class="api-kite-refresh" title="Refresh Zerodha session" aria-label="Refresh Zerodha session"><i class="ti ti-refresh"></i></button>`
+          ? `<button type="button" class="api-kite-refresh" title="Try TOTP auto-refresh (local only)" aria-label="Try TOTP auto-refresh"><i class="ti ti-refresh"></i></button>`
+          : '';
+        const kiteManual = id === 'kite'
+          ? `<div class="api-kite-manual" id="kite-manual-panel">
+              <p id="kite-manual-hint">Zerodha blocks auto-login from cloud servers. Open the login link on your phone or laptop, then paste <code>request_token</code> from the redirect URL.</p>
+              <p><a id="kite-login-link" href="#" target="_blank" rel="noopener">Loading login URL…</a></p>
+              <div class="api-kite-manual-row">
+                <input type="text" id="kite-request-token" placeholder="request_token" autocomplete="off" spellcheck="false">
+                <button type="button" id="kite-exchange-btn">Save token</button>
+              </div>
+            </div>`
           : '';
         const headActions = kiteRefresh
           ? `<div class="api-card-head-actions">${kiteRefresh}<span class="api-status-dot ${dotClass}" title="${status}"></span></div>`
@@ -517,10 +544,46 @@
             <div class="api-card-sub">${sub}</div>
             <div class="api-card-detail ${detailClass}">${detail}</div>
             ${latency}
+            ${kiteManual}
           </div>`;
       }
 
       let kiteRefreshing = false;
+      let kiteLoginUrl = '';
+
+      function showKiteManualPanel() {
+        const panel = document.getElementById('kite-manual-panel');
+        if (panel) panel.classList.add('open');
+        const link = document.getElementById('kite-login-link');
+        if (link && kiteLoginUrl) {
+          link.href = kiteLoginUrl;
+          link.textContent = 'Open Zerodha login';
+        } else {
+          loadKiteLoginUrl();
+        }
+      }
+
+      async function loadKiteLoginUrl() {
+        const link = document.getElementById('kite-login-link');
+        if (!link) return;
+        try {
+          const r = await fetch('/api/ops/kite-login-url', { credentials: 'include' });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.login_url) {
+            kiteLoginUrl = data.login_url;
+            link.href = data.login_url;
+            link.textContent = 'Open Zerodha login';
+            if (data.hint) {
+              const hint = document.getElementById('kite-manual-hint');
+              if (hint) hint.textContent = data.hint;
+            }
+          } else {
+            link.textContent = data.detail || data.error || 'Could not load login URL';
+          }
+        } catch (e) {
+          link.textContent = 'Could not load login URL';
+        }
+      }
 
       function setKiteCardMessage(text, tone) {
         const card = grid.querySelector('[data-api-id="kite"]');
@@ -554,6 +617,7 @@
               data.detail || data.error || ('Refresh failed (' + r.status + ')'),
               'bad'
             );
+            if (data.cloud_blocked) showKiteManualPanel();
           }
         } catch (e) {
           setKiteCardMessage(
@@ -569,9 +633,51 @@
         }
       }
 
+      async function exchangeKiteToken(btn) {
+        const input = document.getElementById('kite-request-token');
+        const token = input && input.value ? input.value.trim() : '';
+        if (!token) {
+          setKiteCardMessage('Paste request_token from the redirect URL first.', 'bad');
+          return;
+        }
+        if (btn) btn.disabled = true;
+        setKiteCardMessage('Exchanging request_token…', 'warn');
+        try {
+          const r = await fetch('/api/ops/exchange-kite-token', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_token: token }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.status === 'ok') {
+            if (input) input.value = '';
+            await loadExternalHealth();
+          } else {
+            setKiteCardMessage(
+              data.detail || data.error || ('Exchange failed (' + r.status + ')'),
+              'bad'
+            );
+            showKiteManualPanel();
+          }
+        } catch (e) {
+          setKiteCardMessage(
+            'Could not reach the API: ' + (e && e.message ? e.message : String(e)),
+            'bad'
+          );
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
       grid.addEventListener('click', function (e) {
-        const btn = e.target.closest('.api-kite-refresh');
-        if (btn) refreshKiteSession(btn);
+        const refreshBtn = e.target.closest('.api-kite-refresh');
+        if (refreshBtn) {
+          refreshKiteSession(refreshBtn);
+          return;
+        }
+        const exchangeBtn = e.target.closest('#kite-exchange-btn');
+        if (exchangeBtn) exchangeKiteToken(exchangeBtn);
       });
 
       async function loadExternalHealth() {
@@ -585,6 +691,10 @@
           grid.innerHTML = data.checks
             .map((c) => cardHtml(c.id, c.status, c.detail, c.latency_ms))
             .join('');
+          const kite = data.checks.find((c) => c.id === 'kite');
+          if (kite && kite.status === 'warn') {
+            showKiteManualPanel();
+          }
         } catch (e) {
           grid.innerHTML = `<p class="empty">Could not reach the API: ${e && e.message ? e.message : String(e)}</p>`;
         }

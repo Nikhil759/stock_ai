@@ -538,17 +538,63 @@ async def api_ops_me(request: Request):
     }
 
 
+@router.get("/api/ops/kite-login-url")
+async def api_kite_login_url(request: Request):
+    """Zerodha browser login URL for manual request_token flow (authorized ops only)."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    import importlib.util
+    import sys
+
+    def _url() -> dict:
+        repo = Path(__file__).resolve().parents[1]
+        backend = repo / "backend"
+        backend_str = str(backend)
+        if backend_str not in sys.path:
+            sys.path.insert(0, backend_str)
+
+        path = backend / "fund_manager" / "kite_auth.py"
+        spec = importlib.util.spec_from_file_location("_ops_kite_auth_url", path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load kite_auth.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        if not (os.getenv("KITE_API_KEY") or "").strip():
+            raise RuntimeError("KITE_API_KEY not set on stock_ai")
+        return {
+            "login_url": mod.login_url(),
+            "hint": (
+                "Open this URL on your phone or laptop, complete Zerodha login, "
+                "then copy request_token from the redirect URL and paste it below."
+            ),
+        }
+
+    import asyncio
+
+    try:
+        return await asyncio.to_thread(_url)
+    except Exception as e:
+        return JSONResponse(
+            {"error": "Could not build Kite login URL", "detail": str(e)},
+            status_code=500,
+        )
+
+
 @router.post("/api/ops/refresh-kite-token")
 async def api_refresh_kite_token(request: Request):
-    """Mint today's Zerodha access token via TOTP (authorized ops only)."""
+    """Mint today's Zerodha access token via TOTP (authorized ops only).
+
+    TOTP auto-login is blocked from cloud/datacenter IPs (Railway). On 403,
+    use GET /api/ops/kite-login-url + POST /api/ops/exchange-kite-token instead.
+    """
     if not is_authorized(request):
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
     import asyncio
     import importlib.util
-    import os
     import sys
-    from pathlib import Path
 
     def _refresh() -> dict:
         repo = Path(__file__).resolve().parents[1]
@@ -585,8 +631,76 @@ async def api_refresh_kite_token(request: Request):
     try:
         return await asyncio.to_thread(_refresh)
     except Exception as e:
+        detail = str(e).strip() or type(e).__name__
+        cloud_blocked = detail.startswith("CLOUD_BLOCKED:")
+        if cloud_blocked:
+            detail = detail.removeprefix("CLOUD_BLOCKED:").strip()
         return JSONResponse(
-            {"error": "Kite refresh failed", "detail": str(e)},
+            {
+                "error": "Kite refresh failed",
+                "detail": detail,
+                "cloud_blocked": cloud_blocked,
+            },
+            status_code=502,
+        )
+
+
+@router.post("/api/ops/exchange-kite-token")
+async def api_exchange_kite_token(request: Request):
+    """Exchange a browser request_token for today's access token (works from cloud)."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    request_token = (body.get("request_token") or "").strip()
+    if not request_token:
+        return JSONResponse(
+            {"error": "request_token required"},
+            status_code=400,
+        )
+
+    import asyncio
+    import importlib.util
+    import sys
+
+    def _exchange() -> dict:
+        repo = Path(__file__).resolve().parents[1]
+        backend = repo / "backend"
+        backend_str = str(backend)
+        if backend_str not in sys.path:
+            sys.path.insert(0, backend_str)
+
+        path = backend / "fund_manager" / "kite_auth.py"
+        spec = importlib.util.spec_from_file_location("_ops_kite_exchange", path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load kite_auth.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        if not (os.getenv("KITE_API_KEY") or "").strip():
+            raise RuntimeError("KITE_API_KEY not set on stock_ai")
+        if not (os.getenv("KITE_API_SECRET") or "").strip():
+            raise RuntimeError("KITE_API_SECRET not set on stock_ai")
+
+        token = mod.refresh_from_request_token(request_token)
+        kite = mod.get_kite()
+        profile = kite.profile()
+        return {
+            "status": "ok",
+            "user_name": profile.get("user_name"),
+            "user_id": profile.get("user_id"),
+            "token_file": mod._token_path().name,
+            "token_chars": len(token),
+        }
+
+    try:
+        return await asyncio.to_thread(_exchange)
+    except Exception as e:
+        return JSONResponse(
+            {"error": "Kite token exchange failed", "detail": str(e)},
             status_code=502,
         )
 

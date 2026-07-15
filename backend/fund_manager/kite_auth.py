@@ -23,10 +23,17 @@ import requests
 from dotenv import load_dotenv
 from kiteconnect import KiteConnect
 
+from data_paths import get_data_dir
 from repo_paths import find_repo_root
 
 _ROOT = find_repo_root()
 load_dotenv(_ROOT / ".env")
+
+_CLOUD_LOGIN_MSG = (
+    "Zerodha blocked auto-login from this server's IP (HTTP 403). "
+    "Log in via browser on your phone or laptop, copy request_token from "
+    "the redirect URL, and paste it on the health page."
+)
 
 _kite: KiteConnect | None = None
 
@@ -36,7 +43,7 @@ _TWOFA_URL = "https://kite.zerodha.com/api/twofa"
 
 def _token_path() -> Path:
     today = date.today().isoformat()
-    return _ROOT / f".kite_token_{today}"
+    return get_data_dir() / f".kite_token_{today}"
 
 
 def _api_key() -> str:
@@ -157,6 +164,8 @@ def _authenticate_totp() -> str:
         data={"user_id": user_id, "password": password},
         timeout=30,
     )
+    if login_resp.status_code == 403:
+        raise RuntimeError(f"CLOUD_BLOCKED: {_CLOUD_LOGIN_MSG}")
     login_resp.raise_for_status()
     login_body = login_resp.json()
     if login_body.get("status") != "success":
@@ -231,6 +240,26 @@ def _authenticate_totp() -> str:
     access_token = _exchange_request_token(request_token)
     _save_token(access_token)
     print(f"[kite] TOTP auto-login OK — cached {_token_path().name}")
+    return access_token
+
+
+def refresh_from_request_token(request_token: str) -> str:
+    """Exchange a browser request_token for today's access token (works from cloud)."""
+    global _kite
+    token_in = (request_token or "").strip()
+    if not token_in:
+        raise RuntimeError("request_token is empty")
+
+    if _token_path().exists():
+        _token_path().unlink()
+
+    access_token = _exchange_request_token(token_in)
+    _save_token(access_token)
+    kite = _build_kite(access_token)
+    if not _verify_token(kite):
+        raise RuntimeError("Token exchange succeeded but session is invalid")
+    _kite = kite
+    print(f"[kite] request_token exchange OK — cached {_token_path().name}")
     return access_token
 
 

@@ -59,8 +59,8 @@ def _check_kite() -> dict[str, Any]:
         kite = mod.get_kite_nonblocking()
         if kite is None:
             raise RuntimeError(
-                "No verified session for today — from backend/ run "
-                "`python -m scripts.refresh_kite_token`"
+                "No verified session for today — open /health, use browser login "
+                "on the Zerodha card, and paste request_token (TOTP is blocked on cloud)."
             )
         profile = kite.profile()
         return f"Session OK — logged in as {profile.get('user_name') or profile.get('user_id') or 'Kite user'}"
