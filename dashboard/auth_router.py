@@ -276,6 +276,7 @@ def _flatten_stages(stages: dict) -> list[dict[str, Any]]:
             )
 
     cache = stages.get("cache_saved") or {}
+    shortlists = stages.get("shortlists") or {}
     if not cache:
         rows.append(
             {
@@ -284,10 +285,21 @@ def _flatten_stages(stages: dict) -> list[dict[str, Any]]:
                 "status": None,
                 "chip": "idle",
                 "detail": "not started",
+                "shortlists": shortlists,
             }
         )
     else:
-        parts = [f"{k}={'yes' if v else 'no'}" for k, v in cache.items()]
+        parts: list[str] = []
+        for k in ("value", "winners", "box", "dip"):
+            saved = cache.get(k)
+            cands = shortlists.get(k) if isinstance(shortlists.get(k), list) else []
+            n = len(cands)
+            if saved and n:
+                parts.append(f"{k}: {n} candidate{'s' if n != 1 else ''}")
+            elif saved:
+                parts.append(f"{k}: saved")
+            else:
+                parts.append(f"{k}: missing")
         ok = all(bool(v) for v in cache.values()) if cache else False
         rows.append(
             {
@@ -296,10 +308,59 @@ def _flatten_stages(stages: dict) -> list[dict[str, Any]]:
                 "status": "success" if ok else "partial",
                 "chip": "ok" if ok else "warn",
                 "detail": ", ".join(parts),
+                "shortlists": shortlists,
             }
         )
 
     return rows
+
+
+def _load_shortlists_from_disk() -> dict[str, list[dict[str, Any]]]:
+    from datetime import date
+
+    from cache.shortlist_cache import load_shortlist
+
+    out: dict[str, list[dict[str, Any]]] = {}
+    for name in ("value", "winners", "box", "dip"):
+        cands = load_shortlist(name, date.today())
+        if cands:
+            out[name] = cands
+    return out
+
+
+def _fetch_shortlists_from_cron() -> dict[str, list[dict[str, Any]]]:
+    import httpx
+
+    base = (os.getenv("DOSSIER_API_URL") or "").strip().rstrip("/")
+    if not base:
+        return {}
+    token = (os.getenv("DOSSIER_API_TOKEN") or "").strip()
+    headers: dict[str, str] = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            r = client.get(f"{base}/api/shortlists/today", headers=headers)
+            if r.status_code >= 400:
+                return {}
+            data = r.json()
+            sl = data.get("shortlists") or {}
+            return sl if isinstance(sl, dict) else {}
+    except Exception:
+        return {}
+
+
+def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[str, Any]]]:
+    """Prefer shortlists stored on today's health run; fall back to disk or cron API."""
+    from_stages = (stages or {}).get("shortlists") or {}
+    if isinstance(from_stages, dict) and any(from_stages.values()):
+        return {
+            k: v for k, v in from_stages.items() if isinstance(v, list) and v
+        }
+    local = _load_shortlists_from_disk()
+    if local:
+        return local
+    return _fetch_shortlists_from_cron()
 
 
 @router.get("/health", response_class=HTMLResponse)
@@ -312,6 +373,7 @@ async def health_page(request: Request):
     recent = []
     today_row = None
     today_rows: list[dict] = []
+    shortlists: dict[str, list] = {}
     db_error: str | None = None
     if authed:
         from datetime import date
@@ -332,7 +394,9 @@ async def health_page(request: Request):
                     }
                 )
             today_row = get_status(date.today())
-            today_rows = _flatten_stages((today_row or {}).get("stages") or {})
+            today_stages = (today_row or {}).get("stages") or {}
+            today_rows = _flatten_stages(today_stages)
+            shortlists = _resolve_shortlists_for_health(today_stages)
         except Exception as e:
             import logging
 
@@ -356,6 +420,7 @@ async def health_page(request: Request):
             "recent": recent,
             "today": today_row,
             "today_rows": today_rows,
+            "shortlists": shortlists,
             "not_started": authed and not db_error and today_row is None,
             "db_error": db_error,
             "cron_api_configured": bool(

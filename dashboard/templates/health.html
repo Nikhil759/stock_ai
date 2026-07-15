@@ -162,6 +162,33 @@
       padding:0 14px 14px 14px;color:var(--ink2);font-size:13px;line-height:1.55;
       white-space:pre-wrap;border-top:1px solid var(--line);padding-top:11px;font-family:var(--mono);
     }
+    .shortlist-panel{
+      border-top:1px solid var(--line);padding:12px 14px 14px;
+      display:grid;gap:14px;background:var(--wolf-mist);
+    }
+    .shortlist-strategy h3{
+      margin:0 0 8px;font-size:13px;font-weight:700;text-transform:capitalize;color:var(--ink);
+    }
+    .shortlist-table{
+      width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel);
+      border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    }
+    .shortlist-table th,.shortlist-table td{
+      padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;
+    }
+    .shortlist-table th{
+      font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);
+      background:var(--wolf-tint);font-weight:700;
+    }
+    .shortlist-table tr:last-child td{border-bottom:none}
+    .shortlist-table .sym{font-family:var(--mono);font-weight:600;color:var(--ink)}
+    .verdict-buy{color:var(--green);font-weight:700}
+    .verdict-watch{color:var(--clay);font-weight:700}
+    .shortlist-reason{
+      margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);
+      font-family:'Hanken Grotesk',system-ui,sans-serif;white-space:normal;
+    }
+    .shortlist-empty{font-size:12.5px;color:var(--ink2);font-style:italic}
     .empty{
       color:var(--ink2);font-style:italic;font-size:13.5px;background:var(--wolf-mist);
       border:1px dashed var(--line2);border-radius:12px;padding:18px;text-align:center;
@@ -283,12 +310,56 @@
           <p class="empty">Not started — the pipeline hasn’t written a row for today yet.</p>
         {% endif %}
         {% for s in today_rows %}
-          <details class="stage">
+          <details class="stage"{% if s.id == 'cache_saved' %} open{% endif %}>
             <summary>
               <span class="chip {{ s.chip }}">{{ s.status or "not started" }}</span>
               <span>{{ s.label }}</span>
             </summary>
             <div class="stage-body">{{ s.detail }}</div>
+            {% if s.id == 'cache_saved' %}
+              <div class="shortlist-panel">
+                {% if shortlists %}
+                  {% for strategy in ['value', 'winners', 'box', 'dip'] %}
+                    {% if shortlists.get(strategy) %}
+                    {% set candidates = shortlists[strategy] %}
+                    <div class="shortlist-strategy">
+                      <h3>{{ strategy }} · {{ candidates|length }} candidate{% if candidates|length != 1 %}s{% endif %}</h3>
+                      {% if candidates %}
+                        <table class="shortlist-table">
+                          <thead>
+                            <tr>
+                              <th>Symbol</th>
+                              <th>Verdict</th>
+                              <th>Conviction</th>
+                              <th>Price</th>
+                              <th>Reasoning</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for c in candidates %}
+                              <tr>
+                                <td class="sym">{{ c.symbol }}</td>
+                                <td class="{% if c.verdict == 'buy' %}verdict-buy{% elif c.verdict == 'watch' %}verdict-watch{% endif %}">{{ c.verdict or '—' }}</td>
+                                <td>{{ c.conviction if c.conviction is not none else '—' }}</td>
+                                <td>{% if c.price %}₹{{ '{:,.2f}'.format(c.price) }}{% else %}—{% endif %}</td>
+                                <td>
+                                  <div class="shortlist-reason">{{ (c.reasoning or '')[:320] }}{% if c.reasoning and c.reasoning|length > 320 %}…{% endif %}</div>
+                                </td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      {% else %}
+                        <p class="shortlist-empty">No candidates for this strategy.</p>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <p class="shortlist-empty">No shortlist files loaded yet — run the pipeline or wait for the next scoring pass.</p>
+                {% endif %}
+              </div>
+            {% endif %}
           </details>
         {% else %}
           {% if not not_started %}

@@ -123,6 +123,23 @@ def list_dossiers(_: None = Depends(_verify_token)):
     return [d.to_dict() for d in dossiers]
 
 
+@app.get("/api/shortlists/today")
+def shortlists_today(_: None = Depends(_verify_token)):
+    """Today's cached shortlists per strategy (from volume)."""
+    from datetime import date
+
+    from cache.shortlist_cache import load_shortlist
+
+    day = date.today()
+    strategies = ("value", "winners", "box", "dip")
+    out: dict[str, list] = {}
+    for name in strategies:
+        cands = load_shortlist(name, day)
+        if cands:
+            out[name] = cands
+    return {"date": day.isoformat(), "shortlists": out}
+
+
 @app.post("/api/build")
 def trigger_build(_: None = Depends(_verify_token)):
     if _build_running:

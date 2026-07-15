@@ -151,6 +151,19 @@ def run_scoring(
                 },
             )
             update_stage("cache_saved", {strategy: True})
+            update_stage(
+                f"shortlists.{strategy}",
+                [
+                    {
+                        "symbol": c.get("symbol"),
+                        "verdict": c.get("verdict"),
+                        "conviction": c.get("conviction"),
+                        "price": c.get("price"),
+                        "reasoning": (c.get("reasoning") or "")[:600],
+                    }
+                    for c in scored
+                ],
+            )
         except Exception as e:
             print(f"[BATCH SCORING] {strategy} FAILED: {e}")
             shortlists[strategy] = []
@@ -164,6 +177,7 @@ def run_scoring(
                 },
             )
             update_stage("cache_saved", {strategy: False})
+            update_stage(f"shortlists.{strategy}", [])
     return shortlists
 
 
