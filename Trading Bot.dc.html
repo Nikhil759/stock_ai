@@ -1250,7 +1250,7 @@ class Component extends DCLogic {
   _fetch(url, opts){
     const ws = this.state.workspaceId;
     const headers = { ...(opts?.headers || {}), 'X-Workspace-Id': ws };
-    return fetch(url, { ...opts, headers });
+    return fetch(url, { ...opts, headers, credentials: 'include' });
   }
 
   _loadStepPlan(strategy, isDeploy){

@@ -34,17 +34,17 @@ fs.copyFileSync(path.join(root, 'wolf_logo.png'), path.join(out, 'wolf_logo.png'
 fs.copyFileSync(path.join(root, 'manifest.webmanifest'), path.join(out, 'manifest.webmanifest'));
 fs.copyFileSync(path.join(root, 'sw.js'), path.join(out, 'sw.js'));
 
-const config = `window.__API_BASE__ = ${JSON.stringify(apiBase)};\n`;
+const config = `window.__API_BASE__ = "";\n`;
 fs.writeFileSync(path.join(out, 'config.js'), config);
 
-// Auth/session must be same-origin on Vercel (first-party cookies). Proxy
-// /health/* and /api/ops/* to Railway so login survives the OAuth redirect.
+// Auth/session cookies are first-party on Vercel — proxy all /api/* to Railway
+// so deploy/bots/trades share the same session as /api/ops/me.
 const rewrites = [{ source: '/app', destination: '/index.html' }];
 if (apiBase) {
   rewrites.push(
     { source: '/health', destination: `${apiBase}/health` },
     { source: '/health/:path*', destination: `${apiBase}/health/:path*` },
-    { source: '/api/ops/:path*', destination: `${apiBase}/api/ops/:path*` },
+    { source: '/api/:path*', destination: `${apiBase}/api/:path*` },
   );
 }
 
@@ -75,7 +75,7 @@ fs.writeFileSync(
 );
 
 console.log('Built public/ for Vercel');
-console.log('  API base:', apiBase || '(same origin)');
+console.log('  API base:', '(same-origin via /api proxy)');
 if (apiBase) {
-  console.log('  Auth proxy: /health/* and /api/ops/* ->', apiBase);
+  console.log('  API proxy: /health/* and /api/* ->', apiBase);
 }

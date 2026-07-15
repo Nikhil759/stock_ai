@@ -151,6 +151,8 @@ def session_user_id(request: Request):
     from db import repository as repo
 
     user = repo.get_user_by_email(email)
+    if not user:
+        user = repo.ensure_user_from_auth_email(email)
     if user and user.get("id"):
         uid = UUID(str(user["id"]))
         request.session["user_id"] = str(uid)

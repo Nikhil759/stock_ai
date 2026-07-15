@@ -15,8 +15,8 @@
       "destination": "https://stockai-production-8023.up.railway.app/health/:path*"
     },
     {
-      "source": "/api/ops/:path*",
-      "destination": "https://stockai-production-8023.up.railway.app/api/ops/:path*"
+      "source": "/api/:path*",
+      "destination": "https://stockai-production-8023.up.railway.app/api/:path*"
     }
   ],
   "headers": [

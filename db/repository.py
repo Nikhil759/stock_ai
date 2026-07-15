@@ -81,6 +81,38 @@ def get_user_by_email(email: str) -> Row | None:
             return _row(cur.fetchone())
 
 
+def ensure_user_from_auth_email(email: str) -> Row | None:
+    """Create public.users from auth.users if the signup trigger did not run."""
+    normalized = email.strip().lower()
+    if not normalized:
+        return None
+    existing = get_user_by_email(normalized)
+    if existing:
+        return existing
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO users (id, name)
+                SELECT
+                    au.id,
+                    COALESCE(
+                        au.raw_user_meta_data->>'full_name',
+                        split_part(au.email, '@', 1)
+                    )
+                FROM auth.users au
+                WHERE lower(au.email) = %s
+                ON CONFLICT (id) DO NOTHING
+                RETURNING *
+                """,
+                (normalized,),
+            )
+            row = cur.fetchone()
+            if row:
+                return dict(row)
+    return get_user_by_email(normalized)
+
+
 def create_wolf(
     user_id: UUID,
     wolf_id: str,
