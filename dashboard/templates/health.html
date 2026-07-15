@@ -234,6 +234,17 @@
       padding:13px 15px;display:flex;flex-direction:column;gap:6px;
     }
     .api-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .api-card-head-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .api-kite-refresh{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:26px;height:26px;padding:0;border:1px solid var(--line2);
+      border-radius:8px;background:var(--wolf-mist);color:var(--ink2);
+      cursor:pointer;font-size:14px;line-height:1;
+    }
+    .api-kite-refresh:hover:not(:disabled){background:var(--wolf-tint);color:var(--ink);border-color:var(--clay)}
+    .api-kite-refresh:disabled{opacity:0.55;cursor:wait}
+    .api-kite-refresh.spin i{animation:spin 0.9s linear infinite;display:inline-block}
+    @keyframes spin{to{transform:rotate(360deg)}}
     .api-card-name{font-size:13.5px;font-weight:700;color:var(--ink)}
     .api-card-sub{font-size:11px;color:var(--ink2);margin-top:-4px}
     .api-card-detail{font-size:12px;color:var(--ink2);line-height:1.45}
@@ -491,17 +502,77 @@
         const detailClass = status === 'down' ? 'bad' : (status === 'warn' ? 'warn' : '');
         const dotClass = status === 'ok' ? 'ok' : (status === 'warn' ? 'warn' : (status === 'down' ? 'bad' : 'idle'));
         const latency = (typeof latencyMs === 'number') ? `<div class="api-card-latency">${latencyMs} ms</div>` : '';
+        const kiteRefresh = id === 'kite'
+          ? `<button type="button" class="api-kite-refresh" title="Refresh Zerodha session" aria-label="Refresh Zerodha session"><i class="ti ti-refresh"></i></button>`
+          : '';
+        const headActions = kiteRefresh
+          ? `<div class="api-card-head-actions">${kiteRefresh}<span class="api-status-dot ${dotClass}" title="${status}"></span></div>`
+          : `<span class="api-status-dot ${dotClass}" title="${status}"></span>`;
         return `
-          <div class="api-card">
+          <div class="api-card" data-api-id="${id}">
             <div class="api-card-head">
               <span class="api-card-name">${label}</span>
-              <span class="api-status-dot ${dotClass}" title="${status}"></span>
+              ${headActions}
             </div>
             <div class="api-card-sub">${sub}</div>
             <div class="api-card-detail ${detailClass}">${detail}</div>
             ${latency}
           </div>`;
       }
+
+      let kiteRefreshing = false;
+
+      function setKiteCardMessage(text, tone) {
+        const card = grid.querySelector('[data-api-id="kite"]');
+        if (!card) return;
+        const detail = card.querySelector('.api-card-detail');
+        if (!detail) return;
+        detail.textContent = text;
+        detail.classList.remove('bad', 'warn');
+        if (tone === 'bad') detail.classList.add('bad');
+        if (tone === 'warn') detail.classList.add('warn');
+      }
+
+      async function refreshKiteSession(btn) {
+        if (kiteRefreshing) return;
+        kiteRefreshing = true;
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('spin');
+        }
+        setKiteCardMessage('Refreshing session via TOTP…', 'warn');
+        try {
+          const r = await fetch('/api/ops/refresh-kite-token', {
+            method: 'POST',
+            credentials: 'include',
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.status === 'ok') {
+            await loadExternalHealth();
+          } else {
+            setKiteCardMessage(
+              data.detail || data.error || ('Refresh failed (' + r.status + ')'),
+              'bad'
+            );
+          }
+        } catch (e) {
+          setKiteCardMessage(
+            'Could not reach the API: ' + (e && e.message ? e.message : String(e)),
+            'bad'
+          );
+        } finally {
+          kiteRefreshing = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('spin');
+          }
+        }
+      }
+
+      grid.addEventListener('click', function (e) {
+        const btn = e.target.closest('.api-kite-refresh');
+        if (btn) refreshKiteSession(btn);
+      });
 
       async function loadExternalHealth() {
         try {

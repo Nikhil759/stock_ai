@@ -538,6 +538,59 @@ async def api_ops_me(request: Request):
     }
 
 
+@router.post("/api/ops/refresh-kite-token")
+async def api_refresh_kite_token(request: Request):
+    """Mint today's Zerodha access token via TOTP (authorized ops only)."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    import asyncio
+    import importlib.util
+    import os
+    import sys
+    from pathlib import Path
+
+    def _refresh() -> dict:
+        repo = Path(__file__).resolve().parents[1]
+        backend = repo / "backend"
+        backend_str = str(backend)
+        if backend_str not in sys.path:
+            sys.path.insert(0, backend_str)
+
+        path = backend / "fund_manager" / "kite_auth.py"
+        spec = importlib.util.spec_from_file_location("_ops_kite_auth", path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load kite_auth.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        if not (os.getenv("KITE_API_KEY") or "").strip():
+            raise RuntimeError("KITE_API_KEY not set on stock_ai")
+        if not mod.totp_configured():
+            raise RuntimeError(
+                "TOTP not configured — set KITE_USER_ID, KITE_PASSWORD, KITE_TOTP_SECRET"
+            )
+
+        token = mod.refresh_access_token(force=True)
+        kite = mod.get_kite()
+        profile = kite.profile()
+        return {
+            "status": "ok",
+            "user_name": profile.get("user_name"),
+            "user_id": profile.get("user_id"),
+            "token_file": mod._token_path().name,
+            "token_chars": len(token),
+        }
+
+    try:
+        return await asyncio.to_thread(_refresh)
+    except Exception as e:
+        return JSONResponse(
+            {"error": "Kite refresh failed", "detail": str(e)},
+            status_code=502,
+        )
+
+
 @router.get("/api/ops/external-health")
 async def api_external_health(request: Request):
     """Live status of every external service the pipeline/trading flow depends
