@@ -77,7 +77,11 @@ def connection_hint(exc: BaseException) -> str:
             "In Supabase → Project Settings → Database, copy the **Session pooler** URI "
             "and set it as SUPABASE_DATABASE_URL (or SUPABASE_POOLER_URL) on stock_ai."
         )
-    if "does not exist" in msg and ("health_runs" in msg or "health_status" in msg):
+    if "does not exist" in msg and (
+        "health_runs" in msg
+        or "health_status" in msg
+        or "fund_manager_runs" in msg
+    ):
         return " Run health_status/schema.sql in the Supabase SQL editor."
     return ""
 

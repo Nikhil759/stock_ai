@@ -357,7 +357,7 @@
           <i class="{{ refreshAllIcon }}" style="{{ refreshAllIconStyle }}"></i>{{ refreshAllLabel }}
         </button>
       </div>
-      <div style="font-size:11px;color:var(--ink2);margin:-4px 0 12px;text-align:right;">Live prices auto-refresh every 3 hours during NSE session (9:15–15:30 IST)</div>
+      <div style="font-size:11px;color:var(--ink2);margin:-4px 0 12px;text-align:right;">Live prices auto-refresh every 3 hours during NSE session (9:15–15:30 IST); target/stop exits run on each refresh</div>
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px;margin-bottom:22px;">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Total allocated</div>
@@ -1838,6 +1838,40 @@ class Component extends DCLogic {
     }
   }
 
+  async _postRefreshWithExits(botId){
+    const res = await this._fetch(this._botPath(botId, 'refresh'), { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Could not refresh prices');
+    return data;
+  }
+
+  async _refreshWolvesWithExits(bots){
+    const active = (bots || []).filter(b => b.status !== 'terminated' && !b.paused);
+    let closedTotal = 0;
+    for (const b of active) {
+      try {
+        const data = await this._postRefreshWithExits(b.id);
+        closedTotal += (data.closed || []).length;
+      } catch (e) {
+        console.warn('refresh with exits failed for', b.id, e);
+      }
+    }
+    await this._loadBots();
+    if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+    return { refreshed: active.length, closedTotal };
+  }
+
+  _formatRefreshMsg(data){
+    if (data.message) return data.message;
+    if ((data.checked || 0) > 0) {
+      const parts = [`Updated ${data.updated?.length ?? 0} position(s)`];
+      if (data.closed?.length) parts.push(`${data.closed.length} sold (target/stop hit)`);
+      if (data.failed?.length) parts.push(`${data.failed.length} could not fetch`);
+      return parts.join(' · ');
+    }
+    return 'Prices refreshed.';
+  }
+
   async _autoRefreshPrices(){
     if (!this._isNseMarketOpen()) return;
     if (!this.state.authLoggedIn) return;
@@ -1846,15 +1880,16 @@ class Component extends DCLogic {
     if (!bots.length) return;
     this._lastAutoPriceRefresh = Date.now();
     try {
-      await this._loadBots();
-      if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+      const { closedTotal } = await this._refreshWolvesWithExits(bots);
       const t = new Date().toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'Asia/Kolkata',
       });
+      let msg = 'Prices updated ' + t + ' IST';
+      if (closedTotal) msg += ` · ${closedTotal} sold (target/stop)`;
       this.setState({
-        homeRefreshMsg: 'Prices updated ' + t + ' IST',
+        homeRefreshMsg: msg,
         lastPriceRefreshMsg: 'Auto-refresh every 3h during market hours',
       });
     } catch (e) {
@@ -1886,7 +1921,9 @@ class Component extends DCLogic {
   _mapLog(list){
     return (list || []).map(a => ({
       ...a,
-      actionLabel: (a.action || '').replace(/_/g, ' '),
+      actionLabel: a.action === 'daily_review'
+        ? 'Fund manager'
+        : (a.action || '').replace(/_/g, ' '),
       timeFmt: a.createdAt ? new Date(a.createdAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '',
       hasReason: !!a.reasoning,
     }));
@@ -2004,20 +2041,10 @@ class Component extends DCLogic {
     if (!botId || this.state.refreshing) return;
     this.setState({ refreshing: true, refreshMsg: '' });
     try {
-      const res = await this._fetch(this._botPath(botId, 'refresh'), { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Could not refresh prices');
+      const data = await this._postRefreshWithExits(botId);
       await this._loadBotData(botId);
       await this._loadBots();
-      let msg = data.message || '';
-      if (!msg && data.checked > 0) {
-        const parts = [`Updated ${data.updated?.length ?? 0} position(s)`];
-        if (data.closed?.length) parts.push(`${data.closed.length} sold (target/stop hit)`);
-        if (data.failed?.length) parts.push(`${data.failed.length} could not fetch`);
-        msg = parts.join(' · ');
-      }
-      if (!msg) msg = 'Prices refreshed.';
-      this.setState({ refreshing: false, refreshMsg: msg });
+      this.setState({ refreshing: false, refreshMsg: this._formatRefreshMsg(data) });
     } catch (err) {
       this.setState({ refreshing: false, refreshMsg: '' });
       alert(err.message || 'Refresh failed. Is the server running?');
@@ -2029,12 +2056,15 @@ class Component extends DCLogic {
     this.setState({ refreshingAll: true, homeRefreshMsg: '' });
     try {
       const { bots } = await this._loadBots();
-      if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+      const { refreshed, closedTotal } = await this._refreshWolvesWithExits(bots);
       this._lastAutoPriceRefresh = Date.now();
-      const n = (bots || []).length;
+      let msg = refreshed
+        ? `Refreshed ${refreshed} Wolf${refreshed === 1 ? '' : 'ves'} with live prices.`
+        : 'No Wolves to refresh.';
+      if (closedTotal) msg += ` ${closedTotal} sold (target/stop hit).`;
       this.setState({
         refreshingAll: false,
-        homeRefreshMsg: n ? `Refreshed ${n} Wolf${n === 1 ? '' : 'ves'} with live prices.` : 'No Wolves to refresh.',
+        homeRefreshMsg: msg,
         lastPriceRefreshMsg: 'Auto-refresh every 3h during market hours',
       });
     } catch (err) {

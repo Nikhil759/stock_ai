@@ -92,12 +92,18 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 | Fund selector | `30 3 * * 1-5` | 9:00 AM weekdays |
 | Morning deploy | `45 3 * * 1-5` | 9:15 AM weekdays |
 | Supabase evening auto-exit | `30 11 * * 1-5` | 5:00 PM weekdays |
+| Supabase daily fund manager | `25 3 * * 1-5` | 8:55 AM weekdays |
 
-Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`, `WOLF_EVENING_CRON`.
+Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`, `WOLF_EVENING_CRON`, `WOLF_DAILY_CRON`.
 SQLite fund scheduler auto-enables on Railway when
-`WOLF_ENABLE_SQLITE_CRON=1`. Supabase evening scheduler auto-enables on
-Railway (`RAILWAY_ENVIRONMENT`); set `WOLF_EVENING_SCHEDULER_ENABLED=1`
-locally to test. Manual run: `python -m scripts.run_evening_all_supabase_wolves`.
+`WOLF_ENABLE_SQLITE_CRON=1`. Supabase evening and daily schedulers auto-enable on
+Railway (`RAILWAY_ENVIRONMENT`); set `WOLF_EVENING_SCHEDULER_ENABLED=1` or
+`WOLF_DAILY_SCHEDULER_ENABLED=1` locally to test. Manual runs:
+`python -m scripts.run_evening_all_supabase_wolves`,
+`python -m scripts.run_daily_review_all_supabase_wolves` (from `backend/` with
+`PYTHONPATH=.:backend` from repo root).
+
+Apply `fund_manager_health/schema.sql` in Supabase once for per-wolf health rows on `/health`.
 
 ### Kite token sync (local Mac → Supabase → Railway)
 

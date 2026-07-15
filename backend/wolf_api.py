@@ -1,12 +1,14 @@
 """Supabase wolves → legacy UI JSON shape for /api/bots/*."""
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from db import repository as repo
+from db.repository import RUN_TYPE_DAILY_REVIEW
 
 try:
     from strategies import STRATEGY_NAMES
@@ -312,7 +314,17 @@ def intents_to_action_log(wolf_id: str, limit: int = 30) -> list[dict[str, Any]]
     for r in rows:
         sym = r.get("symbol")
         rationale = r.get("rationale") or ""
-        detail = f"{sym}: {rationale[:120]}" if sym else rationale[:160]
+        intent_type = r.get("intent_type") or "intent"
+        action = _intent_action_label(intent_type, sym, rationale)
+        if action == "daily_review":
+            detail = rationale.split("\n\n")[0][:200] if rationale else "Daily review"
+            reasoning = rationale
+        elif sym:
+            detail = f"{sym}: {rationale[:120]}"
+            reasoning = rationale
+        else:
+            detail = rationale[:160]
+            reasoning = rationale
         created = r.get("created_at")
         created_iso = (
             created.isoformat()
@@ -323,13 +335,99 @@ def intents_to_action_log(wolf_id: str, limit: int = 30) -> list[dict[str, Any]]
             {
                 "id": r.get("intent_id"),
                 "botId": wolf_id,
-                "action": r.get("intent_type") or "intent",
+                "action": action,
                 "detail": detail,
-                "reasoning": rationale,
+                "reasoning": reasoning,
                 "createdAt": created_iso,
             }
         )
     return out
+
+
+def _intent_action_label(
+    intent_type: str,
+    symbol: str | None,
+    rationale: str,
+) -> str:
+    if intent_type == "birth":
+        return "birth"
+    if intent_type == "adjustment":
+        return "adjustment"
+    if intent_type == "eod":
+        if not symbol and (
+            "Executor:" in rationale
+            or len(rationale) > 100
+        ):
+            return "daily_review"
+        return "eod"
+    return intent_type or "intent"
+
+
+def get_daily_note_for_wolf(
+    wolf_id: str,
+    note_date: date | None = None,
+) -> dict[str, Any]:
+    """Today's fund manager summary from daily_review selection run or eod intent."""
+    d = note_date or date.today()
+    run = repo.get_latest_selection_run(wolf_id, d, RUN_TYPE_DAILY_REVIEW)
+    if run:
+        brain: dict[str, Any] = {}
+        raw = run.get("gemini_raw_response")
+        if raw:
+            try:
+                brain = json.loads(raw) if isinstance(raw, str) else dict(raw)
+            except (json.JSONDecodeError, TypeError):
+                brain = {}
+        gate = run.get("gate_results")
+        if isinstance(gate, str):
+            try:
+                gate = json.loads(gate)
+            except json.JSONDecodeError:
+                gate = {}
+        summary = ""
+        if isinstance(gate, dict):
+            summary = str(gate.get("summary") or "").strip()
+        current = str(brain.get("current_intent") or "").strip()
+        daily = str(brain.get("daily_update") or "").strip()
+        parts = [p for p in (current, daily) if p]
+        if summary:
+            parts.append(summary)
+        note = "\n\n".join(parts) if parts else None
+        created = run.get("created_at")
+        updated_at = (
+            created.isoformat()
+            if isinstance(created, datetime)
+            else str(created) if created else d.isoformat()
+        )
+        return {
+            "note": note,
+            "updatedAt": updated_at,
+            "source": "daily_review",
+        }
+
+    for r in repo.list_intents_for_wolf(wolf_id, limit=30):
+        if r.get("intent_type") != "eod" or r.get("symbol"):
+            continue
+        intent_date = r.get("intent_date")
+        day_s = (
+            intent_date.isoformat()
+            if hasattr(intent_date, "isoformat")
+            else str(intent_date)
+        )
+        if day_s != d.isoformat():
+            continue
+        created = r.get("created_at")
+        return {
+            "note": r.get("rationale"),
+            "updatedAt": (
+                created.isoformat()
+                if isinstance(created, datetime)
+                else str(created or "")
+            ),
+            "source": "eod_intent",
+        }
+
+    return {"note": None, "updatedAt": None, "source": None}
 
 
 def list_bots_for_user(

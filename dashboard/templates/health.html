@@ -278,7 +278,7 @@
   <main>
     <p class="eyebrow">Ops · Pipeline Health</p>
     <h1>Health Check</h1>
-    <p class="sub">Morning ingestion status, sourced live from Supabase <code>health_runs</code>.</p>
+    <p class="sub">Morning ingestion (<code>health_runs</code>) and daily fund manager (<code>fund_manager_runs</code>) from Supabase.</p>
 
     {% if not authorized %}
       <div class="gate {% if email %}denied{% endif %}">
@@ -363,6 +363,70 @@
                       <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
                     {% endfor %}
                   </div>
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Daily fund manager · today</h2>
+        {% if fm_error %}
+          <p class="empty" style="color:var(--red);">{{ fm_error }}</p>
+          <p class="empty">Apply <code>fund_manager_health/schema.sql</code> in Supabase if the table is missing.</p>
+        {% elif fm_not_started %}
+          <p class="empty">Not started — no fund manager runs for today yet.</p>
+        {% elif not fm_today %}
+          <p class="empty">No wolf runs recorded today.</p>
+        {% else %}
+          {% for w in fm_today %}
+            <details class="stage"{% if loop.first %} open{% endif %}>
+              <summary>
+                <span class="chip {{ w.overall_chip }}">{{ w.overall }}</span>
+                <span>{{ w.wolf_name }} · {{ w.wolf_id }} · {{ w.strategy }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);margin-left:auto;">{{ w.run_at }}</span>
+              </summary>
+              <div class="stage-body">
+                {% if w.error %}<p style="color:var(--red);margin:0 0 10px;">{{ w.error }}</p>{% endif %}
+                <div class="chips">
+                  {% for s in w.stages %}
+                    <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
+                  {% endfor %}
+                </div>
+                {% for s in w.stages %}
+                  <p style="font-size:13px;margin:8px 0 0;color:var(--ink2);"><strong>{{ s.label }}:</strong> {{ s.detail }}</p>
+                {% endfor %}
+              </div>
+            </details>
+          {% endfor %}
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Fund manager · last 5 days</h2>
+        {% if fm_error %}
+          <p class="empty">Unavailable.</p>
+        {% elif not fm_recent %}
+          <p class="empty">No fund manager history yet.</p>
+        {% else %}
+          <details class="recent-dropdown">
+            <summary>
+              <span class="recent-summary-label">Wolf run summary</span>
+              <span class="dot-strip">
+                {% for day in fm_recent %}
+                  <span class="run-dot {{ day.overall_chip }}" title="{{ day.date }} · {{ day.detail }}"></span>
+                {% endfor %}
+              </span>
+            </summary>
+            <div class="recent-dropdown-body">
+              {% for day in fm_recent %}
+                <div class="day-card">
+                  <div class="day-head">
+                    <span class="day-date">{{ day.date }}</span>
+                    <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
+                  </div>
+                  <p style="font-size:13px;color:var(--ink2);margin:8px 0 0;">{{ day.detail }}</p>
                 </div>
               {% endfor %}
             </div>

@@ -126,6 +126,12 @@ def startup():
         start_wolf_evening_scheduler()
     except Exception:
         log.exception("failed to start wolf evening scheduler")
+    try:
+        from wolf_daily_scheduler import start_wolf_daily_scheduler
+
+        start_wolf_daily_scheduler()
+    except Exception:
+        log.exception("failed to start wolf daily scheduler")
 
 
 def _bot_response(b: dict) -> dict:
@@ -335,13 +341,12 @@ def refresh_prices(
 ):
     user_id = _require_user(request, x_user_id)
     _get_wolf_or_404(wolf_id, user_id)
-    trades = wolf_api.holdings_to_trades(wolf_id)
-    updated = [
-        {"ticker": t["ticker"], "ltp": t["ltp"]}
-        for t in trades
-        if t.get("status") == "open"
-    ]
-    return {"updated": updated, "count": len(updated)}
+    from wolf_evening import run_wolf_price_refresh
+
+    result = run_wolf_price_refresh(wolf_id)
+    if result.get("error"):
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
 
 
 @app.post("/api/bots/{wolf_id}/screen")
@@ -456,32 +461,45 @@ def bot_daily_note(
     wolf = repo.get_wolf_for_user(wolf_id, user_id)
     if not wolf:
         raise HTTPException(status_code=404, detail="Wolf not found")
-    birth = wolf.get("birth_intent")
-    text = ""
-    if isinstance(birth, dict):
-        text = str(birth.get("text") or birth.get("body") or "")
-    elif isinstance(birth, str):
-        text = birth
-    if not text:
+    d = date.today()
+    if note_date:
+        try:
+            d = date.fromisoformat(note_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid note_date")
+    payload = wolf_api.get_daily_note_for_wolf(wolf_id, d)
+    if not payload.get("note"):
         return {
             "botId": wolf_id,
-            "date": note_date or date.today().isoformat(),
+            "date": d.isoformat(),
             "note": None,
             "updatedAt": None,
-            "message": "No daily note yet — deploy or wait for daily review.",
+            "message": "No daily note yet — wait for the morning fund manager run.",
         }
-    updated = wolf.get("updated_at") or wolf.get("created_at")
-    updated_at = (
-        updated.isoformat()
-        if hasattr(updated, "isoformat")
-        else str(updated) if updated else None
-    )
     return {
         "botId": wolf_id,
-        "date": note_date or date.today().isoformat(),
-        "note": text,
-        "updatedAt": updated_at,
+        "date": d.isoformat(),
+        "note": payload["note"],
+        "updatedAt": payload.get("updatedAt"),
+        "source": payload.get("source"),
     }
+
+
+@app.post("/api/bots/{wolf_id}/daily-review")
+def run_daily_review(
+    wolf_id: str,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    from deploy.daily_review_wolf import run_daily_review_for_wolf
+
+    result = run_daily_review_for_wolf(wolf_id)
+    if result.get("error") and not result.get("skipped"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 
 @app.post("/api/bots/{wolf_id}/trades/manual")

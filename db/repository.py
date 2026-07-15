@@ -624,6 +624,27 @@ def patch_selection_run_gate_results(run_id: int, gate_results: Any) -> Row:
             return dict(row)
 
 
+def get_latest_selection_run(
+    wolf_id: str,
+    run_date: date,
+    run_type: str,
+) -> Row | None:
+    if run_type not in VALID_RUN_TYPES:
+        raise ValueError(f"invalid run_type {run_type!r}")
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM selection_runs
+                WHERE wolf_id = %s AND run_date = %s AND run_type = %s
+                ORDER BY run_id DESC
+                LIMIT 1
+                """,
+                (wolf_id, run_date, run_type),
+            )
+            return _row(cur.fetchone())
+
+
 def save_selection_run(
     wolf_id: str,
     run_type: str,

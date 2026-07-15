@@ -1,10 +1,10 @@
-"""Supabase evening job — check LTPs and auto-exit on target/stop (paper mode)."""
+"""Price refresh + target/stop auto-exit for Supabase wolves (paper mode)."""
 
 from __future__ import annotations
 
 import logging
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from db import repository as repo
 import wolf_api
@@ -69,12 +69,30 @@ def _log_eod_intent(
         log.exception("failed to log eod intent for %s", wolf_id)
 
 
-def run_wolf_evening(
+def _log_refresh_exits(wolf_id: str, closed: list[dict[str, Any]]) -> None:
+    for c in closed:
+        sym = c.get("ticker", "")
+        reason = c.get("reason", "exit")
+        price = c.get("price", 0)
+        try:
+            repo.log_intent(
+                wolf_id,
+                date.today(),
+                "adjustment",
+                symbol=sym or None,
+                rationale=f"Intraday auto-exit ({reason}) @ ₹{price:.2f}",
+            )
+        except Exception:
+            log.exception("failed to log refresh exit for %s %s", wolf_id, sym)
+
+
+def run_wolf_exit_check(
     wolf_id: str,
     *,
     dry_run: bool = False,
+    log_profile: Literal["eod", "refresh"] = "eod",
 ) -> dict[str, Any]:
-    """Refresh prices for open holdings and sell when target/stop is hit."""
+    """Fetch LTPs, auto-sell on target/stop, return refresh summary."""
     wolf = repo.get_wolf(wolf_id)
     if wolf is None:
         return {"error": "Wolf not found"}
@@ -97,7 +115,7 @@ def run_wolf_evening(
 
     holdings = repo.list_open_holdings(wolf_id)
     if not holdings:
-        if not dry_run:
+        if not dry_run and log_profile == "eod":
             _log_eod_intent(wolf_id, [], [], [])
         return {
             "botId": wolf_id,
@@ -158,7 +176,10 @@ def run_wolf_evening(
         )
 
     if not dry_run:
-        _log_eod_intent(wolf_id, closed, updated, failed)
+        if log_profile == "eod":
+            _log_eod_intent(wolf_id, closed, updated, failed)
+        elif closed:
+            _log_refresh_exits(wolf_id, closed)
 
     cash, portfolio = _portfolio_snapshot(wolf_id)
     return {
@@ -172,6 +193,24 @@ def run_wolf_evening(
         "executor": executor_result,
         "dry_run": dry_run,
     }
+
+
+def run_wolf_evening(
+    wolf_id: str,
+    *,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """End-of-day price check + auto-exit (logs eod intent)."""
+    return run_wolf_exit_check(wolf_id, dry_run=dry_run, log_profile="eod")
+
+
+def run_wolf_price_refresh(
+    wolf_id: str,
+    *,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Intraday refresh + auto-exit (logs adjustment only when sells occur)."""
+    return run_wolf_exit_check(wolf_id, dry_run=dry_run, log_profile="refresh")
 
 
 def run_evening_all_wolves(*, dry_run: bool = False) -> list[dict[str, Any]]:

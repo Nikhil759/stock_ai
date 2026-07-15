@@ -315,6 +315,38 @@ def _flatten_stages(stages: dict) -> list[dict[str, Any]]:
     return rows
 
 
+def _flatten_fm_stages(stages: dict) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key, label in (
+        ("shortlist", "Shortlist"),
+        ("holdings", "Holdings"),
+        ("brain", "Wolf Brain"),
+        ("executor", "Executor"),
+        ("intents", "Intents"),
+    ):
+        info = (stages or {}).get(key)
+        if info is None:
+            rows.append(
+                {
+                    "label": label,
+                    "status": None,
+                    "chip": "idle",
+                    "detail": "not started",
+                }
+            )
+        else:
+            st = info.get("status")
+            rows.append(
+                {
+                    "label": label,
+                    "status": st,
+                    "chip": _stage_chip(st),
+                    "detail": info.get("detail") or "",
+                }
+            )
+    return rows
+
+
 def _load_shortlists_from_disk() -> dict[str, list[dict[str, Any]]]:
     from datetime import date
 
@@ -383,6 +415,10 @@ async def health_page(request: Request):
     today_rows: list[dict] = []
     shortlists: dict[str, list] = {}
     db_error: str | None = None
+    fm_today: list[dict] = []
+    fm_recent: list[dict] = []
+    fm_not_started = False
+    fm_error: str | None = None
     if authed:
         from datetime import date
 
@@ -417,6 +453,54 @@ async def health_page(request: Request):
                 f"{detail}{connection_hint(e)}"
             )
 
+        try:
+            from fund_manager_health import get_recent_day_summaries, get_runs_for_day
+            from db import repository as repo_db
+
+            fm_raw = get_runs_for_day(date.today())
+            seen_wolves: set[str] = set()
+            for r in fm_raw:
+                wid = r.get("wolf_id") or ""
+                if not wid or wid in seen_wolves:
+                    continue
+                seen_wolves.add(wid)
+                wolf = repo_db.get_wolf(wid) or {}
+                fm_today.append(
+                    {
+                        "wolf_id": wid,
+                        "wolf_name": wolf.get("wolf_name") or wid,
+                        "strategy": wolf.get("strategy_code") or "—",
+                        "overall": r.get("overall_status") or "unknown",
+                        "overall_chip": _stage_chip(r.get("overall_status")),
+                        "run_at": _format_run_time(r.get("started_at")),
+                        "error": r.get("error_detail") or "",
+                        "stages": _flatten_fm_stages(r.get("stages") or {}),
+                    }
+                )
+            fm_not_started = not fm_today and not fm_error
+            for day in get_recent_day_summaries(5):
+                total = int(day.get("total") or 0)
+                ok = int(day.get("ok") or 0)
+                fm_recent.append(
+                    {
+                        "date": day.get("date"),
+                        "overall": day.get("overall") or "unknown",
+                        "overall_chip": _stage_chip(day.get("overall")),
+                        "detail": f"{ok}/{total} wolves ok" if total else "no runs",
+                    }
+                )
+        except Exception as e:
+            import logging
+
+            logging.exception("health page: failed to load fund_manager_runs")
+            from db.connection import connection_hint
+
+            detail = str(e).strip() or type(e).__name__
+            fm_error = (
+                "Could not load fund manager health. "
+                f"{detail}{connection_hint(e)}"
+            )
+
     return TEMPLATES.TemplateResponse(
         request,
         "health.html",
@@ -431,6 +515,10 @@ async def health_page(request: Request):
             "shortlists": shortlists,
             "not_started": authed and not db_error and today_row is None,
             "db_error": db_error,
+            "fm_today": fm_today,
+            "fm_recent": fm_recent,
+            "fm_not_started": authed and fm_not_started and not fm_error,
+            "fm_error": fm_error,
             "cron_api_configured": bool(
                 (os.getenv("DOSSIER_API_URL") or "").strip()
             ),
