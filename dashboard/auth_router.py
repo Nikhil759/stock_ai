@@ -538,6 +538,58 @@ async def api_ops_me(request: Request):
     }
 
 
+@router.post("/api/ops/reload-kite-session")
+async def api_reload_kite_session(request: Request):
+    """Re-read Kite token from Supabase and verify — does not run TOTP."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    import asyncio
+    import importlib.util
+    import sys
+
+    def _reload() -> dict:
+        repo = Path(__file__).resolve().parents[1]
+        backend = repo / "backend"
+        backend_str = str(backend)
+        if backend_str not in sys.path:
+            sys.path.insert(0, backend_str)
+        repo_str = str(repo)
+        if repo_str not in sys.path:
+            sys.path.insert(0, repo_str)
+
+        path = backend / "fund_manager" / "kite_auth.py"
+        spec = importlib.util.spec_from_file_location("_ops_kite_reload", path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load kite_auth.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.clear_kite_session()
+
+        from dashboard.external_health import _check_kite
+        from db.kite_token_store import load_token_metadata
+
+        check = _check_kite()
+        meta = load_token_metadata()
+        out: dict = {"check": check}
+        if meta:
+            out["token_synced_at"] = meta.get("generated_at")
+            out["token_expires_at"] = meta.get("expires_at")
+        if check.get("status") == "ok":
+            out["status"] = "ok"
+        else:
+            out["status"] = "warn"
+        return out
+
+    try:
+        return await asyncio.to_thread(_reload)
+    except Exception as e:
+        return JSONResponse(
+            {"error": "Kite re-check failed", "detail": str(e)},
+            status_code=502,
+        )
+
+
 @router.get("/api/ops/external-health")
 async def api_external_health(request: Request):
     """Live status of every external service the pipeline/trading flow depends

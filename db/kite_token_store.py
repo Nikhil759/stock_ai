@@ -58,6 +58,32 @@ def load_valid_token() -> str | None:
     return None
 
 
+def load_token_metadata() -> dict[str, str] | None:
+    """Return generated_at / expires_at for the current valid token, if any."""
+    try:
+        user_id = resolve_owner_user_id()
+    except Exception:
+        return None
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT generated_at, expires_at
+                FROM kite_auth_tokens
+                WHERE user_id = %s AND expires_at > now()
+                """,
+                (str(user_id),),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            gen, exp = row
+            return {
+                "generated_at": gen.isoformat() if gen else "",
+                "expires_at": exp.isoformat() if exp else "",
+            }
+
+
 def save_token(access_token: str) -> None:
     """Upsert today's access token for the ops user."""
     token = (access_token or "").strip()

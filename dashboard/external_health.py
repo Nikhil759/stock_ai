@@ -66,7 +66,7 @@ def _check_kite() -> dict[str, Any]:
         return f"Session OK — logged in as {profile.get('user_name') or profile.get('user_id') or 'Kite user'}"
 
     ok, detail, ms = _timed(run)
-    return {
+    result: dict[str, Any] = {
         "id": "kite",
         "label": "Zerodha Kite",
         "sub": "Auth + live LTP",
@@ -74,6 +74,20 @@ def _check_kite() -> dict[str, Any]:
         "detail": detail,
         "latency_ms": ms,
     }
+    try:
+        import sys
+
+        repo_str = str(_REPO)
+        if repo_str not in sys.path:
+            sys.path.insert(0, repo_str)
+        from db.kite_token_store import load_token_metadata
+
+        meta = load_token_metadata()
+        if meta and meta.get("generated_at"):
+            result["token_synced_at"] = meta["generated_at"]
+    except Exception:
+        pass
+    return result
 
 
 def _check_yfinance() -> dict[str, Any]:

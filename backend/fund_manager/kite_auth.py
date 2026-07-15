@@ -347,6 +347,12 @@ def get_kite(*, force_login: bool = False) -> KiteConnect:
     return kite
 
 
+def clear_kite_session() -> None:
+    """Drop in-process Kite client so the next lookup re-reads Supabase/file."""
+    global _kite
+    _kite = None
+
+
 def get_kite_nonblocking() -> KiteConnect | None:
     """Return a Kite session ONLY if one is already usable — never authenticates.
 
