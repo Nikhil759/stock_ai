@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.wolfcapital.kite-token-sync</string>
+  <key>Comment</key>
+  <string>6:05 AM IST weekday Kite refresh + Supabase sync; also on login.</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/nikhilbansal/Desktop/stock_ai/backend/scripts/kite_token_sync_job.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Weekday</key><integer>1</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>2</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>3</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>4</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>5</integer>
+      <key>Hour</key><integer>6</integer>
+      <key>Minute</key><integer>5</integer>
+    </dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/tmp/wolfcapital-kite-token.launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/wolfcapital-kite-token.launchd.err</string>
+</dict>
+</plist>

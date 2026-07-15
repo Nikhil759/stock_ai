@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.wolfcapital.kite-token-catchup</string>
+  <key>Comment</key>
+  <string>Every 30 min on weekday mornings — sync if Mac was asleep at 6:05 AM.</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/nikhilbansal/Desktop/stock_ai/backend/scripts/kite_token_sync_job.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>LAUNCHD_CATCHUP</key>
+    <string>1</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>1800</integer>
+  <key>StandardOutPath</key>
+  <string>/tmp/wolfcapital-kite-token-catchup.launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/wolfcapital-kite-token-catchup.launchd.err</string>
+</dict>
+</plist>

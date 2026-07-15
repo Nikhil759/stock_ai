@@ -106,9 +106,31 @@ Zerodha blocks TOTP auto-login from Railway. Refresh on your Mac and upsert to
 ```bash
 # One-off test (from backend/)
 python -m scripts.refresh_kite_token --sync
+# or via the launchd wrapper:
+./scripts/kite_token_sync_job.sh
+```
 
-# macOS cron — 6:05 AM IST weekdays (00:35 UTC)
-35 0 * * 1-5 cd /path/to/stock_ai/backend && /path/to/stock_ai/.venv/bin/python -m scripts.refresh_kite_token --sync
+**launchd (recommended on macOS)** — handles login + wake-after-sleep catch-up:
+
+```bash
+chmod +x backend/scripts/kite_token_sync_job.sh
+# Edit REPO path in kite_token_sync_job.sh if needed, then:
+cp backend/scripts/com.wolfcapital.kite-token-sync.plist ~/Library/LaunchAgents/
+cp backend/scripts/com.wolfcapital.kite-token-catchup.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.wolfcapital.kite-token-sync.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.wolfcapital.kite-token-catchup.plist
+```
+
+- `kite-token-sync` — 6:05 AM IST weekdays + on login (`RunAtLoad`)
+- `kite-token-catchup` — every 30 min on weekday mornings (6–11 AM IST) if the Mac
+  was asleep at 6:05
+
+Logs: `/tmp/wolfcapital-kite-token.log`
+
+**cron alternative** (if you prefer crontab):
+
+```cron
+35 0 * * 1-5 cd /path/to/stock_ai/backend && /path/to/.venv/bin/python -m scripts.refresh_kite_token --sync
 ```
 
 Repo `.env` needs `KITE_USER_ID`, `KITE_PASSWORD`, `KITE_TOTP_SECRET` (TOTP only

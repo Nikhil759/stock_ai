@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Weekday morning catch-up if Mac was asleep at 6:05 AM. Pair with kite-token-sync.plist. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.wolfcapital.kite-token-catchup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/YOU/stock_ai/backend/scripts/kite_token_sync_job.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>LAUNCHD_CATCHUP</key>
+    <string>1</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>1800</integer>
+</dict>
+</plist>
