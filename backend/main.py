@@ -120,6 +120,12 @@ def startup():
         from fund_scheduler import start_fund_scheduler
 
         start_fund_scheduler()
+    try:
+        from wolf_evening_scheduler import start_wolf_evening_scheduler
+
+        start_wolf_evening_scheduler()
+    except Exception:
+        log.exception("failed to start wolf evening scheduler")
 
 
 def _bot_response(b: dict) -> dict:
@@ -310,11 +316,14 @@ def run_eod(
     ws: str = Depends(require_workspace),
     x_user_id: str | None = Header(None, alias="X-User-Id"),
 ):
-    _require_user(request, x_user_id)
-    raise HTTPException(
-        status_code=501,
-        detail="EOD not yet wired to Supabase — coming in daily cron (Part 4).",
-    )
+    user_id = _require_user(request, x_user_id)
+    _get_wolf_or_404(wolf_id, user_id)
+    from wolf_evening import run_wolf_evening
+
+    result = run_wolf_evening(wolf_id)
+    if result.get("error"):
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
 
 
 @app.post("/api/bots/{wolf_id}/refresh")

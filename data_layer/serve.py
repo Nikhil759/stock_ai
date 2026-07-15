@@ -19,7 +19,12 @@ from fastapi.responses import JSONResponse
 
 from . import config
 from .build import run as run_build
-from .config import DOSSIER_API_TOKEN, BUILD_CRON, get_dossier_dir
+from .config import (
+    BUILD_CRON,
+    DOSSIER_API_TOKEN,
+    POST_CLOSE_BUILD_CRON,
+    get_dossier_dir,
+)
 from .storage import load_all_dossiers
 
 load_dotenv(config.ROOT / ".env")
@@ -98,6 +103,29 @@ def _run_full_pipeline_job() -> None:
         _build_running = False
 
 
+def _run_post_close_build_job() -> None:
+    """Weekday post-close refresh — update dossiers without Marketaux or scoring."""
+    global _build_running
+    with _build_lock:
+        if _build_running:
+            log.info("post-close build already running — skip")
+            return
+        _build_running = True
+    try:
+        log.info("starting post-close dossier refresh (snapshot=post_close, skip_news)")
+        run_build(snapshot="post_close", skip_news=True)
+        stats = _dossier_stats()
+        log.info(
+            "post-close build complete: %d dossiers (as_of=%s)",
+            stats["count"],
+            stats["as_of"],
+        )
+    except Exception:
+        log.exception("post-close dossier build failed")
+    finally:
+        _build_running = False
+
+
 @app.get("/health")
 def health():
     stats = _dossier_stats()
@@ -148,6 +176,15 @@ def trigger_build(_: None = Depends(_verify_token)):
     return {"status": "started"}
 
 
+@app.post("/api/build-close")
+def trigger_post_close_build(_: None = Depends(_verify_token)):
+    """Post-close dossier refresh only (no news API, no scoring)."""
+    if _build_running:
+        return JSONResponse({"status": "already_running"}, status_code=409)
+    threading.Thread(target=_run_post_close_build_job, daemon=True).start()
+    return {"status": "started", "snapshot": "post_close", "skip_news": True}
+
+
 @app.post("/api/pipeline")
 def trigger_pipeline(_: None = Depends(_verify_token)):
     """Start full morning pipeline (build → funnels → LLM scoring → health_status)."""
@@ -155,6 +192,24 @@ def trigger_pipeline(_: None = Depends(_verify_token)):
         return JSONResponse({"status": "already_running"}, status_code=409)
     threading.Thread(target=_run_full_pipeline_job, daemon=True).start()
     return {"status": "started"}
+
+
+def _add_cron_job(sched, cron_expr: str, job_id: str, func) -> bool:
+    from apscheduler.triggers.cron import CronTrigger
+
+    parts = cron_expr.split()
+    if len(parts) != 5:
+        log.warning("invalid cron %r for %s — job disabled", cron_expr, job_id)
+        return False
+    minute, hour, dom, month, dow = parts
+    sched.add_job(
+        func,
+        CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),
+        id=job_id,
+        replace_existing=True,
+    )
+    log.info("scheduled %s: %s UTC", job_id, cron_expr)
+    return True
 
 
 def _start_scheduler() -> None:
@@ -165,21 +220,20 @@ def _start_scheduler() -> None:
         log.warning("APScheduler not installed — scheduled builds disabled")
         return
 
-    parts = BUILD_CRON.split()
-    if len(parts) != 5:
-        log.warning("invalid DOSSIER_BUILD_CRON=%r — scheduler disabled", BUILD_CRON)
+    sched = BackgroundScheduler(timezone="UTC")
+    if not _add_cron_job(sched, BUILD_CRON, "morning_pipeline", _run_full_pipeline_job):
+        log.warning("morning pipeline scheduler disabled — check DOSSIER_BUILD_CRON")
         return
 
-    minute, hour, dom, month, dow = parts
-    sched = BackgroundScheduler(timezone="UTC")
-    sched.add_job(
-        _run_full_pipeline_job,
-        CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),
-        id="morning_pipeline",
-        replace_existing=True,
-    )
+    post_close = (POST_CLOSE_BUILD_CRON or "").strip()
+    if post_close:
+        _add_cron_job(
+            sched, post_close, "post_close_build", _run_post_close_build_job
+        )
+    else:
+        log.info("post-close build disabled (DOSSIER_POST_CLOSE_CRON empty)")
+
     sched.start()
-    log.info("scheduled full morning pipeline: %s UTC", BUILD_CRON)
 
 
 @app.on_event("startup")

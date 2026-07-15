@@ -39,6 +39,57 @@ def _line_cost(pick: BrainPick) -> float:
     return round(int(pick.quantity) * float(pick.buy_price), 2)
 
 
+def _validate_price_geometry(
+    pick: BrainPick, guardrails: dict[str, float]
+) -> BrainPick | None:
+    """Drop picks with inverted or implausible buy / target / stop geometry."""
+    buy = float(pick.buy_price)
+    target = float(pick.target)
+    stop = float(pick.stop_loss)
+    sym = pick.symbol
+
+    if target <= buy:
+        log.warning(
+            "[WOLF BRAIN] dropped %s: target ₹%.2f not above buy ₹%.2f",
+            sym,
+            target,
+            buy,
+        )
+        return None
+    if stop <= 0 or stop >= buy:
+        log.warning(
+            "[WOLF BRAIN] dropped %s: stop_loss ₹%.2f invalid for buy ₹%.2f",
+            sym,
+            stop,
+            buy,
+        )
+        return None
+
+    min_upside_pct = 1.0
+    upside_pct = (target - buy) / buy * 100
+    if upside_pct < min_upside_pct:
+        log.warning(
+            "[WOLF BRAIN] dropped %s: target upside %.1f%% below minimum %.1f%%",
+            sym,
+            upside_pct,
+            min_upside_pct,
+        )
+        return None
+
+    stop_pct = guardrails["stop_loss_pct"]
+    actual_stop_pct = (buy - stop) / buy * 100
+    if actual_stop_pct < stop_pct * 0.5 or actual_stop_pct > stop_pct * 2.0:
+        log.warning(
+            "[WOLF BRAIN] dropped %s: stop %.1f%% below buy vs guardrail %.1f%%",
+            sym,
+            actual_stop_pct,
+            stop_pct,
+        )
+        return None
+
+    return pick
+
+
 def _sanitize_pick(pick: BrainPick, guardrails: dict[str, float]) -> BrainPick | None:
     qty = int(math.floor(pick.quantity))
     if qty < 1:
@@ -47,6 +98,14 @@ def _sanitize_pick(pick: BrainPick, guardrails: dict[str, float]) -> BrainPick |
     if buy <= 0:
         log.warning("[WOLF BRAIN] dropped %s: invalid buy_price", pick.symbol)
         return None
+
+    pick = pick.model_copy(
+        update={"quantity": qty, "symbol": _normalize_symbol(pick.symbol)}
+    )
+    pick = _validate_price_geometry(pick, guardrails)
+    if pick is None:
+        return None
+
     cost = round(qty * float(pick.buy_price), 2)
     if cost < guardrails["min_trade_value"]:
         log.warning(
@@ -56,8 +115,8 @@ def _sanitize_pick(pick: BrainPick, guardrails: dict[str, float]) -> BrainPick |
             guardrails["min_trade_value"],
         )
         return None
-    per_cap = guardrails["max_per_stock_pct"]  # soft hint already in prompt; keep pick
-    return pick.model_copy(update={"quantity": qty, "symbol": _normalize_symbol(pick.symbol)})
+
+    return pick
 
 
 def _trim_picks_to_cash(

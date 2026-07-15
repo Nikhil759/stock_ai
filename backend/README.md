@@ -61,10 +61,10 @@ run.
 5. Start command (from `railway.json`): `uvicorn data_layer.serve:app …`
 6. Scheduled job runs inside the API via APScheduler (`30 2 * * 1-5` UTC
    weekdays): dossier build → funnels → batch LLM scoring → shortlist cache →
-   `health_status` upserts (`cron/morning_ingestion.run_pipeline`). Manual
-   dossier-only rebuild is still available via `POST /api/build`. Re-runs
-   merge dossiers (failed fetches keep prior data); use `--skip-news` locally
-   or via `run_pipeline(skip_news=True)` to avoid burning Marketaux quota.
+   `health_status` upserts (`cron/morning_ingestion.run_pipeline`). A second
+   job at `30 10 * * 1-5` UTC (~4:00 PM IST) runs post-close dossier refresh
+   only (`--close --skip-news`, no scoring). Manual dossier-only rebuild is
+   still available via `POST /api/build`; post-close via `POST /api/build-close`.
 
 ### `stock_ai` web service — Phase E/F variables
 
@@ -91,10 +91,13 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 |-----|--------------|---------------|
 | Fund selector | `30 3 * * 1-5` | 9:00 AM weekdays |
 | Morning deploy | `45 3 * * 1-5` | 9:15 AM weekdays |
+| Supabase evening auto-exit | `30 11 * * 1-5` | 5:00 PM weekdays |
 
-Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`.
-Scheduler auto-enables on Railway (`RAILWAY_ENVIRONMENT`); set
-`FUND_SCHEDULER_ENABLED=1` locally to test.
+Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`, `WOLF_EVENING_CRON`.
+SQLite fund scheduler auto-enables on Railway when
+`WOLF_ENABLE_SQLITE_CRON=1`. Supabase evening scheduler auto-enables on
+Railway (`RAILWAY_ENVIRONMENT`); set `WOLF_EVENING_SCHEDULER_ENABLED=1`
+locally to test. Manual run: `python -m scripts.run_evening_all_supabase_wolves`.
 
 ### Kite token sync (local Mac → Supabase → Railway)
 

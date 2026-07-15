@@ -357,6 +357,7 @@
           <i class="{{ refreshAllIcon }}" style="{{ refreshAllIconStyle }}"></i>{{ refreshAllLabel }}
         </button>
       </div>
+      <div style="font-size:11px;color:var(--ink2);margin:-4px 0 12px;text-align:right;">Live prices auto-refresh every 3 hours during NSE session (9:15–15:30 IST)</div>
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px;margin-bottom:22px;">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Total allocated</div>
@@ -1235,13 +1236,22 @@ class Component extends DCLogic {
       showAuthMenu: false,
       showBotSwitchMenu: false,
       switchingBot: false,
+      lastPriceRefreshMsg: '',
     };
     this._deferredPrompt = null;
     this._iosInstall = false;
     this._scanTimer = null;
+    this._priceRefreshTimer = null;
+    this._lastAutoPriceRefresh = 0;
+    this._PRICE_REFRESH_MS = 3 * 60 * 60 * 1000;
+    this._onVisibilityForPriceRefresh = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      const elapsed = Date.now() - (this._lastAutoPriceRefresh || 0);
+      if (elapsed >= this._PRICE_REFRESH_MS) this._autoRefreshPrices();
+    };
     if (typeof window !== 'undefined') this._initPwa();
     this._loadAuthSession();
-    this._loadAll();
+    this._loadAll().finally(() => this._startPriceAutoRefresh());
   }
 
   async _loadAuthSession(){
@@ -1791,6 +1801,67 @@ class Component extends DCLogic {
     }
   }
 
+  _isNseMarketOpen(){
+    if (typeof window === 'undefined') return false;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const weekday = (parts.find(p => p.type === 'weekday') || {}).value || '';
+    if (weekday === 'Sat' || weekday === 'Sun') return false;
+    const hour = parseInt((parts.find(p => p.type === 'hour') || {}).value || '0', 10);
+    const minute = parseInt((parts.find(p => p.type === 'minute') || {}).value || '0', 10);
+    const mins = hour * 60 + minute;
+    return mins >= 9 * 60 + 15 && mins <= 15 * 60 + 30;
+  }
+
+  _startPriceAutoRefresh(){
+    if (typeof window === 'undefined') return;
+    this._stopPriceAutoRefresh();
+    this._priceRefreshTimer = setInterval(
+      () => this._autoRefreshPrices(),
+      this._PRICE_REFRESH_MS
+    );
+    document.addEventListener('visibilitychange', this._onVisibilityForPriceRefresh);
+  }
+
+  _stopPriceAutoRefresh(){
+    if (this._priceRefreshTimer) {
+      clearInterval(this._priceRefreshTimer);
+      this._priceRefreshTimer = null;
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this._onVisibilityForPriceRefresh);
+    }
+  }
+
+  async _autoRefreshPrices(){
+    if (!this._isNseMarketOpen()) return;
+    if (!this.state.authLoggedIn) return;
+    if (this.state.refreshingAll || this.state.refreshing || this.state.deploying) return;
+    const bots = (this.state.bots || []).filter(b => b.status !== 'terminated');
+    if (!bots.length) return;
+    this._lastAutoPriceRefresh = Date.now();
+    try {
+      await this._loadBots();
+      if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+      const t = new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+      });
+      this.setState({
+        homeRefreshMsg: 'Prices updated ' + t + ' IST',
+        lastPriceRefreshMsg: 'Auto-refresh every 3h during market hours',
+      });
+    } catch (e) {
+      console.warn('auto price refresh failed', e);
+    }
+  }
+
   async selectBot(id){
     if (id === this.state.activeBotId) { this.setState({ showBotSwitchMenu: false }); return; }
     const summary = (this.state.lastScreenSummary || {})[id] || '';
@@ -1959,10 +2030,12 @@ class Component extends DCLogic {
     try {
       const { bots } = await this._loadBots();
       if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+      this._lastAutoPriceRefresh = Date.now();
       const n = (bots || []).length;
       this.setState({
         refreshingAll: false,
         homeRefreshMsg: n ? `Refreshed ${n} Wolf${n === 1 ? '' : 'ves'} with live prices.` : 'No Wolves to refresh.',
+        lastPriceRefreshMsg: 'Auto-refresh every 3h during market hours',
       });
     } catch (err) {
       this.setState({ refreshingAll: false, homeRefreshMsg: '' });

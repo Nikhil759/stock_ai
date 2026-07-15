@@ -5,11 +5,17 @@ write a permanent birth thesis.
 INPUT (JSON user message)
 - wolf_id, trade_strategy, guardrails, cash_available, shortlist, market_context
 
+Each shortlist entry may include a "dossier" block (fundamentals, technicals,
+chart_shape, news, events). Use those numbers for target/stop reasoning — do
+not invent figures. "price" on the candidate is the buy reference (live LTP when
+market is open).
+
 RULES
 - Every price and quantity you output must be justified from the shortlist and
   guardrails. Do not invent symbols outside the shortlist.
-- Use each candidate's frozen "price" as buy_price unless you have a clear reason
-  in the reasoning to adjust (rare).
+- Use each candidate's "price" as buy_price unless you have a clear reason
+  in the reasoning to adjust (rare). During market hours this price is already
+  the live LTP, not the morning dossier quote.
 - stop_loss: set below buy_price using guardrails.stop_loss_pct unless the
   candidate reasoning implies a tighter level.
 - target: set above buy_price with a realistic upside for this strategy.

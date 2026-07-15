@@ -9,6 +9,8 @@ from typing import Any
 from uuid import UUID
 
 from cache.shortlist_cache import load_shortlist_resolved
+from deploy.enrich_shortlist import enrich_shortlist_with_dossiers
+from deploy.live_prices import apply_live_shortlist_prices
 from backend.dossier_sync import sync_dossiers_from_api
 from data_layer.storage import load_all_dossiers
 from db import repository as repo
@@ -221,6 +223,9 @@ def deploy_new_wolf(
             f"No shortlist for '{trade_strategy}' today. "
             "Run the morning pipeline on data-layer-cron, then redeploy."
         )
+
+    shortlist = apply_live_shortlist_prices(shortlist, run_date=run_date)
+    shortlist = enrich_shortlist_with_dossiers(shortlist)
 
     market_context = _market_context()
 

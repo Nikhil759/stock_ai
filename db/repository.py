@@ -264,6 +264,20 @@ def list_wolves_for_user(user_id: UUID) -> list[Row]:
             return _rows(cur.fetchall())
 
 
+def list_active_wolves() -> list[Row]:
+    """Wolves eligible for evening auto-exit (active only; paused/closed skipped)."""
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM wolves
+                WHERE status = 'active'
+                ORDER BY created_at
+                """
+            )
+            return _rows(cur.fetchall())
+
+
 def assign_default_wolf_name(user_id: UUID) -> str:
     """Next unused name from wolf_name_pool by sort_order; wrap with Roman suffix past pool size."""
     with get_connection() as conn:

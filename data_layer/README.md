@@ -96,7 +96,10 @@ Then open `/health` on the dashboard (or query `health_runs` in Supabase).
 `data-layer-cron` runs a **persistent internal API** (`data_layer.serve`) that:
 
 - Keeps dossiers on its **volume** (unchanged)
-- Runs **scheduled builds** via APScheduler (`DOSSIER_BUILD_CRON`, default `30 2 * * 1-5` UTC)
+- Runs **scheduled builds** via APScheduler:
+  - `DOSSIER_BUILD_CRON` (default `30 2 * * 1-5` UTC) — full morning pipeline
+  - `DOSSIER_POST_CLOSE_CRON` (default `30 10 * * 1-5` UTC ≈ 4:00 PM IST) —
+    post-close dossier refresh (`--close --skip-news`, no scoring)
 - Exposes `GET /api/dossiers` for `stock_ai` over **private networking**
 
 Start command (`railway.json`):
@@ -156,13 +159,11 @@ with `30 2 * * 1-5` = 08:00 IST, Mon–Fri (pre-open, matches `build.py`'s
 default `snapshot="pre_open"`) — adjust to taste. Minimum interval is 5
 minutes, not a concern here.
 
-**Still open / not yet done:** running a second `--close` (post-close)
-service on the same day currently wouldn't get fresh EOD prices — `backend
-/data.py`'s yfinance cache is keyed per calendar day, so the post-close run
-would just reuse whatever the pre-open run already cached that morning.
-Fixing that needs a snapshot-aware cache key in `backend/data.py`, deferred
-until twice-daily snapshots are actually wanted (also worth weighing against
-Marketaux's already-tight free-tier quota across 200 tickers once a day).
+**Still open / not yet done:** yfinance price cache is keyed per calendar day, so
+the post-close run may reuse the morning bar for some tickers until that cache
+key is snapshot-aware. News is skipped on post-close (`--skip-news`); morning
+news is preserved via dossier merge. Manual trigger:
+`POST /api/build-close` on data-layer-cron.
 
 Also unresolved: nothing in `backend/` reads `dossiers/` yet. Since the
 cron service and the `backend` web service are separate Railway

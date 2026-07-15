@@ -19,6 +19,32 @@ def _assert(cond: bool, msg: str) -> None:
         raise AssertionError(msg)
 
 
+def test_min_trade_value() -> None:
+    g = normalize_guardrails({"min_trade_value": 2000})
+    raw = DeployBrainOutput(
+        birth_intent="test",
+        picks=[
+            BrainPick(
+                symbol="ITC",
+                quantity=1,
+                buy_price=100,
+                target=120,
+                stop_loss=85,
+                conviction=50,
+                reasoning="too small",
+            ),
+        ],
+    )
+    out = validate_deploy_output(
+        raw,
+        cash_available=10000,
+        guardrails=g,
+        shortlist_symbols={"ITC"},
+    )
+    _assert(len(out.picks) == 0, "expected min trade drop")
+    print("  ok min_trade_value")
+
+
 def test_trim_over_cash() -> None:
     g = normalize_guardrails({"min_trade_value": 1000})
     raw = DeployBrainOutput(
@@ -56,19 +82,28 @@ def test_trim_over_cash() -> None:
     print("  ok trim_over_cash")
 
 
-def test_min_trade_value() -> None:
-    g = normalize_guardrails({"min_trade_value": 2000})
+def test_inverted_target_stop() -> None:
+    g = normalize_guardrails({"stop_loss_pct": 15, "min_trade_value": 1000})
     raw = DeployBrainOutput(
         birth_intent="test",
         picks=[
             BrainPick(
                 symbol="ITC",
-                quantity=1,
-                buy_price=100,
-                target=120,
-                stop_loss=85,
-                conviction=50,
-                reasoning="too small",
+                quantity=10,
+                buy_price=400,
+                target=380,
+                stop_loss=450,
+                conviction=80,
+                reasoning="bad geometry",
+            ),
+            BrainPick(
+                symbol="INFY",
+                quantity=2,
+                buy_price=1800,
+                target=2000,
+                stop_loss=1500,
+                conviction=70,
+                reasoning="good geometry",
             ),
         ],
     )
@@ -76,10 +111,12 @@ def test_min_trade_value() -> None:
         raw,
         cash_available=10000,
         guardrails=g,
-        shortlist_symbols={"ITC"},
+        shortlist_symbols={"ITC", "INFY"},
     )
-    _assert(len(out.picks) == 0, "expected min trade drop")
-    print("  ok min_trade_value")
+    syms = {p.symbol for p in out.picks}
+    _assert("ITC" not in syms, "expected inverted pick dropped")
+    _assert("INFY" in syms, "expected valid pick kept")
+    print("  ok inverted_target_stop")
 
 
 def test_daily_default_hold() -> None:
@@ -106,6 +143,7 @@ def main() -> None:
     print("[WOLF BRAIN] validate tests")
     test_trim_over_cash()
     test_min_trade_value()
+    test_inverted_target_stop()
     test_daily_default_hold()
     print("all passed")
 
