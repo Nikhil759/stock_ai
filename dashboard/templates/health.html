@@ -200,7 +200,7 @@
   <main>
     <p class="eyebrow">Ops · Pipeline Health</p>
     <h1>Health Check</h1>
-    <p class="sub">Morning ingestion status, sourced live from Supabase <code>health_status</code>.</p>
+    <p class="sub">Morning ingestion status, sourced live from Supabase <code>health_runs</code>.</p>
 
     {% if not authorized %}
       <div class="gate {% if email %}denied{% endif %}">
@@ -243,17 +243,17 @@
 
       <section>
         {% if not recent %}
-          <h2>Last 5 days</h2>
-          <p class="empty">No health rows yet — run morning ingestion to create today’s status.</p>
+          <h2>Last 5 runs</h2>
+          <p class="empty">No pipeline runs yet — run morning ingestion to create a status row.</p>
         {% else %}
           <details class="recent-dropdown">
             <summary>
-              <span class="recent-summary-label">Last 5 days</span>
-              <span class="dot-strip" aria-label="Pipeline run status for the last {{ recent|length }} day(s)">
+              <span class="recent-summary-label">Last 5 runs</span>
+              <span class="dot-strip" aria-label="Pipeline run status for the last {{ recent|length }} run(s)">
                 {% for day in recent %}
                   <span
                     class="run-dot {{ day.overall_chip }}"
-                    title="{{ day.date }} · {{ day.overall }}"
+                    title="{{ day.run_at }} · {{ day.overall }}"
                   ></span>
                 {% endfor %}
               </span>
@@ -262,7 +262,7 @@
               {% for day in recent %}
                 <div class="day-card">
                   <div class="day-head">
-                    <span class="day-date">{{ day.date }}</span>
+                    <span class="day-date">{{ day.run_at }}</span>
                     <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
                   </div>
                   <div class="chips">

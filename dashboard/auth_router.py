@@ -9,8 +9,10 @@ import hashlib
 import os
 import secrets
 import base64
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
 
 import httpx
@@ -138,6 +140,14 @@ def is_authorized(request: Request) -> bool:
     if not allowed:
         return False
     return _session_email(request) == allowed
+
+
+def _format_run_time(started_at: str | None) -> str:
+    if not started_at:
+        return "—"
+    dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    local = dt.astimezone(ZoneInfo("Asia/Kolkata"))
+    return local.strftime("%d %b %Y, %H:%M IST")
 
 
 def _stage_chip(status: str | None) -> str:
@@ -290,6 +300,7 @@ async def health_page(request: Request):
                 recent.append(
                     {
                         "date": r.get("date"),
+                        "run_at": _format_run_time(r.get("started_at")),
                         "overall": r.get("overall_status") or "unknown",
                         "overall_chip": _stage_chip(r.get("overall_status")),
                         "stages": _flatten_stages(stages),
