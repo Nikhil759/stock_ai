@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fund_manager.kite_auth import get_kite
+from fund_manager.kite_auth import get_kite, get_ltp_nonblocking
 
 log = logging.getLogger(__name__)
 
@@ -57,3 +57,13 @@ def get_prices(tickers: list[str]) -> dict[str, float]:
             log.debug("Missing price for %s", sym)
 
     return out
+
+
+def get_prices_safe(tickers: list[str]) -> dict[str, float]:
+    """Live Zerodha LTPs, but never authenticates and never raises.
+
+    Thin re-export of `kite_auth.get_ltp_nonblocking` for callers that only
+    need a best-effort price (e.g. a live UI refresh) rather than the
+    authenticated `get_prices()` used by fund-manager gates/redeploy.
+    """
+    return get_ltp_nonblocking(tickers)

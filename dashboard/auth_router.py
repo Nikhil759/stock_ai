@@ -328,19 +328,30 @@ def _load_shortlists_from_disk() -> dict[str, list[dict[str, Any]]]:
     return out
 
 
-def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[str, Any]]]:
-    """Prefer shortlists stored on today's health run; fall back to disk or cron API."""
-    from_stages = (stages or {}).get("shortlists") or {}
-    if isinstance(from_stages, dict) and any(from_stages.values()):
-        return {
-            k: v for k, v in from_stages.items() if isinstance(v, list) and v
-        }
-    local = _load_shortlists_from_disk()
-    if local:
-        return local
-    from cache.shortlist_cache import fetch_shortlists_from_cron
+_SHORTLIST_STRATEGIES = ("value", "winners", "box", "dip")
 
-    return fetch_shortlists_from_cron()
+
+def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[str, Any]]]:
+    """Prefer shortlists stored on today's health run; fall back to disk or cron API.
+
+    Always returns all 4 strategy keys (defaulting to []) so a strategy that
+    genuinely found zero candidates today is shown as "0 candidates" rather
+    than silently disappearing from the UI — that used to look identical to a
+    missing/broken pipeline stage.
+    """
+    from_stages = (stages or {}).get("shortlists") or {}
+    if isinstance(from_stages, dict) and from_stages:
+        # Today's run recorded *something* — trust it fully, including
+        # strategies it explicitly ran and found nothing for ([]).
+        source = {k: v for k, v in from_stages.items() if isinstance(v, list)}
+    else:
+        source = _load_shortlists_from_disk()
+        if not source:
+            from cache.shortlist_cache import fetch_shortlists_from_cron
+
+            source = fetch_shortlists_from_cron() or {}
+
+    return {name: source.get(name) or [] for name in _SHORTLIST_STRATEGIES}
 
 
 @router.get("/health", response_class=HTMLResponse)
@@ -525,6 +536,27 @@ async def api_ops_me(request: Request):
         "authorized": is_authorized(request),
         "logged_in": bool(email),
     }
+
+
+@router.get("/api/ops/external-health")
+async def api_external_health(request: Request):
+    """Live status of every external service the pipeline/trading flow depends
+    on (Zerodha Kite, yfinance, NSE, Gemini, Marketaux, Supabase)."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    import asyncio
+
+    from dashboard.external_health import run_all_checks_sync
+
+    try:
+        checks = await asyncio.to_thread(run_all_checks_sync)
+    except Exception as e:
+        return JSONResponse(
+            {"error": "External health checks failed", "detail": str(e)},
+            status_code=500,
+        )
+    return {"checks": checks}
 
 
 @router.get("/api/ops/health-status")

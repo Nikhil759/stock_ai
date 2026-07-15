@@ -58,6 +58,7 @@
   @keyframes modal-in{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
   .app-root{overflow-x:hidden;max-width:100vw}
   .app-main{width:100%;max-width:100%}
+  .skeleton-block{background:linear-gradient(90deg,var(--paper) 25%,var(--line) 45%,var(--paper) 65%);background-size:200% 100%;animation:shimmer 1.6s ease-in-out infinite;border-radius:8px;}
   .app-header-inner{width:100%}
   .app-nav{max-width:100%}
   .app-nav-btn{white-space:nowrap}
@@ -68,6 +69,35 @@
   .wolf-icon-xl{width:72px;height:72px}
   .wolf-icon-inline{display:inline-block;vertical-align:-2px}
   .bot-select{max-width:100%}
+  .tracker-bot-menu-wrap{position:relative;display:inline-flex;min-width:0;max-width:100%}
+  .tracker-bot-trigger{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line2);border-radius:10px;
+    padding:10px 14px;cursor:pointer;
+    min-width:180px;max-width:min(100%,280px);width:100%;
+    transition:border-color 0.15s ease,box-shadow 0.15s ease;
+  }
+  .tracker-bot-trigger:hover{border-color:#D8B999}
+  .tracker-bot-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .tracker-bot-trigger i{font-size:15px;color:var(--ink2);flex:none}
+  .tracker-bot-menu-backdrop{position:fixed;inset:0;z-index:39;background:transparent}
+  .tracker-bot-menu{
+    position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:220px;width:max-content;max-width:min(85vw,280px);
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    box-shadow:0 16px 34px rgba(38,33,26,0.16);padding:7px;
+    max-height:280px;overflow-y:auto;
+    animation:modal-in 0.15s ease;
+  }
+  .tracker-bot-menu-item{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    width:100%;text-align:left;background:transparent;border:none;cursor:pointer;
+    padding:10px 11px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--ink);font-family:inherit;
+  }
+  .tracker-bot-menu-item:hover{background:var(--wolf-tint)}
+  .tracker-bot-menu-item.active{background:var(--wolf-tint);color:var(--clay)}
+  .tracker-bot-menu-item i{font-size:15px;color:var(--clay);flex:none}
+  .tracker-bot-menu-item-meta{font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:0.03em;flex:none}
   .toolbar-row{width:100%}
   .toolbar-actions{max-width:100%}
   .bot-card-btn{min-width:0;width:100%}
@@ -183,6 +213,11 @@
     .budget-row>div:last-child{min-width:0!important;width:100%;flex:1 1 100%}
     .guardrail-row{flex-direction:column;align-items:flex-start!important;gap:8px!important}
     .page-header{flex-direction:column;align-items:stretch!important}
+    .page-header-top{flex-direction:column;align-items:stretch!important;gap:10px!important}
+    .page-header-bottom{flex-direction:column;align-items:stretch!important;gap:12px!important}
+    .tracker-bot-menu-wrap{width:100%}
+    .tracker-bot-trigger{width:100%;max-width:100%;font-size:14px;padding:12px 15px}
+    .tracker-bot-menu{left:0;right:0;width:auto;max-width:100%}
     .page-actions{width:100%;justify-content:stretch}
     .page-actions button{flex:1;justify-content:center}
     .pending-card{flex-direction:column;align-items:stretch!important}
@@ -210,11 +245,11 @@
 
   <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,246,238,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
     <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:nowrap;">
-      <div class="app-header-brand" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;flex:none;">
+      <button onClick="{{ goto.home }}" class="app-header-brand" title="Go to dashboard" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;flex:none;background:none;border:none;cursor:pointer;padding:0;font:inherit;color:inherit;text-align:left;">
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28" style="filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2));">
         <span class="brand-text" style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
         <span class="brand-text" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
-      </div>
+      </button>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
         <button class="app-nav-btn" onClick="{{ goto.setup }}" style="{{ nav.setup }}"><i class="ti ti-rocket" style="font-size:15px;"></i>Deploy</button>
@@ -253,13 +288,6 @@
           <i class="ti ti-download" style="font-size:15px;"></i>
           <span class="install-label">Install</span>
         </button>
-      </sc-if>
-      <sc-if value="{{ hasActiveBot }}" hint-placeholder-val="{{ false }}">
-        <select class="bot-select" onChange="{{ onBotSwitch }}" value="{{ activeBotId }}" style="{{ botSelectStyle }}">
-          <sc-for list="{{ botOptions }}" as="o" hint-placeholder-count="1">
-            <option value="{{ o.id }}">{{ o.label }}</option>
-          </sc-for>
-        </select>
       </sc-if>
       <sc-if value="{{ showPauseBtn }}" hint-placeholder-val="{{ false }}">
         <button onClick="{{ togglePause }}" style="{{ pauseBtnStyle }}" title="{{ pauseBtnTitle }}"><i class="{{ pauseIcon }}" style="font-size:15px;"></i></button>
@@ -301,7 +329,34 @@
     <h1 style="font-size:clamp(25px,4vw,33px);font-weight:800;letter-spacing:-0.024em;margin:0 0 7px;">Dashboard</h1>
     <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate Wolf with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
 
+    <sc-if value="{{ bootLoading }}" hint-placeholder-val="{{ false }}">
+      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px;margin-bottom:22px;">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
+          <div class="skeleton-block" style="height:10px;width:70%;"></div>
+          <div class="skeleton-block" style="height:22px;width:55%;margin-top:9px;"></div>
+          <div class="skeleton-block" style="height:10px;width:80%;margin-top:8px;"></div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
+          <div class="skeleton-block" style="height:10px;width:70%;"></div>
+          <div class="skeleton-block" style="height:22px;width:55%;margin-top:9px;"></div>
+          <div class="skeleton-block" style="height:10px;width:80%;margin-top:8px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <div class="skeleton-block" style="height:88px;border-radius:13px;"></div>
+        <div class="skeleton-block" style="height:88px;border-radius:13px;"></div>
+      </div>
+    </sc-if>
+
     <sc-if value="{{ hasBots }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <sc-if value="{{ hasHomeRefreshMsg }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:12.5px;color:var(--ink2);"><i class="ti ti-check" style="color:var(--green);"></i> {{ homeRefreshMsg }}</span>
+        </sc-if>
+        <button onClick="{{ refreshAllPrices }}" style="{{ refreshAllBtnStyle }}" title="Refresh live prices for all Wolves">
+          <i class="{{ refreshAllIcon }}" style="{{ refreshAllIconStyle }}"></i>{{ refreshAllLabel }}
+        </button>
+      </div>
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px;margin-bottom:22px;">
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Total allocated</div>
@@ -763,6 +818,24 @@
   <!-- ===================== TRACKER ===================== -->
   <sc-if value="{{ isTracker }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
+    <sc-if value="{{ bootLoading }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;">
+        <div class="skeleton-block" style="height:28px;width:160px;"></div>
+        <div class="skeleton-block" style="height:36px;width:150px;border-radius:10px;"></div>
+      </div>
+      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:12px;margin-bottom:14px;">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;"><div class="skeleton-block" style="height:10px;width:65%;"></div><div class="skeleton-block" style="height:22px;width:50%;margin-top:9px;"></div></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;"><div class="skeleton-block" style="height:10px;width:65%;"></div><div class="skeleton-block" style="height:22px;width:50%;margin-top:9px;"></div></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;"><div class="skeleton-block" style="height:10px;width:65%;"></div><div class="skeleton-block" style="height:22px;width:50%;margin-top:9px;"></div></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0;"><div class="skeleton-block" style="height:10px;width:65%;"></div><div class="skeleton-block" style="height:22px;width:50%;margin-top:9px;"></div></div>
+      </div>
+      <div class="skeleton-block" style="height:130px;border-radius:13px;margin-bottom:14px;"></div>
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <div class="skeleton-block" style="height:96px;border-radius:13px;"></div>
+        <div class="skeleton-block" style="height:96px;border-radius:13px;"></div>
+      </div>
+    </sc-if>
+
     <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:60px 20px;">
         <i class="ti ti-report-money" style="font-size:40px;color:var(--ink2);"></i>
@@ -773,25 +846,48 @@
     </sc-if>
 
     <sc-if value="{{ trackerActive }}" hint-placeholder-val="{{ false }}">
-      <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:22px;">
-        <div style="min-width:0;">
-          <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">{{ activeBotName }}</p>
-          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0 0 8px;">Portfolio</h1>
+      <div class="page-header" style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+        <div class="page-header-top" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
+          <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0;">Portfolio</h1>
+          <sc-if value="{{ showTrackerBotSwitch }}" hint-placeholder-val="{{ false }}">
+            <div class="tracker-bot-menu-wrap">
+              <button class="tracker-bot-trigger" onClick="{{ toggleBotSwitchMenu }}" title="Switch Wolf">
+                <span>{{ activeBotSwitchLabel }}</span>
+                <i class="{{ botSwitchChevron }}"></i>
+              </button>
+              <sc-if value="{{ showBotSwitchMenu }}" hint-placeholder-val="{{ false }}">
+                <div class="tracker-bot-menu-backdrop" onClick="{{ closeBotSwitchMenu }}"></div>
+                <div class="tracker-bot-menu">
+                  <sc-for list="{{ botOptions }}" as="o" hint-placeholder-count="1">
+                    <button class="{{ o.itemClass }}" onClick="{{ o.onSelect }}">
+                      <span>{{ o.label }}</span>
+                      <span style="display:flex;align-items:center;gap:6px;flex:none;">
+                        <sc-if value="{{ o.hasMeta }}" hint-placeholder-val="{{ false }}"><span class="tracker-bot-menu-item-meta">{{ o.meta }}</span></sc-if>
+                        <sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><i class="ti ti-check"></i></sc-if>
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+        <div class="page-header-bottom" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:13px;font-weight:600;color:var(--ink);">Strategy:</span>
             <span style="font-size:13px;font-weight:600;color:var(--clay);">{{ activeBotStrategy }}</span>
             <span style="font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--ink2);background:var(--paper);border:1px solid var(--line);">{{ activeBotModeLabel }}</span>
           </div>
-        </div>
-        <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <sc-if value="{{ hasTrades }}" hint-placeholder-val="{{ false }}">
-            <button onClick="{{ refreshPrices }}" style="{{ refreshBtnStyle }}" title="Fetch latest prices from market data">
-              <i class="{{ refreshIcon }}" style="{{ refreshIconStyle }}"></i>{{ refreshBtnLabel }}
-            </button>
-          </sc-if>
-          <sc-if value="{{ canTerminate }}" hint-placeholder-val="{{ false }}">
-            <button onClick="{{ terminateBot }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--red);padding:9px 14px;border-radius:10px;">Terminate Wolf</button>
-          </sc-if>
+          <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <sc-if value="{{ hasTrades }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ refreshPrices }}" style="{{ refreshBtnStyle }}" title="Fetch latest prices from market data">
+                <i class="{{ refreshIcon }}" style="{{ refreshIconStyle }}"></i>{{ refreshBtnLabel }}
+              </button>
+            </sc-if>
+            <sc-if value="{{ canTerminate }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ terminateBot }}" style="background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--red);padding:9px 14px;border-radius:10px;">Terminate Wolf</button>
+            </sc-if>
+          </div>
         </div>
       </div>
 
@@ -821,6 +917,13 @@
         <button onClick="{{ setTrackerTabHoldings }}" style="{{ trackerTabHoldingsStyle }}"><i class="ti ti-briefcase" style="font-size:15px;"></i>Holdings</button>
         <button onClick="{{ setTrackerTabActivity }}" style="{{ trackerTabActivityStyle }}"><i class="ti ti-history" style="font-size:15px;"></i>Activity</button>
       </div>
+
+      <sc-if value="{{ switchingBot }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13px;margin-bottom:12px;">
+          <i class="ti ti-loader-2" style="font-size:15px;animation:spin 1s linear infinite;display:inline-block;"></i> Updating Wolf data…
+        </div>
+      </sc-if>
+      <div style="{{ trackerContentStyle }}">
 
       <sc-if value="{{ trackerTabHoldings }}" hint-placeholder-val="{{ true }}">
       <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:12px;margin-bottom:14px;">
@@ -959,6 +1062,8 @@
         </div>
       </sc-if>
     </sc-if>
+
+      </div>
     </sc-if>
   </main>
   </sc-if>
@@ -1072,11 +1177,12 @@ class Component extends DCLogic {
   constructor(props){
     super(props);
     const workspaceId = typeof window !== 'undefined' ? this._resolveWorkspaceId() : '';
+    const urlView = typeof window !== 'undefined' ? this._resolveInitialViewFromUrl() : null;
     this.state = {
-      screen: props.startScreen === 'activity' ? 'tracker' : (props.startScreen ?? 'home'),
-      trackerTab: props.startScreen === 'activity' ? 'activity' : 'holdings',
+      screen: urlView?.screen || (props.startScreen === 'activity' ? 'tracker' : (props.startScreen ?? 'home')),
+      trackerTab: urlView?.trackerTab || (props.startScreen === 'activity' ? 'activity' : 'holdings'),
       workspaceId,
-      activeBotId: null,
+      activeBotId: urlView?.activeBotId || null,
       bots: [],
       activeBot: null,
       strategy: null,
@@ -1105,6 +1211,8 @@ class Component extends DCLogic {
       lastScreenSummary: {},
       screenReasoning: [],
       refreshing: false,
+      refreshingAll: false,
+      homeRefreshMsg: '',
       loadStepIdx: 0,
       loadProgress: 0,
       loadTitle: '',
@@ -1125,6 +1233,8 @@ class Component extends DCLogic {
       authLoggedIn: false,
       authAuthorized: false,
       showAuthMenu: false,
+      showBotSwitchMenu: false,
+      switchingBot: false,
     };
     this._deferredPrompt = null;
     this._iosInstall = false;
@@ -1161,6 +1271,14 @@ class Component extends DCLogic {
 
   closeAuthMenu(){
     this.setState({ showAuthMenu: false });
+  }
+
+  toggleBotSwitchMenu(){
+    this.setState({ showBotSwitchMenu: !this.state.showBotSwitchMenu });
+  }
+
+  closeBotSwitchMenu(){
+    this.setState({ showBotSwitchMenu: false });
   }
 
   _authReturnTo(){
@@ -1266,6 +1384,50 @@ class Component extends DCLogic {
         window.history.replaceState({}, '', url);
       }
     } catch {}
+  }
+
+  // Reads screen/bot/tab from the URL so a refresh lands back where the user was,
+  // instead of always bouncing to Home.
+  _resolveInitialViewFromUrl(){
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const validScreens = new Set(['home', 'setup', 'shortlist', 'tracker']);
+      const screenParam = params.get('screen');
+      const botParam = (params.get('bot') || '').trim();
+      const tabParam = params.get('tab');
+      return {
+        screen: validScreens.has(screenParam) ? screenParam : null,
+        activeBotId: botParam || null,
+        trackerTab: tabParam === 'activity' ? 'activity' : (tabParam === 'holdings' ? 'holdings' : null),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Keeps the URL's screen/bot/tab query params in sync with state so a page
+  // refresh (or shared link) restores the same view instead of resetting to Home.
+  _persistView(){
+    if (typeof window === 'undefined') return;
+    try {
+      const { screen, activeBotId, trackerTab } = this.state;
+      const url = new URL(window.location.href);
+      if (screen && screen !== 'home') url.searchParams.set('screen', screen);
+      else url.searchParams.delete('screen');
+      if (screen === 'tracker' && activeBotId) url.searchParams.set('bot', activeBotId);
+      else url.searchParams.delete('bot');
+      if (screen === 'tracker' && trackerTab === 'activity') url.searchParams.set('tab', 'activity');
+      else url.searchParams.delete('tab');
+      if (url.href !== window.location.href) window.history.replaceState({}, '', url);
+    } catch {}
+  }
+
+  // Any state update touching screen/activeBotId/trackerTab also mirrors into the URL.
+  setState(update, cb){
+    super.setState(update, cb);
+    if (update && typeof update === 'object' && ('screen' in update || 'activeBotId' in update || 'trackerTab' in update)) {
+      this._persistView();
+    }
   }
 
   _fetch(url, opts){
@@ -1630,10 +1792,15 @@ class Component extends DCLogic {
   }
 
   async selectBot(id){
+    if (id === this.state.activeBotId) { this.setState({ showBotSwitchMenu: false }); return; }
     const summary = (this.state.lastScreenSummary || {})[id] || '';
-    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '', closedTradesOpen: false, llmSummary: summary });
-    const bot = await this._loadBotData(id);
-    if (bot) this.setState({ strategy: bot.strategy });
+    this.setState({ activeBotId: id, loading: false, cands: [], botActionMsg: '', closedTradesOpen: false, llmSummary: summary, showBotSwitchMenu: false, switchingBot: true });
+    try {
+      const bot = await this._loadBotData(id);
+      if (bot) this.setState({ strategy: bot.strategy });
+    } finally {
+      this.setState({ switchingBot: false });
+    }
   }
 
   _mapPending(list){
@@ -1782,6 +1949,23 @@ class Component extends DCLogic {
       this.setState({ refreshing: false, refreshMsg: msg });
     } catch (err) {
       this.setState({ refreshing: false, refreshMsg: '' });
+      alert(err.message || 'Refresh failed. Is the server running?');
+    }
+  }
+
+  async refreshAllPrices(){
+    if (this.state.refreshingAll) return;
+    this.setState({ refreshingAll: true, homeRefreshMsg: '' });
+    try {
+      const { bots } = await this._loadBots();
+      if (this.state.activeBotId) await this._loadBotData(this.state.activeBotId);
+      const n = (bots || []).length;
+      this.setState({
+        refreshingAll: false,
+        homeRefreshMsg: n ? `Refreshed ${n} Wolf${n === 1 ? '' : 'ves'} with live prices.` : 'No Wolves to refresh.',
+      });
+    } catch (err) {
+      this.setState({ refreshingAll: false, homeRefreshMsg: '' });
       alert(err.message || 'Refresh failed. Is the server running?');
     }
   }
@@ -1992,7 +2176,6 @@ class Component extends DCLogic {
         } catch (e) { console.error('loadBotData failed:', e); }
       },
     };
-    const onBotSwitch = e => this.selectBot(parseInt(e.target.value, 10));
     const clamp = v => Math.max(10000, Math.min(1000000, Math.round(v) || 10000));
     const onSlider = e => this.setState({ budget: clamp(+e.target.value) });
     const onBudgetChange = e => {
@@ -2205,17 +2388,32 @@ class Component extends DCLogic {
     const selectAllBorder = allBotsSelected || someBotsSelected ? 'var(--clay)' : 'var(--line2)';
     const selectAllBg = allBotsSelected ? 'var(--clay)' : 'transparent';
 
-    const botSelectStyle = 'font-family:inherit;font-size:13px;font-weight:550;border:1px solid var(--line2);border-radius:9px;padding:8px 32px 8px 12px;background:var(--panel);color:var(--ink);min-width:0;max-width:100%;width:100%;cursor:pointer;appearance:auto;-webkit-appearance:menulist;';
-    const botOptions = s.bots.map(b => ({
-      id: b.id,
-      label: 'Wolf ' + b.id + (b.paused ? ' · paused' : ''),
-    }));
+    const botOptions = s.bots.map(b => {
+      const active = b.id === s.activeBotId;
+      const meta = b.terminated ? 'Terminated' : (b.paused ? 'Paused' : '');
+      return {
+        id: b.id,
+        label: b.name || 'Wolf',
+        meta, hasMeta: !!meta,
+        active,
+        itemClass: 'tracker-bot-menu-item' + (active ? ' active' : ''),
+        onSelect: () => this.selectBot(b.id),
+      };
+    });
+    const activeBotSwitchLabel = bot?.name || 'Select Wolf';
+    const botSwitchChevron = s.showBotSwitchMenu ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
     const refreshBtnStyle = 'display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:' + (s.refreshing ? 'wait' : 'pointer') + ';font-size:13px;font-weight:550;color:var(--ink);padding:9px 14px;border-radius:10px;opacity:' + (s.refreshing ? '0.7' : '1') + ';';
     const refreshIcon = s.refreshing ? 'ti ti-loader-2' : 'ti ti-refresh';
     const refreshBtnLabel = s.refreshing ? 'Refreshing…' : 'Refresh values';
     const refreshIconStyle = s.refreshing
       ? 'font-size:15px;animation:spin 1s linear infinite;display:inline-block;'
       : 'font-size:15px;';
+    const refreshAllBtnStyle = 'display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:' + (s.refreshingAll ? 'wait' : 'pointer') + ';font-size:12.5px;font-weight:600;color:var(--ink2);padding:7px 12px;border-radius:9px;opacity:' + (s.refreshingAll ? '0.7' : '1') + ';';
+    const refreshAllIcon = s.refreshingAll ? 'ti ti-loader-2' : 'ti ti-refresh';
+    const refreshAllLabel = s.refreshingAll ? 'Refreshing…' : 'Refresh prices';
+    const refreshAllIconStyle = s.refreshingAll
+      ? 'font-size:14px;animation:spin 1s linear infinite;display:inline-block;'
+      : 'font-size:14px;';
     const activeBotLabel = bot
       ? bot.name + ' · ' + (bot.strategyName || bot.strategy)
       : '—';
@@ -2237,6 +2435,8 @@ class Component extends DCLogic {
       && trackerSummary.trim() === dailyNoteText.trim();
     const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker' && !summaryDuplicatesNote;
 
+    const showTrackerBotSwitch = s.screen === 'tracker' && s.bots.length > 0;
+
     const authLoggedIn = !!s.authLoggedIn;
     const authAuthorized = !!s.authAuthorized;
     const authProfileTitle = authLoggedIn
@@ -2255,14 +2455,15 @@ class Component extends DCLogic {
       closeAuthMenu: () => this.closeAuthMenu(),
       isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker',
       isGrid:s.layout==='grid', isList:s.layout==='list',
-      nav, tog, on, sel, goto, onBotSwitch, strategyCards,
+      nav, tog, on, sel, goto, strategyCards,
       togglePause: () => this.togglePause(), terminateBot: () => this.terminateBot(),
       refreshPrices: () => this.refreshPrices(),
       budget:s.budget, onSlider, onBudgetChange, budgetSliderStyle,
       strategySelected: !!s.strategy, noStrategy: !s.strategy, summaryText,
       deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy Wolf',
       rescreen: () => this.rescreen(),
-      noBots: s.bots.length === 0, hasBots: s.bots.length > 0, botCards,
+      bootLoading: !s.configLoaded,
+      noBots: s.configLoaded && s.bots.length === 0, hasBots: s.configLoaded && s.bots.length > 0, botCards,
       totalAllocatedFmt: fmt(totalAllocated), totalPortfolioFmt: fmt(totalPortfolioValue),
       totalPortfolioPnlFmt: signed(totalPortfolioPnl),
       totalPortfolioPnlCol: totalPortfolioPnl >= 0 ? 'var(--green)' : 'var(--red)',
@@ -2273,10 +2474,17 @@ class Component extends DCLogic {
       clearBotSelection: () => this.clearBotSelection(),
       bulkPauseBots: () => this.bulkPauseBots(),
       bulkTerminateBots: () => this.bulkTerminateBots(),
-      hasActiveBot: !!s.activeBotId, noActiveBot: !s.activeBotId && !isScanning,
-      activeBotId: s.activeBotId, botOptions, botSelectStyle, activeBotLabel,
+      hasActiveBot: !!s.activeBotId, showTrackerBotSwitch,
+      noActiveBot: s.configLoaded && !s.activeBotId && !isScanning,
+      activeBotId: s.activeBotId, botOptions, activeBotLabel,
+      activeBotSwitchLabel, botSwitchChevron,
+      showBotSwitchMenu: !!s.showBotSwitchMenu,
+      toggleBotSwitchMenu: () => this.toggleBotSwitchMenu(),
+      closeBotSwitchMenu: () => this.closeBotSwitchMenu(),
       activeBotName, activeBotStrategy, activeBotModeLabel,
-      trackerActive: !!s.activeBotId,
+      trackerActive: s.configLoaded && !!s.activeBotId,
+      switchingBot: !!s.switchingBot,
+      trackerContentStyle: s.switchingBot ? 'opacity:0.45;pointer-events:none;transition:opacity 0.15s ease;' : 'transition:opacity 0.15s ease;',
       trackerTabHoldings, trackerTabActivity,
       trackerTabHoldingsStyle: trackerTabBtnStyle(trackerTabHoldings),
       trackerTabActivityStyle: trackerTabBtnStyle(trackerTabActivity),
@@ -2328,6 +2536,9 @@ class Component extends DCLogic {
       canTerminate: !!bot && !isTerminated,
       refreshBtnStyle, refreshIcon, refreshBtnLabel, refreshIconStyle,
       refreshMsg: s.refreshMsg, hasRefreshMsg: !!s.refreshMsg,
+      refreshAllPrices: () => this.refreshAllPrices(),
+      refreshAllBtnStyle, refreshAllIcon, refreshAllLabel, refreshAllIconStyle,
+      homeRefreshMsg: s.homeRefreshMsg, hasHomeRefreshMsg: !!s.homeRefreshMsg,
       modeAuto: bot ? modeAuto : setupModeAuto,
       lvlA: bot ? lvlA : setupLvlA, lvlB: bot ? lvlB : setupLvlB, lvlC: bot ? lvlC : setupLvlC,
       autoThreshold: s.screen === 'setup' ? s.auto_threshold : (bot?.auto_threshold ?? s.auto_threshold), onThresholdChange,

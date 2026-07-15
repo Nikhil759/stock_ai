@@ -163,32 +163,53 @@
       white-space:pre-wrap;border-top:1px solid var(--line);padding-top:11px;font-family:var(--mono);
     }
     .shortlist-panel{
-      border-top:1px solid var(--line);padding:12px 14px 14px;
-      display:grid;gap:14px;background:var(--wolf-mist);
+      border-top:1px solid var(--line);padding:14px 14px 16px;
+      display:grid;gap:16px;background:var(--wolf-mist);
     }
-    .shortlist-strategy h3{
-      margin:0 0 8px;font-size:13px;font-weight:700;text-transform:capitalize;color:var(--ink);
+    .shortlist-strategy-head{
+      display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;
     }
-    .shortlist-table{
-      width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel);
-      border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    .shortlist-strategy-name{
+      font-size:13.5px;font-weight:700;text-transform:capitalize;color:var(--ink);
+      display:flex;align-items:center;gap:8px;
     }
-    .shortlist-table th,.shortlist-table td{
-      padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;
+    .shortlist-count-badge{
+      font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--clay);
+      background:var(--wolf-tint);border:1px solid #EDD3B6;border-radius:999px;padding:2px 9px;
     }
-    .shortlist-table th{
-      font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);
-      background:var(--wolf-tint);font-weight:700;
+    .shortlist-cards{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:10px;
     }
-    .shortlist-table tr:last-child td{border-bottom:none}
-    .shortlist-table .sym{font-family:var(--mono);font-weight:600;color:var(--ink)}
-    .verdict-buy{color:var(--green);font-weight:700}
-    .verdict-watch{color:var(--clay);font-weight:700}
-    .shortlist-reason{
-      margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);
+    .candidate-card{
+      background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+      display:flex;flex-direction:column;gap:7px;
+    }
+    .candidate-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .candidate-sym{font-family:var(--mono);font-weight:700;font-size:13.5px;color:var(--ink)}
+    .verdict-chip{
+      font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+      padding:2px 8px;border-radius:999px;flex-shrink:0;
+    }
+    .verdict-chip.buy{color:var(--green);background:rgba(46,125,50,0.12)}
+    .verdict-chip.watch{color:var(--clay);background:var(--wolf-tint)}
+    .candidate-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--ink2)}
+    .candidate-price{font-family:var(--mono);font-weight:600;color:var(--ink)}
+    .conviction-track{flex:1;height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin:0 8px}
+    .conviction-fill{height:100%;border-radius:999px;background:var(--clay)}
+    .conviction-fill.high{background:var(--green)}
+    .candidate-reason{
+      font-size:11.5px;line-height:1.5;color:var(--ink2);
       font-family:'Hanken Grotesk',system-ui,sans-serif;white-space:normal;
     }
-    .shortlist-empty{font-size:12.5px;color:var(--ink2);font-style:italic}
+    .candidate-reason summary{cursor:pointer;color:var(--clay);font-weight:600;font-size:11px;list-style:none}
+    .candidate-reason summary::-webkit-details-marker{display:none}
+    .candidate-reason summary::after{content:'Show reasoning ›'}
+    .candidate-reason[open] summary::after{content:''}
+    .candidate-reason p{margin:6px 0 0}
+    .shortlist-empty{
+      font-size:12.5px;color:var(--ink2);font-style:italic;background:var(--panel);
+      border:1px dashed var(--line2);border-radius:10px;padding:12px 14px;
+    }
     .empty{
       color:var(--ink2);font-style:italic;font-size:13.5px;background:var(--wolf-mist);
       border:1px dashed var(--line2);border-radius:12px;padding:18px;text-align:center;
@@ -207,6 +228,25 @@
     .ops-bar-msg.bad{color:var(--red);font-weight:600}
     .ops-bar-msg.warn{color:var(--clay);font-weight:600}
     #run-pipeline-btn:disabled{opacity:0.65;cursor:wait}
+    .api-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+    .api-card{
+      background:var(--panel);border:1px solid var(--line);border-radius:13px;
+      padding:13px 15px;display:flex;flex-direction:column;gap:6px;
+    }
+    .api-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .api-card-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+    .api-card-sub{font-size:11px;color:var(--ink2);margin-top:-4px}
+    .api-card-detail{font-size:12px;color:var(--ink2);line-height:1.45}
+    .api-card-detail.bad{color:var(--red)}
+    .api-card-detail.warn{color:var(--clay)}
+    .api-card-latency{font-family:var(--mono);font-size:10.5px;color:var(--ink2);margin-top:auto}
+    .api-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .api-status-dot.ok{background:var(--green)}
+    .api-status-dot.bad{background:var(--red)}
+    .api-status-dot.warn{background:var(--clay)}
+    .api-status-dot.idle{background:var(--line2)}
+    .api-status-dot.checking{background:var(--clay);animation:api-pulse 1s ease-in-out infinite}
+    @keyframes api-pulse{0%,100%{opacity:0.35}50%{opacity:1}}
   </style>
 </head>
 <body>
@@ -269,6 +309,21 @@
       </div>
 
       <section>
+        <h2>External APIs</h2>
+        <div class="api-grid" id="api-grid">
+          {% for svc in ["Zerodha Kite", "yfinance", "NSE India", "Google Gemini", "Marketaux", "Supabase Postgres"] %}
+            <div class="api-card">
+              <div class="api-card-head">
+                <span class="api-card-name">{{ svc }}</span>
+                <span class="api-status-dot checking"></span>
+              </div>
+              <div class="api-card-detail">Checking…</div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section>
         {% if not recent %}
           <h2>Last 5 runs</h2>
           <p class="empty">No pipeline runs yet — run morning ingestion to create a status row.</p>
@@ -320,40 +375,38 @@
               <div class="shortlist-panel">
                 {% if shortlists %}
                   {% for strategy in ['value', 'winners', 'box', 'dip'] %}
-                    {% if shortlists.get(strategy) %}
-                    {% set candidates = shortlists[strategy] %}
+                    {% set candidates = shortlists.get(strategy) or [] %}
                     <div class="shortlist-strategy">
-                      <h3>{{ strategy }} · {{ candidates|length }} candidate{% if candidates|length != 1 %}s{% endif %}</h3>
+                      <div class="shortlist-strategy-head">
+                        <span class="shortlist-strategy-name">{{ strategy }}</span>
+                        <span class="shortlist-count-badge">{{ candidates|length }} candidate{% if candidates|length != 1 %}s{% endif %}</span>
+                      </div>
                       {% if candidates %}
-                        <table class="shortlist-table">
-                          <thead>
-                            <tr>
-                              <th>Symbol</th>
-                              <th>Verdict</th>
-                              <th>Conviction</th>
-                              <th>Price</th>
-                              <th>Reasoning</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for c in candidates %}
-                              <tr>
-                                <td class="sym">{{ c.symbol }}</td>
-                                <td class="{% if c.verdict == 'buy' %}verdict-buy{% elif c.verdict == 'watch' %}verdict-watch{% endif %}">{{ c.verdict or '—' }}</td>
-                                <td>{{ c.conviction if c.conviction is not none else '—' }}</td>
-                                <td>{% if c.price %}₹{{ '{:,.2f}'.format(c.price) }}{% else %}—{% endif %}</td>
-                                <td>
-                                  <div class="shortlist-reason">{{ (c.reasoning or '')[:320] }}{% if c.reasoning and c.reasoning|length > 320 %}…{% endif %}</div>
-                                </td>
-                              </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
+                        <div class="shortlist-cards">
+                          {% for c in candidates %}
+                            <div class="candidate-card">
+                              <div class="candidate-card-top">
+                                <span class="candidate-sym">{{ c.symbol }}</span>
+                                <span class="verdict-chip {% if c.verdict == 'buy' %}buy{% else %}watch{% endif %}">{{ c.verdict or '—' }}</span>
+                              </div>
+                              <div class="candidate-meta">
+                                <span>Conviction {{ c.conviction if c.conviction is not none else '—' }}</span>
+                                <span class="conviction-track"><span class="conviction-fill{% if c.conviction and c.conviction >= 65 %} high{% endif %}" style="width:{{ c.conviction if c.conviction is not none else 0 }}%;"></span></span>
+                                <span class="candidate-price">{% if c.price %}₹{{ '{:,.2f}'.format(c.price) }}{% else %}—{% endif %}</span>
+                              </div>
+                              {% if c.reasoning %}
+                                <details class="candidate-reason">
+                                  <summary></summary>
+                                  <p>{{ c.reasoning[:600] }}{% if c.reasoning|length > 600 %}…{% endif %}</p>
+                                </details>
+                              {% endif %}
+                            </div>
+                          {% endfor %}
+                        </div>
                       {% else %}
-                        <p class="shortlist-empty">No candidates for this strategy.</p>
+                        <p class="shortlist-empty">No candidates passed the {{ strategy }} funnel + LLM screen today.</p>
                       {% endif %}
                     </div>
-                    {% endif %}
                   {% endfor %}
                 {% else %}
                   <p class="shortlist-empty">No shortlist files loaded yet — run the pipeline or wait for the next scoring pass.</p>
@@ -408,6 +461,67 @@
           btn.disabled = false;
         }
       });
+    })();
+  </script>
+  {% endif %}
+  {% if authorized %}
+  <script>
+    (function () {
+      const grid = document.getElementById('api-grid');
+      if (!grid) return;
+
+      const LABELS = {
+        kite: 'Zerodha Kite',
+        yfinance: 'yfinance',
+        nse: 'NSE India',
+        gemini: 'Google Gemini',
+        marketaux: 'Marketaux',
+        supabase: 'Supabase Postgres',
+      };
+      const SUBS = {
+        kite: 'Auth + live LTP',
+        yfinance: 'Price fallback',
+        nse: 'Technicals / fundamentals scrape',
+        gemini: 'Dossier scoring + Wolf Brain',
+        marketaux: 'News / sentiment',
+        supabase: 'Wolves, trades, health runs',
+      };
+
+      function cardHtml(id, status, detail, latencyMs) {
+        const label = LABELS[id] || id;
+        const sub = SUBS[id] || '';
+        const detailClass = status === 'down' ? 'bad' : (status === 'warn' ? 'warn' : '');
+        const dotClass = status === 'ok' ? 'ok' : (status === 'warn' ? 'warn' : (status === 'down' ? 'bad' : 'idle'));
+        const latency = (typeof latencyMs === 'number') ? `<div class="api-card-latency">${latencyMs} ms</div>` : '';
+        return `
+          <div class="api-card">
+            <div class="api-card-head">
+              <span class="api-card-name">${label}</span>
+              <span class="api-status-dot ${dotClass}" title="${status}"></span>
+            </div>
+            <div class="api-card-sub">${sub}</div>
+            <div class="api-card-detail ${detailClass}">${detail}</div>
+            ${latency}
+          </div>`;
+      }
+
+      async function loadExternalHealth() {
+        try {
+          const r = await fetch('/api/ops/external-health', { credentials: 'include' });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok || !Array.isArray(data.checks)) {
+            grid.innerHTML = `<p class="empty">Could not load external API status${data.detail ? ' — ' + data.detail : ''}.</p>`;
+            return;
+          }
+          grid.innerHTML = data.checks
+            .map((c) => cardHtml(c.id, c.status, c.detail, c.latency_ms))
+            .join('');
+        } catch (e) {
+          grid.innerHTML = `<p class="empty">Could not reach the API: ${e && e.message ? e.message : String(e)}</p>`;
+        }
+      }
+
+      loadExternalHealth();
     })();
   </script>
   {% endif %}

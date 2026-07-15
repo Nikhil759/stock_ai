@@ -312,3 +312,67 @@ def get_kite(*, force_login: bool = False) -> KiteConnect:
 
     _kite = kite
     return kite
+
+
+def get_kite_nonblocking() -> KiteConnect | None:
+    """Return a Kite session ONLY if one is already usable — never authenticates.
+
+    Safe to call from a live web request (e.g. a UI "refresh prices" click):
+    it reuses the in-process session or today's cached token and verifies it
+    with a cheap `profile()` call, but never falls through to TOTP or
+    interactive login (which can block on `input()` or hit Zerodha's login
+    endpoints on every request). Returns None if there's no valid session —
+    callers should fall back to another price source (e.g. yfinance).
+    """
+    global _kite
+    if _kite is not None:
+        return _kite
+
+    cached = _load_cached_token()
+    if not cached:
+        return None
+
+    kite = _build_kite(cached)
+    if not _verify_token(kite):
+        return None
+
+    _kite = kite
+    return kite
+
+
+def _to_nse_symbol(ticker: str) -> str:
+    t = ticker.strip().upper()
+    return t if ":" in t else f"NSE:{t}"
+
+
+def _from_nse_symbol(key: str) -> str:
+    return key.split(":", 1)[1] if ":" in key else key
+
+
+def get_ltp_nonblocking(tickers: list[str]) -> dict[str, float]:
+    """Best-effort live LTPs from Zerodha for `tickers` — never blocks/raises.
+
+    Uses `get_kite_nonblocking()`, so it only returns data when a verified
+    session already exists for today; otherwise returns {} so the caller can
+    fall back to another price source. Safe to call from a live web request.
+    """
+    if not tickers:
+        return {}
+    kite = get_kite_nonblocking()
+    if kite is None:
+        return {}
+
+    keys = [_to_nse_symbol(t) for t in tickers]
+    key_to_ticker = {_to_nse_symbol(t): t.strip().upper() for t in tickers}
+    try:
+        quotes = kite.ltp(keys)
+    except Exception:
+        return {}
+
+    out: dict[str, float] = {}
+    for key, data in (quotes or {}).items():
+        ticker = key_to_ticker.get(key) or _from_nse_symbol(key)
+        price = data.get("last_price") if isinstance(data, dict) else None
+        if price is not None and price > 0:
+            out[ticker] = round(float(price), 2)
+    return out

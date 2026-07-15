@@ -53,7 +53,65 @@ def _fmt_entry_date(ts: Any) -> str:
     return dt.astimezone(IST).strftime("%d %b %Y")
 
 
+_kite_auth_mod = None
+_kite_auth_load_failed = False
+
+
+def _load_kite_auth_module():
+    """Load fund_manager/kite_auth.py directly by file path.
+
+    Deliberately bypasses `import fund_manager...`, which would run
+    fund_manager/__init__.py and pull in Gemini/legacy-db deps that have
+    nothing to do with a live price lookup. kite_auth.py has no intra-package
+    imports so it's safe to load standalone (same trick data_layer/fetch/
+    kite_session.py uses).
+    """
+    global _kite_auth_mod, _kite_auth_load_failed
+    if _kite_auth_mod is not None:
+        return _kite_auth_mod
+    if _kite_auth_load_failed:
+        return None
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent / "fund_manager" / "kite_auth.py"
+    try:
+        spec = importlib.util.spec_from_file_location("_wolf_api_kite_auth", path)
+        if spec is None or spec.loader is None:
+            raise ImportError("could not load kite_auth spec")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    except Exception:
+        _kite_auth_load_failed = True
+        return None
+    _kite_auth_mod = mod
+    return mod
+
+
+def _fetch_kite_ltps(symbols: list[str]) -> dict[str, float]:
+    """Best-effort live LTPs from Zerodha — never blocks or raises.
+
+    Only uses an already-verified session for today (refreshed earlier by
+    the daily `refresh_kite_token` cron/TOTP auto-login); never triggers an
+    interactive login from a live web request. Returns {} on any failure so
+    callers fall back to yfinance.
+    """
+    kite_auth = _load_kite_auth_module()
+    if kite_auth is None:
+        return {}
+    try:
+        return kite_auth.get_ltp_nonblocking(symbols)
+    except Exception:
+        return {}
+
+
 def _fetch_ltps(symbols: list[str]) -> dict[str, float]:
+    """Live prices for `symbols` — Zerodha Kite first, yfinance for the rest.
+
+    Zerodha is preferred (real intraday LTP); yfinance silently covers any
+    symbol Kite couldn't resolve (no session yet, delisted/renamed, etc.) so
+    the UI never shows a blank price.
+    """
     if not symbols:
         return {}
     try:
@@ -61,9 +119,12 @@ def _fetch_ltps(symbols: list[str]) -> dict[str, float]:
     except ImportError:
         from backend.data import fetch_latest_price
 
-    out: dict[str, float] = {}
-    for sym in symbols:
-        sym = sym.upper()
+    syms = [s.upper() for s in symbols]
+    out: dict[str, float] = dict(_fetch_kite_ltps(syms))
+
+    for sym in syms:
+        if sym in out:
+            continue
         price = fetch_latest_price(sym)
         if price and price > 0:
             out[sym] = round(float(price), 2)
