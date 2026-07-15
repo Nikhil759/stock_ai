@@ -67,12 +67,6 @@ def _run_kite_refresh_job() -> None:
                 "kite refresh SKIP — set KITE_USER_ID / KITE_PASSWORD / KITE_TOTP_SECRET"
             )
             return
-        if os.getenv("RAILWAY_ENVIRONMENT"):
-            log.warning(
-                "kite refresh SKIP on Railway — Zerodha blocks TOTP from cloud IPs; "
-                "paste request_token on /health instead"
-            )
-            return
         token = kite_auth.refresh_access_token(force=True)
         kite = kite_auth.get_kite()
         profile = kite.profile()
