@@ -53,6 +53,27 @@ python -m data_layer.build --close  # post-close snapshot
 
 Each phase leaves the whole thing runnable; empty blocks are valid, not errors.
 
+## Pipeline hardening
+
+- **Dossier merge:** `build.py` loads each ticker's existing dossier before
+  updating. Failed fundamentals/technicals/news fetches keep prior data;
+  successful fetches still overwrite as usual.
+- **News quota:** `try_fetch_news()` reports fetch success separately from
+  empty results. Quota failures retain prior news. `--skip-news` on
+  `data_layer.build` or `cron.morning_ingestion` skips Marketaux on re-runs.
+- **Health shortlists:** `/health` uses `stages.shortlists` per strategy when
+  present; missing strategies fall back to local disk then
+  `DOSSIER_API_URL/api/shortlists/today` (set on `stock_ai`).
+
+### Local full pipeline
+
+```bash
+PYTHONPATH=. python -m cron.morning_ingestion
+PYTHONPATH=. python -m cron.morning_ingestion --skip-news   # re-run scoring only
+```
+
+Then open `/health` on the dashboard (or query `health_runs` in Supabase).
+
 ## Notes
 - Needs `nifty200.json` at the repo root: `["RELIANCE","TCS",...]`.
 - Adapt `fetch/prices.py` + `fetch/fundamentals.py` to your existing working
@@ -63,7 +84,9 @@ Each phase leaves the whole thing runnable; empty blocks are valid, not errors.
   across tickers and retired for the run once a key hits its daily quota.
   Results are cached per ticker per day (`data/cache/news/`), so re-running
   the build multiple times in one day won't re-spend quota on tickers
-  already checked today.
+  already checked today. On quota/network failure, `build.py` keeps prior
+  dossier news instead of overwriting with empty. Use `--skip-news` to skip
+  Marketaux entirely on quick re-runs.
 - `fundamentals_ext.py` and `events.py` talk to unofficial nseindia.com JSON
   endpoints via a shared cookie-warmed `requests` session — no `nsepython`
   dependency needed for either.

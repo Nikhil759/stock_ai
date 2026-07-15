@@ -6,6 +6,7 @@ Usage (from repo root):
     PYTHONPATH=. python -m cron.morning_ingestion
     PYTHONPATH=. python -m cron.morning_ingestion --skip-build
     PYTHONPATH=. python -m cron.morning_ingestion --skip-build --skip-scoring
+    PYTHONPATH=. python -m cron.morning_ingestion --skip-news   # re-run without Marketaux
 
 Phase E: incremental health_status upserts to Supabase while the run progresses.
 Phase G (bot deploy / final selection) is NOT here.
@@ -185,6 +186,7 @@ def run_pipeline(
     *,
     skip_build: bool = False,
     skip_scoring: bool = False,
+    skip_news: bool = False,
     strategies: list[str] | None = None,
     max_candidates: int = 0,
     tickers: list[str] | None = None,
@@ -206,6 +208,7 @@ def run_pipeline(
                 build_run(
                     snapshot="post_close" if close else "pre_open",
                     tickers=tickers or None,
+                    skip_news=skip_news,
                 )
             except Exception as e:
                 update_stage(
@@ -283,6 +286,11 @@ def main() -> None:
     )
     ap.add_argument("--skip-build", action="store_true")
     ap.add_argument("--skip-scoring", action="store_true")
+    ap.add_argument(
+        "--skip-news",
+        action="store_true",
+        help="reuse prior dossier news during build (saves Marketaux quota on re-runs)",
+    )
     ap.add_argument("--strategies", type=str, default="")
     ap.add_argument("--max-candidates", type=int, default=0)
     ap.add_argument("--tickers", type=str, default="")
@@ -293,6 +301,7 @@ def main() -> None:
         run_pipeline(
             skip_build=args.skip_build,
             skip_scoring=args.skip_scoring,
+            skip_news=args.skip_news,
             strategies=[s.strip().lower() for s in args.strategies.split(",") if s.strip()],
             max_candidates=args.max_candidates,
             tickers=[t.strip().upper() for t in args.tickers.split(",") if t.strip()],

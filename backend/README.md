@@ -62,7 +62,9 @@ run.
 6. Scheduled job runs inside the API via APScheduler (`30 2 * * 1-5` UTC
    weekdays): dossier build → funnels → batch LLM scoring → shortlist cache →
    `health_status` upserts (`cron/morning_ingestion.run_pipeline`). Manual
-   dossier-only rebuild is still available via `POST /api/build`.
+   dossier-only rebuild is still available via `POST /api/build`. Re-runs
+   merge dossiers (failed fetches keep prior data); use `--skip-news` locally
+   or via `run_pipeline(skip_news=True)` to avoid burning Marketaux quota.
 
 ### `stock_ai` web service — Phase E/F variables
 

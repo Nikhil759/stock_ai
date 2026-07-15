@@ -230,13 +230,21 @@ def _parse(raw: dict, ticker: str) -> tuple[NewsBlock, str | None]:
 
 # ---------- public entry point (build.py already calls this) ----------
 
-def fetch_news(ticker: str, return_6m: float | None = None) -> NewsBlock:
+def try_fetch_news(
+    ticker: str, return_6m: float | None = None
+) -> tuple[NewsBlock, bool]:
+    """Return (block, fetched_ok). fetched_ok is False on quota/network/key failure."""
     raw = _fetch_raw(ticker)
     if not raw:
-        return NewsBlock(match_score_threshold=MATCH_SCORE_THRESHOLD)
+        return NewsBlock(match_score_threshold=MATCH_SCORE_THRESHOLD), False
     block, label = _parse(raw, ticker)
     if label is not None:
         block.sentiment_vs_price = _sentiment_vs_price(label, return_6m)
+    return block, True
+
+
+def fetch_news(ticker: str, return_6m: float | None = None) -> NewsBlock:
+    block, _ = try_fetch_news(ticker, return_6m=return_6m)
     return block
 
 

@@ -332,7 +332,7 @@ _SHORTLIST_STRATEGIES = ("value", "winners", "box", "dip")
 
 
 def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[str, Any]]]:
-    """Prefer shortlists stored on today's health run; fall back to disk or cron API.
+    """Prefer shortlists on today's health run; per-strategy fallback when missing.
 
     Always returns all 4 strategy keys (defaulting to []) so a strategy that
     genuinely found zero candidates today is shown as "0 candidates" rather
@@ -340,18 +340,35 @@ def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[s
     missing/broken pipeline stage.
     """
     from_stages = (stages or {}).get("shortlists") or {}
-    if isinstance(from_stages, dict) and from_stages:
-        # Today's run recorded *something* — trust it fully, including
-        # strategies it explicitly ran and found nothing for ([]).
-        source = {k: v for k, v in from_stages.items() if isinstance(v, list)}
-    else:
-        source = _load_shortlists_from_disk()
-        if not source:
+    if not isinstance(from_stages, dict):
+        from_stages = {}
+
+    disk_cache: dict[str, list[dict[str, Any]]] | None = None
+    cron_cache: dict[str, list[dict[str, Any]]] | None = None
+
+    def _disk() -> dict[str, list[dict[str, Any]]]:
+        nonlocal disk_cache
+        if disk_cache is None:
+            disk_cache = _load_shortlists_from_disk()
+        return disk_cache
+
+    def _cron() -> dict[str, list[dict[str, Any]]]:
+        nonlocal cron_cache
+        if cron_cache is None:
             from cache.shortlist_cache import fetch_shortlists_from_cron
 
-            source = fetch_shortlists_from_cron() or {}
+            cron_cache = fetch_shortlists_from_cron() or {}
+        return cron_cache
 
-    return {name: source.get(name) or [] for name in _SHORTLIST_STRATEGIES}
+    out: dict[str, list[dict[str, Any]]] = {}
+    for name in _SHORTLIST_STRATEGIES:
+        stage_val = from_stages.get(name)
+        if name in from_stages and isinstance(stage_val, list):
+            # Pipeline recorded this strategy (including explicit []).
+            out[name] = stage_val
+        else:
+            out[name] = _disk().get(name) or _cron().get(name) or []
+    return out
 
 
 @router.get("/health", response_class=HTMLResponse)
