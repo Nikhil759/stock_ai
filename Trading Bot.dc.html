@@ -1577,7 +1577,12 @@ class Component extends DCLogic {
     const pending = pendingRes.ok ? (await pendingRes.json()).pending : [];
     const actionLog = logRes.ok ? (await logRes.json()).log : [];
     const noteData = noteRes.ok ? await noteRes.json() : null;
-    const dailyNote = noteData?.note ? noteData : null;
+    const rawNote = noteData?.note;
+    const dailyNote = rawNote
+      ? (typeof rawNote === 'string'
+          ? noteData
+          : { ...noteData, note: rawNote.body || rawNote.summary || '' })
+      : null;
     this.setState({
       activeBotId: botId,
       activeBot,
@@ -1829,7 +1834,7 @@ class Component extends DCLogic {
         loading: false,
         screen: 'shortlist',
         cands,
-        screenedN: screen?.screenedCount || 200,
+        screenedN: screen?.screenedCount ?? 0,
         pickN: (screen?.candidates || []).length,
         botActionMsg: screen?.botAction?.message || '',
         llmSummary: summary,
@@ -1873,7 +1878,7 @@ class Component extends DCLogic {
       this.setState({
         loading: false,
         cands,
-        screenedN: data.screenedCount || 200,
+        screenedN: data.screenedCount ?? 0,
         pickN: (data.candidates || []).length,
         botActionMsg: data.botAction?.message || '',
         llmSummary: summary,
@@ -2194,7 +2199,10 @@ class Component extends DCLogic {
       : '—';
     const trackerSummary = (s.lastScreenSummary || {})[s.activeBotId] || s.llmSummary || '';
     const hasTrackerSummary = !!trackerSummary && s.screen === 'tracker';
-    const dailyNoteText = s.dailyNote?.note || '';
+    const noteField = s.dailyNote?.note;
+    const dailyNoteText = typeof noteField === 'string'
+      ? noteField
+      : (noteField?.body || noteField?.summary || '');
     const dailyNoteUpdated = s.dailyNote?.updatedAt
       ? new Date(s.dailyNote.updatedAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
       : '';

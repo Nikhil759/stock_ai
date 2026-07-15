@@ -328,28 +328,6 @@ def _load_shortlists_from_disk() -> dict[str, list[dict[str, Any]]]:
     return out
 
 
-def _fetch_shortlists_from_cron() -> dict[str, list[dict[str, Any]]]:
-    import httpx
-
-    base = (os.getenv("DOSSIER_API_URL") or "").strip().rstrip("/")
-    if not base:
-        return {}
-    token = (os.getenv("DOSSIER_API_TOKEN") or "").strip()
-    headers: dict[str, str] = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            r = client.get(f"{base}/api/shortlists/today", headers=headers)
-            if r.status_code >= 400:
-                return {}
-            data = r.json()
-            sl = data.get("shortlists") or {}
-            return sl if isinstance(sl, dict) else {}
-    except Exception:
-        return {}
-
-
 def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[str, Any]]]:
     """Prefer shortlists stored on today's health run; fall back to disk or cron API."""
     from_stages = (stages or {}).get("shortlists") or {}
@@ -360,7 +338,9 @@ def _resolve_shortlists_for_health(stages: dict | None) -> dict[str, list[dict[s
     local = _load_shortlists_from_disk()
     if local:
         return local
-    return _fetch_shortlists_from_cron()
+    from cache.shortlist_cache import fetch_shortlists_from_cron
+
+    return fetch_shortlists_from_cron()
 
 
 @router.get("/health", response_class=HTMLResponse)

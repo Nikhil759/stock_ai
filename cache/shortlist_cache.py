@@ -77,3 +77,57 @@ def load_shortlist(strategy: str, as_of: date | str) -> list[dict[str, Any]]:
         f"{data.get('date', as_of)} ({len(candidates)} candidates)"
     )
     return candidates
+
+
+def fetch_shortlists_from_cron() -> dict[str, list[dict[str, Any]]]:
+    """Pull today's shortlists from data-layer-cron (volume-backed cache)."""
+    import os
+
+    import requests
+
+    base = (os.getenv("DOSSIER_API_URL") or "").strip().rstrip("/")
+    if not base:
+        return {}
+    token = (os.getenv("DOSSIER_API_TOKEN") or "").strip()
+    headers: dict[str, str] = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        resp = requests.get(
+            f"{base}/api/shortlists/today",
+            headers=headers,
+            timeout=30,
+        )
+        if resp.status_code >= 400:
+            print(
+                f"[SHORTLIST CACHE] Cron fetch failed ({resp.status_code}) "
+                f"from {base}/api/shortlists/today"
+            )
+            return {}
+        data = resp.json()
+        sl = data.get("shortlists") or {}
+        return sl if isinstance(sl, dict) else {}
+    except Exception as exc:
+        print(f"[SHORTLIST CACHE] Cron fetch error: {exc}")
+        return {}
+
+
+def load_shortlist_resolved(strategy: str, as_of: date | str) -> list[dict[str, Any]]:
+    """Local disk first, then data-layer-cron API when stock_ai has no volume cache."""
+    local = load_shortlist(strategy, as_of)
+    if local:
+        return local
+
+    key = strategy.lower().strip()
+    remote = fetch_shortlists_from_cron()
+    cands = remote.get(key) or []
+    if not cands:
+        print(f"[SHORTLIST CACHE] Miss — no local or remote shortlist for {key}")
+        return []
+
+    print(f"[SHORTLIST CACHE] Remote hit — {len(cands)} candidates for {key}")
+    try:
+        save_shortlist(key, as_of, cands)
+    except OSError as exc:
+        print(f"[SHORTLIST CACHE] Could not persist remote shortlist: {exc}")
+    return cands

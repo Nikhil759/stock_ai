@@ -8,7 +8,8 @@ from datetime import date
 from typing import Any
 from uuid import UUID
 
-from cache.shortlist_cache import load_shortlist
+from cache.shortlist_cache import load_shortlist_resolved
+from backend.dossier_sync import sync_dossiers_from_api
 from data_layer.storage import load_all_dossiers
 from db import repository as repo
 from db.repository import RUN_TYPE_BIRTH
@@ -208,7 +209,19 @@ def deploy_new_wolf(
         raise ValueError(f"unknown strategy {strategy!r}")
 
     run_date = as_of or date.today()
-    shortlist = load_shortlist(trade_strategy, run_date)
+
+    try:
+        sync_dossiers_from_api()
+    except Exception as exc:
+        log.warning("[DEPLOY] dossier sync failed (continuing): %s", exc)
+
+    shortlist = load_shortlist_resolved(trade_strategy, run_date)
+    if not shortlist:
+        raise ValueError(
+            f"No shortlist for '{trade_strategy}' today. "
+            "Run the morning pipeline on data-layer-cron, then redeploy."
+        )
+
     market_context = _market_context()
 
     wolf_id = repo.allocate_wolf_id()

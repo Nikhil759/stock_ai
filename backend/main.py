@@ -6,6 +6,7 @@ from uuid import UUID
 import logging
 import os
 import sys
+from datetime import date
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -449,17 +450,28 @@ def bot_daily_note(
     birth = wolf.get("birth_intent")
     text = ""
     if isinstance(birth, dict):
-        text = str(birth.get("text") or "")
+        text = str(birth.get("text") or birth.get("body") or "")
     elif isinstance(birth, str):
         text = birth
     if not text:
-        return {"note": None, "message": "No daily note yet — deploy or wait for daily review."}
-    return {
-        "note": {
-            "date": note_date,
-            "summary": text[:500],
-            "body": text,
+        return {
+            "botId": wolf_id,
+            "date": note_date or date.today().isoformat(),
+            "note": None,
+            "updatedAt": None,
+            "message": "No daily note yet — deploy or wait for daily review.",
         }
+    updated = wolf.get("updated_at") or wolf.get("created_at")
+    updated_at = (
+        updated.isoformat()
+        if hasattr(updated, "isoformat")
+        else str(updated) if updated else None
+    )
+    return {
+        "botId": wolf_id,
+        "date": note_date or date.today().isoformat(),
+        "note": text,
+        "updatedAt": updated_at,
     }
 
 
