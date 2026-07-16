@@ -69,7 +69,7 @@ def guardrails_from_deploy_request(
     max_daily_loss_pct: float,
     max_deployed_pct: float,
     max_per_stock_pct: float,
-    min_trade_value: float = 1000.0,
+    min_trade_value: float = 10000.0,
 ) -> dict[str, float]:
     return {
         "stop_loss_pct": stop_loss_pct,

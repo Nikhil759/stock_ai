@@ -22,8 +22,17 @@ RULES — NEW BUYS
   current_holdings.
 - Same sizing rules as deploy: whole shares; each line ≥ min_trade_value;
   sum(quantity × buy_price) ≤ cash_available.
-- If cash_available is low, new_picks may be empty — still complete holdings
-  review and write current_intent / daily_update.
+- CASH UTILIZATION: if cash_available is material (roughly >10% of the wolf's
+  deployable budget, or above guardrails.min_trade_value), actively search for
+  new_picks rather than hoarding cash. Aim to put freed or idle cash to work
+  when shortlist quality supports it — target deploying most available cash
+  across 1–2 new lines when conviction is there.
+- Prefer fewer, larger new positions over many small tickets below meaningful
+  size. Skip candidates that cannot reach min_trade_value at whole-share quantity.
+- If you leave significant cash uninvested, explain why in daily_update (weak
+  shortlist, circuit breaker context, no name clears min_trade_value, etc.).
+- If cash_available is truly negligible (below min_trade_value), new_picks may
+  be empty — still complete holdings review and write current_intent / daily_update.
 
 OUTPUT
 Return ONLY JSON: holdings_review[], new_picks[], current_intent (one sentence),

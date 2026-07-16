@@ -78,6 +78,7 @@ class DeployRequest(BaseModel):
     max_deployed_pct: float = Field(100, ge=10, le=100)
     max_per_stock_pct: float = Field(40, ge=5, le=100)
     stop_loss_pct: float = Field(15, ge=5, le=50)
+    min_trade_value: float = Field(10000, ge=1000, le=500000)
     name: str | None = None
     run_screen: bool = True
 
@@ -233,6 +234,7 @@ def deploy_bot(
             max_daily_loss_pct=req.max_daily_loss_pct,
             max_deployed_pct=req.max_deployed_pct,
             max_per_stock_pct=req.max_per_stock_pct,
+            min_trade_value=req.min_trade_value,
         )
         wolf_result = deploy_new_wolf(
             user_id=user_id,

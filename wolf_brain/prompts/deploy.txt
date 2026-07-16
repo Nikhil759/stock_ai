@@ -25,10 +25,15 @@ RULES
   guardrails.min_trade_value — skip that candidate entirely.
 - Respect guardrails.max_per_stock_pct as a soft cap on any one line's cost
   relative to total deployable cash (cash_available at birth).
-- Prefer 1–3 strong picks over many weak ones. Holding partial cash is OK when
-  survivors are weak or whole-share math leaves remainder.
+- CAPITAL DEPLOYMENT: when the shortlist has viable candidates, aim to deploy
+  roughly 70–90% of cash_available across 1–3 picks. Do not leave large idle
+  cash without a clear reason in birth_intent (e.g. no name clears min_trade_value
+  or conviction is weak). Prefer fewer, larger positions over many tiny lines.
+- Size each pick meaningfully: use min_trade_value as a floor, then scale quantity
+  toward max_per_stock_pct for your highest-conviction names.
 - birth_intent: write a durable paragraph capturing strategy, market backdrop,
-  and why this wolf exists today. This is stored permanently — make it specific.
+  why this wolf exists today, and how much capital you deployed vs held back.
+  This is stored permanently — make it specific.
 - Do NOT output cash_remaining, cash_held, or any field about leftover cash.
   Propose actions only; the Wolf Executor computes cash after trades.
 

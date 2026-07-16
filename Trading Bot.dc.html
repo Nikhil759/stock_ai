@@ -602,6 +602,10 @@
             <span style="font-size:13px;color:var(--ink2);">Max per stock</span>
             <div style="display:flex;align-items:center;gap:6px;"><input value="{{ maxPerStock }}" onInput="{{ onMaxPerStock }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px;min-width:52px;width:52px;text-align:center;background:var(--panel);"><span style="font-size:13px;">% of budget</span></div>
           </div>
+          <div class="guardrail-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--ink2);">Minimum trade size</span>
+            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:13px;">₹</span><input value="{{ minTradeValue }}" onInput="{{ onMinTradeValue }}" inputmode="numeric" style="border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px;min-width:72px;width:88px;text-align:center;background:var(--panel);"></div>
+          </div>
         </div>
       </div>
 
@@ -1195,6 +1199,7 @@ class Component extends DCLogic {
       max_daily_loss_pct: 5,
       max_deployed_pct: 100,
       max_per_stock_pct: 40,
+      min_trade_value: 10000,
       stop_loss_pct: 15,
       trades: [],
       loading: false,
@@ -2121,6 +2126,7 @@ class Component extends DCLogic {
           max_daily_loss_pct: s.max_daily_loss_pct,
           max_deployed_pct: s.max_deployed_pct,
           max_per_stock_pct: s.max_per_stock_pct,
+          min_trade_value: s.min_trade_value,
           stop_loss_pct: s.stop_loss_pct,
           run_screen: true,
         }),
@@ -2290,6 +2296,10 @@ class Component extends DCLogic {
     const onMaxDailyLoss = e => this.setState({ max_daily_loss_pct: clampPct(e.target.value, 1, 50) });
     const onMaxDeployed = e => this.setState({ max_deployed_pct: clampPct(e.target.value, 10, 100) });
     const onMaxPerStock = e => this.setState({ max_per_stock_pct: clampPct(e.target.value, 5, 100) });
+    const onMinTradeValue = e => {
+      const n = parseInt(String(e.target.value).replace(/[^0-9]/g,'')) || 0;
+      this.setState({ min_trade_value: Math.max(1000, Math.min(500000, n)) });
+    };
 
     const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
     const nav = {
@@ -2648,7 +2658,8 @@ class Component extends DCLogic {
       maxDailyLoss: s.screen === 'setup' ? s.max_daily_loss_pct : (bot?.max_daily_loss_pct ?? s.max_daily_loss_pct),
       maxDeployed: s.screen === 'setup' ? s.max_deployed_pct : (bot?.max_deployed_pct ?? s.max_deployed_pct),
       maxPerStock: s.screen === 'setup' ? s.max_per_stock_pct : (bot?.max_per_stock_pct ?? s.max_per_stock_pct),
-      onMaxDailyLoss, onMaxDeployed, onMaxPerStock,
+      minTradeValue: s.screen === 'setup' ? s.min_trade_value : (bot?.min_trade_value ?? s.min_trade_value),
+      onMaxDailyLoss, onMaxDeployed, onMaxPerStock, onMinTradeValue,
       stopLossNote: bot?.stopLossNote || (s.stop_loss_pct + '% below buy price (automatic on every trade)'),
       pending: s.pending, hasPending: s.pending.length > 0,
       actionLog: s.actionLog, hasLog: s.actionLog.length > 0, noLog: s.actionLog.length === 0,

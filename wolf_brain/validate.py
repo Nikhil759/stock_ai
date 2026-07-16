@@ -13,7 +13,7 @@ from wolf_brain.schemas import (
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MIN_TRADE_VALUE = 1000.0
+DEFAULT_MIN_TRADE_VALUE = 10000.0
 
 
 def normalize_guardrails(raw: dict | None) -> dict[str, float]:

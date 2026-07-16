@@ -42,6 +42,7 @@ def _guardrails(wolf: dict) -> dict[str, float]:
         "max_per_stock_pct": float(
             g.get("max_per_stock_pct") or g.get("max_position_pct") or 40
         ),
+        "min_trade_value": float(g.get("min_trade_value") or 10000),
     }
 
 
@@ -200,6 +201,7 @@ def wolf_to_bot(
         "max_daily_loss_pct": g["max_daily_loss_pct"],
         "max_deployed_pct": g["max_deployed_pct"],
         "max_per_stock_pct": g["max_per_stock_pct"],
+        "min_trade_value": g["min_trade_value"],
         "stop_loss_pct": g["stop_loss_pct"],
         "deployedAt": _fmt_entry_date(created) if created else "",
         "terminatedAt": _fmt_entry_date(terminated) if terminated else None,
