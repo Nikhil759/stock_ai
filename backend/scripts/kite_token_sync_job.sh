@@ -3,7 +3,7 @@
 # LAUNCHD_CATCHUP=1 → weekday catch-up polls only (6:00–11:59 AM IST).
 set -euo pipefail
 
-REPO="/Users/nikhilbansal/Desktop/stock_ai"
+REPO="/Users/nikhilbansal/Projects/stock_ai"
 PY="$REPO/.venv/bin/python"
 LOG="/tmp/wolfcapital-kite-token.log"
 
@@ -21,7 +21,12 @@ fi
 
 cd "$REPO/backend"
 log "start sync (catchup=${LAUNCHD_CATCHUP:-0})"
-if "$PY" -m scripts.refresh_kite_token --sync >>"$LOG" 2>&1; then
+# 6:05 AM job mints a fresh token (--force); catch-up reuses today's cache if valid.
+SYNC_ARGS=(--sync)
+if [[ "${LAUNCHD_CATCHUP:-0}" != "1" ]]; then
+  SYNC_ARGS=(--force --sync)
+fi
+if "$PY" -m scripts.refresh_kite_token "${SYNC_ARGS[@]}" >>"$LOG" 2>&1; then
   log "sync ok"
 else
   code=$?

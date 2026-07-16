@@ -121,7 +121,10 @@ python -m scripts.refresh_kite_token --sync
 ./scripts/kite_token_sync_job.sh
 ```
 
-**launchd (recommended on macOS)** — handles login + wake-after-sleep catch-up:
+**launchd (recommended on macOS)** — handles login + wake-after-sleep catch-up.
+
+Keep the repo **outside** `~/Desktop` (e.g. `~/Projects/stock_ai`) — macOS blocks
+background LaunchAgents from reading Desktop paths (exit 127).
 
 ```bash
 chmod +x backend/scripts/kite_token_sync_job.sh
