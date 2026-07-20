@@ -123,12 +123,35 @@ def _set_pkce_cookie(response: RedirectResponse, verifier: str) -> None:
     )
 
 
+def _cookie_delete_kwargs() -> dict[str, Any]:
+    return {
+        "path": "/",
+        "secure": _cookie_secure(),
+        "httponly": True,
+        "samesite": _session_same_site(),
+    }
+
+
+def _delete_cookie_variants(response: RedirectResponse, key: str) -> None:
+    """Delete host-only and parent-domain cookies (legacy + current auth cookies)."""
+    kwargs = _cookie_delete_kwargs()
+    response.delete_cookie(key=key, **kwargs)
+    domain = _cookie_domain()
+    if domain:
+        response.delete_cookie(key=key, domain=domain, **kwargs)
+
+
 def _clear_pkce_cookie(response: RedirectResponse) -> None:
-    response.delete_cookie(
-        key=_PKCE_COOKIE,
-        path="/",
-        domain=_cookie_domain(),
-    )
+    _delete_cookie_variants(response, _PKCE_COOKIE)
+
+
+def _clear_session_cookies(response: RedirectResponse) -> None:
+    _delete_cookie_variants(response, "session")
+
+
+def _clear_auth_cookies(response: RedirectResponse) -> None:
+    _clear_session_cookies(response)
+    _clear_pkce_cookie(response)
 
 
 def _read_pkce_verifier(request: Request) -> str | None:
@@ -718,7 +741,7 @@ async def health_logout(request: Request, return_to: str | None = None):
     dest = _safe_return_url(return_to) or _default_app_url()
     request.session.clear()
     response = RedirectResponse(dest, status_code=303)
-    _clear_pkce_cookie(response)
+    _clear_auth_cookies(response)
     return response
 
 
