@@ -159,13 +159,21 @@ def _read_pkce_verifier(request: Request) -> str | None:
     return (raw or "").strip() or None
 
 
+def _client_host(request: Request) -> str:
+    """Browser-facing host (Vercel/Railway set X-Forwarded-Host on proxied requests)."""
+    forwarded = (request.headers.get("x-forwarded-host") or "").split(",")[0].strip()
+    if forwarded:
+        return forwarded.split(":")[0].lower()
+    return (request.url.hostname or "").lower()
+
+
 def _canonical_redirect(request: Request) -> RedirectResponse | None:
     """Force auth on FRONTEND_URL host so apex/www and PWA share cookies."""
     frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
     if not frontend:
         return None
     canon_host = (urlparse(frontend).hostname or "").lower()
-    req_host = (request.url.hostname or "").lower()
+    req_host = _client_host(request)
     if not canon_host or not req_host or req_host == canon_host:
         return None
     target = f"{frontend}{request.url.path}"
