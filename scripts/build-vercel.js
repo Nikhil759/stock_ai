@@ -20,8 +20,13 @@ const apiBase = normalizeBase(
   ''
 );
 
+const frontendUrl = normalizeBase(process.env.FRONTEND_URL || '');
+
 if (!apiBase) {
   console.warn('Warning: RAILWAY_PUBLIC_URL not set — config.js will use same-origin /api (local dev only).');
+}
+if (!frontendUrl) {
+  console.warn('Warning: FRONTEND_URL not set — PWA start_url stays relative (/app).');
 }
 
 fs.mkdirSync(out, { recursive: true });
@@ -31,8 +36,19 @@ const htmlDst = path.join(out, 'index.html');
 fs.copyFileSync(htmlSrc, htmlDst);
 fs.copyFileSync(path.join(root, 'support.js'), path.join(out, 'support.js'));
 fs.copyFileSync(path.join(root, 'wolf_logo.png'), path.join(out, 'wolf_logo.png'));
-fs.copyFileSync(path.join(root, 'manifest.webmanifest'), path.join(out, 'manifest.webmanifest'));
 fs.copyFileSync(path.join(root, 'sw.js'), path.join(out, 'sw.js'));
+
+const manifestSrc = JSON.parse(
+  fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8')
+);
+manifestSrc.start_url = frontendUrl ? `${frontendUrl}/app` : '/app';
+if (frontendUrl) {
+  manifestSrc.id = `${frontendUrl}/app`;
+}
+fs.writeFileSync(
+  path.join(out, 'manifest.webmanifest'),
+  JSON.stringify(manifestSrc, null, 2) + '\n'
+);
 
 const config = `window.__API_BASE__ = "";\n`;
 fs.writeFileSync(path.join(out, 'config.js'), config);
@@ -78,4 +94,7 @@ console.log('Built public/ for Vercel');
 console.log('  API base:', '(same-origin via /api proxy)');
 if (apiBase) {
   console.log('  API proxy: /health/* and /api/* ->', apiBase);
+}
+if (frontendUrl) {
+  console.log('  PWA start_url:', `${frontendUrl}/app`);
 }

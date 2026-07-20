@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from dotenv import load_dotenv
@@ -69,6 +69,86 @@ def redirect_url() -> str:
     if frontend:
         return f"{frontend}/health/auth/callback"
     return "http://127.0.0.1:8000/health/auth/callback"
+
+
+_PKCE_COOKIE = "wc_pkce_verifier"
+_PKCE_MAX_AGE = 600  # seconds — OAuth round-trip + PWA handoff
+_SESSION_MAX_AGE = int(os.getenv("DASHBOARD_SESSION_MAX_AGE", str(60 * 60 * 24 * 30)))
+
+
+def _is_prod() -> bool:
+    return bool(os.getenv("RAILWAY_ENVIRONMENT"))
+
+
+def _cookie_secure() -> bool:
+    return _is_prod() or os.getenv("DASHBOARD_COOKIE_SECURE", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def _cookie_domain() -> str | None:
+    """Share cookies across apex + www (e.g. .wolfcapital.pro)."""
+    frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
+    if not frontend:
+        return None
+    host = (urlparse(frontend).hostname or "").lower()
+    if not host or host in ("localhost", "127.0.0.1"):
+        return None
+    parts = host.split(".")
+    if len(parts) >= 2:
+        return "." + ".".join(parts[-2:])
+    return None
+
+
+def _session_same_site() -> str:
+    """Vercel proxies /health and /api — auth cookies are first-party; Lax works in PWA."""
+    override = (os.getenv("DASHBOARD_COOKIE_SAMESITE") or "").strip().lower()
+    if override in ("lax", "strict", "none"):
+        return override
+    return "lax"
+
+
+def _set_pkce_cookie(response: RedirectResponse, verifier: str) -> None:
+    response.set_cookie(
+        key=_PKCE_COOKIE,
+        value=verifier,
+        max_age=_PKCE_MAX_AGE,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=_session_same_site(),
+        path="/",
+        domain=_cookie_domain(),
+    )
+
+
+def _clear_pkce_cookie(response: RedirectResponse) -> None:
+    response.delete_cookie(
+        key=_PKCE_COOKIE,
+        path="/",
+        domain=_cookie_domain(),
+    )
+
+
+def _read_pkce_verifier(request: Request) -> str | None:
+    raw = request.cookies.get(_PKCE_COOKIE) or request.session.get("pkce_verifier")
+    return (raw or "").strip() or None
+
+
+def _canonical_redirect(request: Request) -> RedirectResponse | None:
+    """Force auth on FRONTEND_URL host so apex/www and PWA share cookies."""
+    frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
+    if not frontend:
+        return None
+    canon_host = (urlparse(frontend).hostname or "").lower()
+    req_host = (request.url.hostname or "").lower()
+    if not canon_host or not req_host or req_host == canon_host:
+        return None
+    target = f"{frontend}{request.url.path}"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(target, status_code=307)
 
 
 def session_secret() -> str:
@@ -555,6 +635,9 @@ async def api_run_pipeline(request: Request):
 @router.get("/health/login")
 async def health_login(request: Request, return_to: str | None = None):
     """Start Google OAuth via Supabase Auth (PKCE)."""
+    if canon := _canonical_redirect(request):
+        return canon
+
     verifier, challenge = _pkce_pair()
     request.session["pkce_verifier"] = verifier
     safe_return = _safe_return_url(return_to)
@@ -568,19 +651,24 @@ async def health_login(request: Request, return_to: str | None = None):
         "code_challenge_method": "S256",
     }
     url = f"{supabase_url()}/auth/v1/authorize?{urlencode(params)}"
-    return RedirectResponse(url)
+    response = RedirectResponse(url)
+    _set_pkce_cookie(response, verifier)
+    return response
 
 
 @router.get("/health/auth/callback")
 async def health_auth_callback(request: Request, code: str | None = None):
     """Exchange ?code= for a session (PKCE) and store user email."""
+    if canon := _canonical_redirect(request):
+        return canon
+
     if not code:
         return HTMLResponse(
             "<p>Missing auth code. <a href='/health'>Back</a></p>",
             status_code=400,
         )
 
-    verifier = request.session.get("pkce_verifier")
+    verifier = _read_pkce_verifier(request)
     if not verifier:
         return HTMLResponse(
             "<p>Missing PKCE verifier (start login again). "
@@ -620,14 +708,18 @@ async def health_auth_callback(request: Request, code: str | None = None):
     if user_id:
         request.session["user_id"] = user_id
     request.session["access_token"] = data.get("access_token")
-    return RedirectResponse(_post_auth_redirect(request), status_code=303)
+    response = RedirectResponse(_post_auth_redirect(request), status_code=303)
+    _clear_pkce_cookie(response)
+    return response
 
 
 @router.get("/health/logout")
 async def health_logout(request: Request, return_to: str | None = None):
     dest = _safe_return_url(return_to) or _default_app_url()
     request.session.clear()
-    return RedirectResponse(dest, status_code=303)
+    response = RedirectResponse(dest, status_code=303)
+    _clear_pkce_cookie(response)
+    return response
 
 
 @router.get("/api/ops/me")
@@ -744,10 +836,13 @@ async def api_health_status(request: Request, n: int = 5):
 
 def install_session_middleware(app) -> None:
     """Call once when mounting the dashboard on the FastAPI app."""
-    # Cross-site session cookies (Vercel UI -> Railway API) need SameSite=None.
-    is_prod = bool(os.getenv("RAILWAY_ENVIRONMENT"))
-    kwargs: dict[str, Any] = {"secret_key": session_secret()}
-    if is_prod:
-        kwargs["same_site"] = "none"
-        kwargs["https_only"] = True
+    kwargs: dict[str, Any] = {
+        "secret_key": session_secret(),
+        "max_age": _SESSION_MAX_AGE,
+        "same_site": _session_same_site(),
+        "https_only": _cookie_secure(),
+    }
+    domain = _cookie_domain()
+    if domain:
+        kwargs["domain"] = domain
     app.add_middleware(SessionMiddleware, **kwargs)

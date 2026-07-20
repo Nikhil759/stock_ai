@@ -150,9 +150,11 @@ Logs: `/tmp/wolfcapital-kite-token.log`
 Repo `.env` needs `KITE_USER_ID`, `KITE_PASSWORD`, `KITE_TOTP_SECRET` (TOTP only
 on your Mac). Railway `stock_ai` only needs `KITE_API_KEY` + `KITE_API_SECRET`.
 
-**Vercel:** set `RAILWAY_PUBLIC_URL` to your Railway API host. The Vercel build
-generates rewrites that proxy `/health/*` and `/api/ops/*` to Railway so login
-cookies stay on the Vercel domain (first-party).
+**Vercel:** set `RAILWAY_PUBLIC_URL` and `FRONTEND_URL` (canonical host, e.g.
+`https://www.wolfcapital.pro`) on the Vercel project. The build sets PWA
+`start_url` from `FRONTEND_URL`. Rewrites proxy `/health/*` and `/api/*` to
+Railway so auth cookies stay first-party (`SameSite=Lax`, shared via
+`.wolfcapital.pro` when configured).
 
 Verify cron API: `GET /health` on the cron service (public URL) → `count: 200`.
 
