@@ -167,8 +167,18 @@ def _client_host(request: Request) -> str:
     return (request.url.hostname or "").lower()
 
 
+def _is_upstream_proxied(request: Request) -> bool:
+    """Vercel rewrites /health to Railway; browser URL is already canonical."""
+    if request.headers.get("x-vercel-id"):
+        return True
+    upstream = (request.url.hostname or "").lower()
+    return upstream.endswith(".railway.app") or ".up.railway.app" in upstream
+
+
 def _canonical_redirect(request: Request) -> RedirectResponse | None:
     """Force auth on FRONTEND_URL host so apex/www and PWA share cookies."""
+    if _is_upstream_proxied(request):
+        return None
     frontend = _normalize_origin(os.getenv("FRONTEND_URL", ""))
     if not frontend:
         return None

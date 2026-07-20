@@ -12,12 +12,15 @@ def _make_request(
     host: str,
     *,
     forwarded_host: str | None = None,
+    vercel_id: str | None = None,
     path: str = "/health/login",
     query: str = "",
 ) -> Request:
     headers: list[tuple[bytes, bytes]] = [(b"host", host.encode())]
     if forwarded_host:
         headers.append((b"x-forwarded-host", forwarded_host.encode()))
+    if vercel_id:
+        headers.append((b"x-vercel-id", vercel_id.encode()))
     scope = {
         "type": "http",
         "method": "GET",
@@ -39,7 +42,16 @@ def test_client_host_prefers_forwarded_host() -> None:
     assert _client_host(req) == "www.wolfcapital.pro"
 
 
-def test_no_redirect_when_forwarded_host_matches_frontend(monkeypatch) -> None:
+def test_no_redirect_when_proxied_via_vercel(monkeypatch) -> None:
+    monkeypatch.setenv("FRONTEND_URL", "https://www.wolfcapital.pro")
+    req = _make_request(
+        "stockai-production-8023.up.railway.app",
+        vercel_id="bom1::abc123",
+    )
+    assert _canonical_redirect(req) is None
+
+
+def test_no_redirect_when_upstream_is_railway(monkeypatch) -> None:
     monkeypatch.setenv("FRONTEND_URL", "https://www.wolfcapital.pro")
     req = _make_request(
         "stockai-production-8023.up.railway.app",
@@ -48,19 +60,12 @@ def test_no_redirect_when_forwarded_host_matches_frontend(monkeypatch) -> None:
     assert _canonical_redirect(req) is None
 
 
-def test_redirect_apex_to_www_when_forwarded_host_is_apex(monkeypatch) -> None:
+def test_redirect_direct_apex_browser_host(monkeypatch) -> None:
     monkeypatch.setenv("FRONTEND_URL", "https://www.wolfcapital.pro")
-    req = _make_request(
-        "stockai-production-8023.up.railway.app",
-        forwarded_host="wolfcapital.pro",
-        query="return_to=https%3A%2F%2Fwww.wolfcapital.pro%2Fapp",
-    )
+    req = _make_request("wolfcapital.pro")
     resp = _canonical_redirect(req)
     assert resp is not None
-    assert resp.headers["location"] == (
-        "https://www.wolfcapital.pro/health/login?"
-        "return_to=https%3A%2F%2Fwww.wolfcapital.pro%2Fapp"
-    )
+    assert resp.headers["location"] == "https://www.wolfcapital.pro/health/login"
 
 
 def test_no_redirect_without_frontend_url(monkeypatch) -> None:
