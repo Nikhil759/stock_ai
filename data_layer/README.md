@@ -97,8 +97,8 @@ Then open `/health` on the dashboard (or query `health_runs` in Supabase).
 
 - Keeps dossiers on its **volume** (unchanged)
 - Runs **scheduled builds** via APScheduler:
-  - `DOSSIER_BUILD_CRON` (default `30 2 * * 1-5` UTC) — full morning pipeline
-  - `DOSSIER_POST_CLOSE_CRON` (default `30 10 * * 1-5` UTC ≈ 4:00 PM IST) —
+  - `DOSSIER_BUILD_CRON` (default `30 2 * * mon-fri` UTC) — full morning pipeline
+  - `DOSSIER_POST_CLOSE_CRON` (default `30 10 * * mon-fri` UTC ≈ 4:00 PM IST) —
     post-close dossier refresh (`--close --skip-news`, no scoring)
 - Exposes `GET /api/dossiers` for `stock_ai` over **private networking**
 
@@ -155,7 +155,7 @@ automatically.
   configure, `STATE_DIR` picks it up automatically.
 
 **3. Schedule.** Railway cron schedules are UTC only. `railway.json` ships
-with `30 2 * * 1-5` = 08:00 IST, Mon–Fri (pre-open, matches `build.py`'s
+with `30 2 * * mon-fri` = 08:00 IST, Mon–Fri (pre-open, matches `build.py`'s
 default `snapshot="pre_open"`) — adjust to taste. Minimum interval is 5
 minutes, not a concern here.
 

@@ -12,7 +12,7 @@ _evening_lock = threading.Lock()
 _evening_running = False
 
 # Default 11:30 UTC Mon–Fri ≈ 5:00 PM IST (after post-close dossier refresh).
-EVENING_CRON = os.getenv("WOLF_EVENING_CRON", "30 11 * * 1-5").strip()
+EVENING_CRON = os.getenv("WOLF_EVENING_CRON", "30 11 * * mon-fri").strip()
 
 
 def _scheduler_enabled() -> bool:
@@ -51,6 +51,9 @@ def _add_cron_job(sched, cron_expr: str, job_id: str, func) -> bool:
     from apscheduler.triggers.cron import CronTrigger
 
     minute, hour, dom, month, dow = parts
+    from cron_dow import normalize_apscheduler_dow
+
+    dow = normalize_apscheduler_dow(dow)
     sched.add_job(
         func,
         CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),

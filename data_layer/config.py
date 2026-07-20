@@ -31,10 +31,10 @@ CACHE_DIR = STATE_DIR / "data" / "cache"      # parent for fundamentals/news/eve
 
 # --- internal dossier API (data-layer-cron serve + stock_ai sync) ---
 DOSSIER_API_TOKEN = os.environ.get("DOSSIER_API_TOKEN", "").strip()
-BUILD_CRON = os.environ.get("DOSSIER_BUILD_CRON", "30 2 * * 1-5")  # UTC, weekdays pre-open
+BUILD_CRON = os.environ.get("DOSSIER_BUILD_CRON", "30 2 * * mon-fri")  # UTC, Mon-Fri pre-open
 POST_CLOSE_BUILD_CRON = os.environ.get(
-    "DOSSIER_POST_CLOSE_CRON", "30 10 * * 1-5"
-)  # UTC, weekdays ~4:00 PM IST post-close refresh
+    "DOSSIER_POST_CLOSE_CRON", "30 10 * * mon-fri"
+)  # UTC, Mon-Fri ~4:00 PM IST post-close refresh
 
 # --- yfinance ---
 YF_SUFFIX = ".NS"        # NSE suffix for Yahoo tickers (RELIANCE -> RELIANCE.NS)

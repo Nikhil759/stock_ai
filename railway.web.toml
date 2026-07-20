@@ -15,8 +15,8 @@
 # login). Local cron syncs to Supabase kite_auth_tokens; stock_ai reads it.
 #
 # Fund manager cron runs in-process (no separate cron services):
-#   FUND_SELECTOR_CRON  default 30 3 * * 1-5  (~9:00 AM IST weekdays)
-#   FUND_MORNING_CRON   default 45 3 * * 1-5  (~9:15 AM IST weekdays)
+#   FUND_SELECTOR_CRON  default 30 3 * * mon-fri  (~9:00 AM IST weekdays)
+#   FUND_MORNING_CRON   default 45 3 * * mon-fri  (~9:15 AM IST weekdays)
 #   FUND_SCHEDULER_ENABLED=1  (auto-on when RAILWAY_ENVIRONMENT is set)
 #
 # Do NOT use railway.selector.toml / railway.morning.toml — those were for

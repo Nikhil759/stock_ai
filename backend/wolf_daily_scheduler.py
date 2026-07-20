@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 _daily_lock = threading.Lock()
 _daily_running = False
 
-# Default 25 3 * * 1-5 UTC ≈ 8:55 AM IST (after market open buffer).
-DAILY_CRON = os.getenv("WOLF_DAILY_CRON", "25 3 * * 1-5").strip()
+# Default 25 3 * * mon-fri UTC ≈ 8:55 AM IST (after market open buffer).
+DAILY_CRON = os.getenv("WOLF_DAILY_CRON", "25 3 * * mon-fri").strip()
 
 
 def _scheduler_enabled() -> bool:
@@ -51,6 +51,9 @@ def _add_cron_job(sched, cron_expr: str, job_id: str, func) -> bool:
     from apscheduler.triggers.cron import CronTrigger
 
     minute, hour, dom, month, dow = parts
+    from cron_dow import normalize_apscheduler_dow
+
+    dow = normalize_apscheduler_dow(dow)
     sched.add_job(
         func,
         CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),

@@ -202,6 +202,9 @@ def _add_cron_job(sched, cron_expr: str, job_id: str, func) -> bool:
         log.warning("invalid cron %r for %s — job disabled", cron_expr, job_id)
         return False
     minute, hour, dom, month, dow = parts
+    from cron_dow import normalize_apscheduler_dow
+
+    dow = normalize_apscheduler_dow(dow)
     sched.add_job(
         func,
         CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),

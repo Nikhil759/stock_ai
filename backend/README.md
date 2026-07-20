@@ -59,10 +59,10 @@ run.
    (Phase D batch scoring), `SUPABASE_DATABASE_URL` (Phase E health_status),
    plus `MARKETAUX_API_KEY` etc.
 5. Start command (from `railway.json`): `uvicorn data_layer.serve:app …`
-6. Scheduled job runs inside the API via APScheduler (`30 2 * * 1-5` UTC
+6. Scheduled job runs inside the API via APScheduler (`30 2 * * mon-fri` UTC
    weekdays): dossier build → funnels → batch LLM scoring → shortlist cache →
    `health_status` upserts (`cron/morning_ingestion.run_pipeline`). A second
-   job at `30 10 * * 1-5` UTC (~4:00 PM IST) runs post-close dossier refresh
+   job at `30 10 * * mon-fri` UTC (~4:00 PM IST) runs post-close dossier refresh
    only (`--close --skip-news`, no scoring). Manual dossier-only rebuild is
    still available via `POST /api/build`; post-close via `POST /api/build-close`.
 
@@ -89,10 +89,10 @@ OAuth, PKCE). Add these on the `stock_ai` service:
 
 | Job | Default cron | IST (approx.) |
 |-----|--------------|---------------|
-| Fund selector | `30 3 * * 1-5` | 9:00 AM weekdays |
-| Morning deploy | `45 3 * * 1-5` | 9:15 AM weekdays |
-| Supabase evening auto-exit | `30 11 * * 1-5` | 5:00 PM weekdays |
-| Supabase daily fund manager | `25 3 * * 1-5` | 8:55 AM weekdays |
+| Fund selector | `30 3 * * mon-fri` | 9:00 AM weekdays |
+| Morning deploy | `45 3 * * mon-fri` | 9:15 AM weekdays |
+| Supabase evening auto-exit | `30 11 * * mon-fri` | 5:00 PM weekdays |
+| Supabase daily fund manager | `25 3 * * mon-fri` | 8:55 AM weekdays |
 
 Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`, `WOLF_EVENING_CRON`, `WOLF_DAILY_CRON`.
 SQLite fund scheduler auto-enables on Railway when

@@ -13,8 +13,8 @@ _selector_running = False
 _morning_lock = threading.Lock()
 _morning_running = False
 
-SELECTOR_CRON = os.getenv("FUND_SELECTOR_CRON", "30 3 * * 1-5").strip()
-MORNING_CRON = os.getenv("FUND_MORNING_CRON", "45 3 * * 1-5").strip()
+SELECTOR_CRON = os.getenv("FUND_SELECTOR_CRON", "30 3 * * mon-fri").strip()
+MORNING_CRON = os.getenv("FUND_MORNING_CRON", "45 3 * * mon-fri").strip()
 
 
 def _scheduler_enabled() -> bool:
@@ -74,6 +74,9 @@ def _add_cron_job(sched, cron_expr: str, job_id: str, func) -> bool:
     from apscheduler.triggers.cron import CronTrigger
 
     minute, hour, dom, month, dow = parts
+    from cron_dow import normalize_apscheduler_dow
+
+    dow = normalize_apscheduler_dow(dow)
     sched.add_job(
         func,
         CronTrigger(minute=minute, hour=hour, day=dom, month=month, day_of_week=dow),
