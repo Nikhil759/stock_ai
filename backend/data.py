@@ -175,6 +175,75 @@ def fetch_history(symbol: str, period: str = "1y") -> dict | None:
     return cleaned
 
 
+def _yf_ticker_price(ticker) -> float | None:
+    """Best-effort live/last price from a yfinance Ticker (works for indices too)."""
+    price = None
+    try:
+        fi = ticker.fast_info
+        for key in ("last_price", "lastPrice", "regular_market_price", "regularMarketPrice"):
+            if isinstance(fi, dict):
+                price = safe_float(fi.get(key))
+            else:
+                price = safe_float(getattr(fi, key, None))
+            if price and price > 0:
+                break
+    except Exception:
+        price = None
+
+    if not price or price <= 0:
+        info = ticker.info or {}
+        price = safe_float(info.get("currentPrice")) or safe_float(
+            info.get("regularMarketPrice")
+        )
+
+    return round(price, 2) if price and price > 0 else None
+
+
+def fetch_nifty_quote() -> dict | None:
+    """Latest Nifty 50 level with day change and 200-DMA context."""
+    import yfinance as yf
+
+    from indicators import sma
+
+    for sym in ("^NSEI", "NIFTYBEES.NS"):
+        ticker = yf.Ticker(sym)
+        df = ticker.history(period="1y", auto_adjust=True)
+        if df is None or df.empty:
+            continue
+        df = df.dropna(subset=["Close"])
+        if len(df) < 2:
+            continue
+        closes = [
+            float(x) for x in df["Close"].tolist() if math.isfinite(float(x))
+        ]
+        if len(closes) < 2:
+            continue
+
+        price = _yf_ticker_price(ticker) or closes[-1]
+        info = ticker.info or {}
+        prev = safe_float(info.get("previousClose")) or safe_float(
+            info.get("regularMarketPreviousClose")
+        )
+        if prev is None or prev <= 0:
+            prev = closes[-2]
+
+        change = price - prev
+        change_pct = (change / prev * 100) if prev else None
+        dma200 = sma(closes, 200)
+        above_200 = price > dma200 if dma200 is not None else None
+
+        return {
+            "symbol": "NIFTY50",
+            "price": round(price, 2),
+            "change": round(change, 2),
+            "change_pct": round(change_pct, 2) if change_pct is not None else None,
+            "previous_close": round(prev, 2),
+            "above_200dma": above_200,
+            "source": sym,
+        }
+    return None
+
+
 def fetch_nifty_index_history(period: str = "1y") -> dict | None:
     global _INDEX_CACHE
     if _INDEX_CACHE:

@@ -183,6 +183,19 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/market/nifty")
+def nifty_quote():
+    """Latest Nifty 50 level for the dashboard market ticker."""
+    from data import fetch_nifty_quote
+    from deploy.live_prices import is_nse_market_open
+
+    quote = fetch_nifty_quote()
+    if not quote:
+        raise HTTPException(status_code=503, detail="Nifty quote unavailable")
+    quote["market_open"] = is_nse_market_open()
+    return quote
+
+
 # --- Bots (Supabase) ---
 
 @app.get("/api/bots")

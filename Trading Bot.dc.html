@@ -325,6 +325,25 @@
   <!-- ===================== HOME ===================== -->
   <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
   <main class="app-main" style="max-width:900px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
+    <sc-if value="{{ configLoaded }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 15px;margin-bottom:20px;">
+        <span style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);flex:none;">Nifty 50</span>
+        <sc-if value="{{ niftyLoading }}" hint-placeholder-val="{{ false }}">
+          <div class="skeleton-block" style="height:14px;width:130px;"></div>
+        </sc-if>
+        <sc-if value="{{ hasNiftyQuote }}" hint-placeholder-val="{{ false }}">
+          <span class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:700;flex:none;">{{ niftyPriceFmt }}</span>
+          <span style="display:flex;align-items:center;gap:3px;font-family:var(--mono);font-size:13px;font-weight:700;color:{{ niftyChangeCol }};flex:none;">
+            <i class="{{ niftyChangeIcon }}" style="font-size:14px;"></i>{{ niftyChangePctFmt }}
+          </span>
+          <span style="margin-left:auto;font-size:12px;color:var(--ink2);white-space:nowrap;">{{ niftyMeta }}</span>
+        </sc-if>
+        <sc-if value="{{ niftyLoadFailed }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:12px;color:var(--ink2);">Unavailable</span>
+        </sc-if>
+      </div>
+    </sc-if>
+
     <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Your Wolves</p>
     <h1 style="font-size:clamp(25px,4vw,33px);font-weight:800;letter-spacing:-0.024em;margin:0 0 7px;">Dashboard</h1>
     <p style="color:var(--ink2);margin:0 0 24px;font-size:15px;line-height:1.5;max-width:54ch;">Each deployment is a separate Wolf with its own fund pool, tracker, and activity log. Deploy another anytime — they run independently until you pause or terminate.</p>
@@ -367,7 +386,7 @@
         <div style="background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px;min-width:0;">
           <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);">Total portfolio value</div>
           <div class="mono-val" style="font-size:clamp(20px,3vw,24px);font-weight:700;margin-top:5px;font-family:var(--mono);color:{{ totalPortfolioPnlCol }};">{{ totalPortfolioFmt }}</div>
-          <div class="mono-val" style="font-size:12px;font-family:var(--mono);color:{{ totalPortfolioPnlCol }};margin-top:4px;">{{ totalPortfolioPnlFmt }} combined</div>
+          <div class="mono-val" style="font-size:12px;font-family:var(--mono);color:{{ totalPortfolioPnlCol }};margin-top:4px;">{{ totalPortfolioPnlFmt }} ({{ totalPortfolioPnlPctFmt }}) combined</div>
         </div>
       </div>
     </sc-if>
@@ -432,7 +451,7 @@
                 <div class="bot-metrics" style="display:flex;gap:20px;flex-wrap:wrap;">
                   <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Allocation</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;">{{ b.allocationFmt }}</div></div>
                   <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Ready to invest</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;">{{ b.cashFmt }}</div></div>
-                  <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Portfolio</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;color:{{ b.pnlCol }};">{{ b.valueFmt }}</div></div>
+                  <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);">Portfolio</div><div class="mono-val" style="font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;color:{{ b.pnlCol }};">{{ b.valueFmt }} <span style="font-size:12px;font-weight:600;">({{ b.pnlPctFmt }})</span></div></div>
                 </div>
               </div>
             </button>
@@ -1242,6 +1261,8 @@ class Component extends DCLogic {
       showBotSwitchMenu: false,
       switchingBot: false,
       lastPriceRefreshMsg: '',
+      niftyQuote: null,
+      niftyLoading: true,
     };
     this._deferredPrompt = null;
     this._iosInstall = false;
@@ -1796,13 +1817,26 @@ class Component extends DCLogic {
     return activeBot;
   }
 
+  async _loadNiftyQuote(){
+    try {
+      const res = await fetch(this._api('/api/market/nifty'), { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      this.setState({ niftyQuote: data, niftyLoading: false });
+    } catch {
+      this.setState({ niftyLoading: false });
+    }
+  }
+
   async _loadAll(){
     try {
+      const niftyP = this._loadNiftyQuote();
       const { activeBotId } = await this._loadBots();
       if (activeBotId) await this._loadBotData(activeBotId);
+      await niftyP;
       this.setState({ configLoaded: true });
     } catch {
-      this.setState({ configLoaded: true });
+      this.setState({ configLoaded: true, niftyLoading: false });
     }
   }
 
@@ -1886,6 +1920,7 @@ class Component extends DCLogic {
     this._lastAutoPriceRefresh = Date.now();
     try {
       const { closedTotal } = await this._refreshWolvesWithExits(bots);
+      await this._loadNiftyQuote();
       const t = new Date().toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
@@ -2062,6 +2097,7 @@ class Component extends DCLogic {
     try {
       const { bots } = await this._loadBots();
       const { refreshed, closedTotal } = await this._refreshWolvesWithExits(bots);
+      await this._loadNiftyQuote();
       this._lastAutoPriceRefresh = Date.now();
       let msg = refreshed
         ? `Refreshed ${refreshed} Wolf${refreshed === 1 ? '' : 'ves'} with live prices.`
@@ -2269,7 +2305,9 @@ class Component extends DCLogic {
     const goto = {
       home: async () => {
         this.setState({ screen: 'home' });
-        try { await this._loadBots(); } catch (e) { console.error('loadBots failed:', e); }
+        try {
+          await Promise.all([this._loadBots(), this._loadNiftyQuote()]);
+        } catch (e) { console.error('home refresh failed:', e); }
       },
       setup: () => this.setState({ screen:'setup', strategy: null, screenError: false }),
       shortlist: () => this.setState({ screen:'shortlist' }),
@@ -2464,6 +2502,12 @@ class Component extends DCLogic {
       return { label:'Terminated', col:'#B04938', bg:'#F3E0D3' };
     };
 
+    const pnlPctOf = (pnl, base) => {
+      if (!base) return '';
+      const pct = (pnl / base) * 100;
+      return (pct >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%';
+    };
+
     const botCards = s.bots.map(b => {
       const st = statusStyle(b.status);
       const bPnl = b.pnl ?? 0;
@@ -2474,6 +2518,7 @@ class Component extends DCLogic {
         statusLabel: st.label, statusCol: st.col, statusBg: st.bg,
         modeLabel: b.mode === 'advisory' ? 'Advisory' : 'Autonomous ' + b.level,
         allocationFmt: fmt(b.allocation), cashFmt: fmt(b.availableCash), valueFmt: fmt(b.portfolioValue),
+        pnlPctFmt: pnlPctOf(bPnl, b.allocation),
         pnlCol: bPnl >= 0 ? 'var(--green)' : 'var(--red)',
         selected: selected && !terminated,
         cardBorder: selected && !terminated ? 'var(--clay)' : 'var(--line)',
@@ -2490,6 +2535,7 @@ class Component extends DCLogic {
     const totalAllocated = activeWolves.reduce((a, b) => a + (b.allocation || 0), 0);
     const totalPortfolioValue = activeWolves.reduce((a, b) => a + (b.portfolioValue || 0), 0);
     const totalPortfolioPnl = totalPortfolioValue - totalAllocated;
+    const totalPortfolioPnlPctFmt = pnlPctOf(totalPortfolioPnl, totalAllocated);
     const activeWolfCount = activeWolves.length;
     const activeWolfPlural = activeWolfCount === 1 ? '' : 's';
     const selectedIds = s.selectedBotIds || [];
@@ -2556,6 +2602,26 @@ class Component extends DCLogic {
       ? (authAuthorized ? `${s.authEmail} · Health Check available` : `${s.authEmail} · not authorized for Health Check`)
       : 'Not signed in';
 
+    const nq = s.niftyQuote;
+    const hasNiftyQuote = !!(nq && nq.price != null);
+    const niftyLoadFailed = !s.niftyLoading && !hasNiftyQuote;
+    const niftyCh = hasNiftyQuote ? Number(nq.change) : 0;
+    const niftyChPct = hasNiftyQuote && nq.change_pct != null ? Number(nq.change_pct) : 0;
+    const niftyPriceFmt = hasNiftyQuote
+      ? Number(nq.price).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+      : '—';
+    const niftyChangePctFmt = hasNiftyQuote && nq.change_pct != null
+      ? (niftyChPct >= 0 ? '+' : '−') + Math.abs(niftyChPct).toFixed(2) + '%'
+      : '';
+    const niftyChangeCol = niftyCh >= 0 ? 'var(--green)' : 'var(--red)';
+    const niftyChangeIcon = niftyCh >= 0 ? 'ti ti-trending-up' : 'ti ti-trending-down';
+    const niftyMetaParts = [];
+    if (nq?.market_open) niftyMetaParts.push('Live');
+    else if (nq?.market_open === false) niftyMetaParts.push('Market closed');
+    if (nq?.above_200dma === true) niftyMetaParts.push('Above 200-DMA');
+    else if (nq?.above_200dma === false) niftyMetaParts.push('Below 200-DMA');
+    const niftyMeta = niftyMetaParts.join(' · ');
+
     return {
       ...this._authUrls(),
       authEmail: s.authEmail, authInitial: s.authInitial,
@@ -2575,10 +2641,14 @@ class Component extends DCLogic {
       strategySelected: !!s.strategy, noStrategy: !s.strategy, summaryText,
       deployBot: () => this.deployBot(), deployBtnLabel: s.deploying ? 'Deploying…' : 'Deploy Wolf',
       rescreen: () => this.rescreen(),
+      configLoaded: s.configLoaded,
       bootLoading: !s.configLoaded,
+      niftyLoading: s.niftyLoading, niftyLoadFailed,
+      hasNiftyQuote, niftyPriceFmt, niftyChangePctFmt, niftyChangeIcon, niftyChangeCol, niftyMeta,
       noBots: s.configLoaded && s.bots.length === 0, hasBots: s.configLoaded && s.bots.length > 0, botCards,
       totalAllocatedFmt: fmt(totalAllocated), totalPortfolioFmt: fmt(totalPortfolioValue),
       totalPortfolioPnlFmt: signed(totalPortfolioPnl),
+      totalPortfolioPnlPctFmt,
       totalPortfolioPnlCol: totalPortfolioPnl >= 0 ? 'var(--green)' : 'var(--red)',
       activeWolfCount, activeWolfPlural,
       hasBotSelection, botSelectionCount, allBotsSelected, someBotsSelected,
