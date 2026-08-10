@@ -1,4 +1,4 @@
-"""Configure verbose console logging for dossier screening."""
+"""Configure verbose console logging for the API and LLM clients."""
 from __future__ import annotations
 
 import logging
@@ -16,13 +16,10 @@ def setup_app_logging(verbose: bool = True) -> None:
     root.setLevel(level)
 
     for name in (
-        "dossier_screen",
         "selector",
-        "selector.pipeline",
-        "selector.funnel",
-        "selector.llm.scoring",
-        "selector.llm.final",
         "selector.llm.client",
-        "selector.reasoning_log",
+        "wolf_brain",
+        "wolf_executor",
+        "deploy",
     ):
         logging.getLogger(name).setLevel(level)

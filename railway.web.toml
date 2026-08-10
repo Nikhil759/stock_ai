@@ -3,9 +3,7 @@
 # Railway service settings:
 #   Root Directory: /  (repo root — NOT backend/)
 #   Config file:    railway.web.toml
-#   Volume:         attach one volume (e.g. mount /data) — persists bot.db + intentions/
 #   Variables:      GEMINI_API_KEY, DOSSIER_API_URL, DOSSIER_API_TOKEN,
-#                   FUND_MANAGER_FILL_PRICE=intention
 #                   KITE_API_KEY, KITE_API_SECRET (read token from Supabase)
 #                   SUPABASE_DATABASE_URL (health dashboard + kite_auth_tokens)
 #                   FRONTEND_URL, APP_REDIRECT_URL, DASHBOARD_SESSION_SECRET,
@@ -14,13 +12,12 @@
 # Kite token: TOTP refresh runs on your Mac (not Railway — Zerodha blocks cloud
 # login). Local cron syncs to Supabase kite_auth_tokens; stock_ai reads it.
 #
-# Fund manager cron runs in-process (no separate cron services):
-#   FUND_SELECTOR_CRON  default 30 3 * * mon-fri  (~9:00 AM IST weekdays)
-#   FUND_MORNING_CRON   default 45 3 * * mon-fri  (~9:15 AM IST weekdays)
-#   FUND_SCHEDULER_ENABLED=1  (auto-on when RAILWAY_ENVIRONMENT is set)
+# In-process schedulers (Supabase wolves only):
+#   WOLF_EVENING_CRON  default 30 11 * * mon-fri  (~5:00 PM IST weekdays)
+#   WOLF_DAILY_CRON    default 25 3 * * mon-fri   (~8:55 AM IST weekdays)
+#   Auto-on when RAILWAY_ENVIRONMENT is set.
 #
-# Do NOT use railway.selector.toml / railway.morning.toml — those were for
-# separate services that cannot share SQLite with stock_ai.
+# Morning screening runs on data-layer-cron (railway.json), not this service.
 
 [build]
 builder = "NIXPACKS"

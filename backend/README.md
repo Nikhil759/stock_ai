@@ -17,9 +17,9 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Deploy / screen uses **dossier-powered** selection (`selector` funnel + LLM on
-full dossier JSON). Requires `dossiers/` at the repo root and `GEMINI_API_KEY`
-in `../.env`.
+Deploy uses **wolf_brain** on the morning shortlist cache (built by
+`data-layer-cron`). Requires `GEMINI_API_KEY` in `../.env` and dossiers synced
+from the cron service (`DOSSIER_API_URL`).
 
 Open http://localhost:8000/app
 
@@ -85,23 +85,22 @@ OAuth, PKCE). Add these on the `stock_ai` service:
   see **Kite token sync** below). Do **not** put TOTP creds on Railway — Zerodha
   blocks login from cloud IPs.
 
-**In-process APScheduler on `stock_ai`** (`fund_scheduler.py`, UTC cron expressions):
+**In-process APScheduler on `stock_ai`** (UTC cron expressions):
 
 | Job | Default cron | IST (approx.) |
 |-----|--------------|---------------|
-| Fund selector | `30 3 * * mon-fri` | 9:00 AM weekdays |
-| Morning deploy | `45 3 * * mon-fri` | 9:15 AM weekdays |
 | Supabase evening auto-exit | `30 11 * * mon-fri` | 5:00 PM weekdays |
 | Supabase daily fund manager | `25 3 * * mon-fri` | 8:55 AM weekdays |
 
-Override with `FUND_SELECTOR_CRON`, `FUND_MORNING_CRON`, `WOLF_EVENING_CRON`, `WOLF_DAILY_CRON`.
-SQLite fund scheduler auto-enables on Railway when
-`WOLF_ENABLE_SQLITE_CRON=1`. Supabase evening and daily schedulers auto-enable on
+Override with `WOLF_EVENING_CRON`, `WOLF_DAILY_CRON`. Schedulers auto-enable on
 Railway (`RAILWAY_ENVIRONMENT`); set `WOLF_EVENING_SCHEDULER_ENABLED=1` or
 `WOLF_DAILY_SCHEDULER_ENABLED=1` locally to test. Manual runs:
 `python -m scripts.run_evening_all_supabase_wolves`,
 `python -m scripts.run_daily_review_all_supabase_wolves` (from `backend/` with
 `PYTHONPATH=.:backend` from repo root).
+
+Morning screening and batch scoring run on the **`data-layer-cron`** service via
+`cron/morning_ingestion.py` (funnels → `scoring/batch_scorer` → shortlist cache).
 
 Apply `fund_manager_health/schema.sql` in Supabase once for per-wolf health rows on `/health`.
 
@@ -175,5 +174,5 @@ curl -i "https://YOUR-RAILWAY-URL.up.railway.app/api/health"
 
 Point Vercel's `RAILWAY_PUBLIC_URL` at this URL and redeploy the frontend.
 
-Strategy knowledge markdown in `backend/knowledge/` is legacy; live screening
-uses `selector/prompts/` with full dossier JSON.
+Strategy knowledge markdown in `backend/knowledge/` is served via
+`/api/strategies/{id}` for the UI. Live LLM prompts live in `selector/prompts/`.

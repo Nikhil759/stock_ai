@@ -1,11 +1,9 @@
 """
-Thin Gemini wrapper (google-genai unified SDK -- backend/llm.py's
-google.generativeai is EOL, see data_layer's own SDK-choice note; this is a
-fresh package so it starts on the maintained SDK instead).
+Thin Gemini wrapper (google-genai unified SDK).
 
-Handles: API key/env loading, the skeleton + strategy-lens prompt files,
-per-strategy context caching (with a hard fallback when the content is too
-small to cache), and a schema-guaranteed structured-output call.
+Handles: API key/env loading, prompt assembly, per-strategy context caching
+(with a hard fallback when the content is too small to cache), and a
+schema-guaranteed structured-output call.
 
 HONEST CAVEAT: Gemini's explicit context caching has a hard minimum content
 size (~1024 tokens for gemini-2.5-flash, confirmed live). The scoring

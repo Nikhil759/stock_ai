@@ -16,7 +16,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import bot
-import database as db
 from strategies import STRATEGY_NAMES, VALID_STRATEGIES, get_strategy, list_strategies
 from workspace import is_valid_workspace_id, normalize_workspace_id
 
@@ -116,11 +115,6 @@ def startup():
     from logging_setup import setup_app_logging
 
     setup_app_logging(verbose=True)
-    if os.getenv("WOLF_ENABLE_SQLITE_CRON", "").strip().lower() in ("1", "true", "yes"):
-        db.init_db()
-        from fund_scheduler import start_fund_scheduler
-
-        start_fund_scheduler()
     try:
         from wolf_evening_scheduler import start_wolf_evening_scheduler
 

@@ -34,7 +34,7 @@ def run_winners_funnel(dossiers: list[Any]) -> list[dict]:
 
     def earnings_growth_ok(d: dict):
         g = _f(d).get("earnings_growth_yoy")
-        # Field often empty until fundamentals_ext fills it — require >0 when present;
+        # promoter_pct may be unset in yfinance-only dossiers — require >0 when present;
         # when missing, fall back to positive 3m absolute return as a temporary proxy.
         if g is not None:
             g = float(g)
