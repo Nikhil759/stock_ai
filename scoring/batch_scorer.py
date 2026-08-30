@@ -20,10 +20,19 @@ from pathlib import Path
 from typing import Any, Literal, NamedTuple
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
 
+from scoring.payload_trim import (
+    extract_shared_market_context,
+    extract_stock_sector_context,
+    slim_dossier_for_llm,
+)
+from selector.llm.client import (
+    batch_scoring_cache_instruction,
+    batch_scoring_system_base,
+    generate_batch_scoring,
+    get_or_create_batch_scoring_cache,
+)
 from selector.llm.usage import LlmUsageCollector, add_tokens, empty_tokens, extract_usage
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -40,14 +49,8 @@ DEFAULT_LLM_CAPS: dict[str, int] = {
     "dip": 0,
 }
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-PROMPTS_DIR = _REPO / "selector" / "prompts"
-SKELETON_PATH = Path(__file__).resolve().parent / "batch_skeleton.txt"
 
 log = logging.getLogger(__name__)
-
-_client: genai.Client | None = None
-_skeleton: str | None = None
-_strategy_blocks: dict[str, str] = {}
 
 
 class BatchScoringResult(NamedTuple):
@@ -66,37 +69,6 @@ class BatchScoreResponse(BaseModel):
     scores: list[BatchStockScore]
 
 
-def _client_get() -> genai.Client:
-    global _client
-    if _client is None:
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise RuntimeError("GEMINI_API_KEY not set")
-        _client = genai.Client(api_key=api_key)
-    return _client
-
-
-def _load_skeleton() -> str:
-    global _skeleton
-    if _skeleton is None:
-        _skeleton = SKELETON_PATH.read_text(encoding="utf-8")
-    return _skeleton
-
-
-def _load_strategy_block(strategy: str) -> str:
-    if strategy not in _strategy_blocks:
-        path = PROMPTS_DIR / f"strategy_{strategy}.txt"
-        if not path.exists():
-            raise FileNotFoundError(f"Missing strategy prompt: {path}")
-        _strategy_blocks[strategy] = path.read_text(encoding="utf-8")
-    return _strategy_blocks[strategy]
-
-
-def _system_prompt_chars(strategy: str) -> int:
-    """Character length of skeleton + strategy system instruction (fixed per batch call)."""
-    return len(_load_skeleton() + "\n\n" + _load_strategy_block(strategy))
-
-
 def _chunk(items: list, size: int) -> list[list]:
     if not items:
         return []
@@ -111,7 +83,6 @@ def _rank_key(strategy: str, row: dict) -> tuple:
     cs = dossier.get("chart_shape") or {}
 
     if strategy == "winners":
-        # Prefer stronger 3m momentum / RS when trimming the fat list
         r3 = reasons.get("return_3m")
         if r3 is None:
             r3 = tech.get("return_3m")
@@ -124,7 +95,6 @@ def _rank_key(strategy: str, row: dict) -> tuple:
             return (0.0, 0.0)
 
     if strategy == "box":
-        # Prefer tighter ranges / stronger volume confirmation
         consol = reasons.get("consolidation_percentage")
         if consol is None:
             consol = cs.get("consolidation_percentage")
@@ -138,7 +108,6 @@ def _rank_key(strategy: str, row: dict) -> tuple:
         except (TypeError, ValueError):
             return (99.0, 0.0)
 
-    # value / dip — keep funnel order
     return (0,)
 
 
@@ -199,75 +168,92 @@ def _winners_proxy_note(funnel_reasons: dict) -> str | None:
     return None
 
 
-def _slim_dossier(dossier: dict) -> dict:
-    """Keep the LLM payload focused — full blocks, drop huge raw blobs if any."""
-    keep = (
-        "meta",
-        "fundamentals",
-        "technicals",
-        "chart_shape",
-        "market_context",
-        "news",
-        "events",
-        "order_book",
-        "big_trades",
-    )
-    return {k: dossier.get(k) for k in keep if k in dossier}
+def _payload_json(data: dict[str, Any]) -> str:
+    return json.dumps(data, separators=(",", ":"), default=str)
 
 
-def _payload_breakdown(strategy: str, batch: list[dict]) -> dict[str, Any]:
-    """Character counts per dossier section for drift debugging."""
+def _payload_breakdown(
+    strategy: str,
+    batch: list[dict],
+    *,
+    include_market_context: bool,
+    shared_market_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Character counts per section for drift debugging (matches LLM payload)."""
     section_totals: dict[str, int] = {}
     per_symbol: dict[str, dict[str, int]] = {}
+
+    if include_market_context and shared_market_context:
+        mc_chars = len(_payload_json(shared_market_context))
+        section_totals["market_context"] = mc_chars
+
     for row in batch:
         sym = str(row.get("symbol") or "").upper()
         if not sym:
             continue
         sections: dict[str, int] = {}
-        d = _slim_dossier(row.get("dossier") or {})
+        d = slim_dossier_for_llm(row.get("dossier") or {})
         for key, val in d.items():
-            chars = len(json.dumps(val, default=str))
+            chars = len(_payload_json({key: val}))
             sections[key] = chars
             section_totals[key] = section_totals.get(key, 0) + chars
+        sector = extract_stock_sector_context(row.get("dossier") or {})
+        if sector:
+            sec_chars = len(_payload_json(sector))
+            sections["sector"] = sec_chars
+            section_totals["sector"] = section_totals.get("sector", 0) + sec_chars
         if strategy == "winners" and _winners_proxy_note(row.get("funnel_reasons") or {}):
             sections["winners_note"] = sections.get("winners_note", 0) + 120
             section_totals["winners_note"] = section_totals.get("winners_note", 0) + 120
         sym_meta = dict(row.get("funnel_reasons") or {})
         if sym_meta:
-            fr_chars = len(json.dumps(sym_meta, default=str))
+            fr_chars = len(_payload_json(sym_meta))
             sections["funnel_reasons"] = fr_chars
             section_totals["funnel_reasons"] = section_totals.get("funnel_reasons", 0) + fr_chars
         per_symbol[sym] = sections
     return {"sections": section_totals, "per_symbol": per_symbol}
 
 
-def _build_batch_payload(strategy: str, batch: list[dict]) -> str:
+def _build_batch_payload(
+    strategy: str,
+    batch: list[dict],
+    *,
+    include_market_context: bool,
+    shared_market_context: dict[str, Any] | None = None,
+) -> str:
+    shared_mc = shared_market_context
+    if shared_mc is None and batch:
+        shared_mc = extract_shared_market_context(batch[0].get("dossier") or {})
+
     stocks = []
     for row in batch:
         reasons = dict(row.get("funnel_reasons") or {})
         entry: dict[str, Any] = {
             "symbol": row["symbol"],
             "funnel_reasons": reasons,
-            "dossier": _slim_dossier(row.get("dossier") or {}),
+            "dossier": slim_dossier_for_llm(row.get("dossier") or {}),
         }
+        sector = extract_stock_sector_context(row.get("dossier") or {})
+        if sector:
+            entry["sector"] = sector
         if strategy == "winners":
             note = _winners_proxy_note(reasons)
             if note:
                 entry["note"] = note
         stocks.append(entry)
 
-    return json.dumps(
-        {
-            "strategy": strategy,
-            "instruction": (
-                "Score each stock independently on absolute merit for this strategy. "
-                "Return one score object per input symbol."
-            ),
-            "stocks": stocks,
-        },
-        indent=2,
-        default=str,
-    )
+    body: dict[str, Any] = {
+        "strategy": strategy,
+        "instruction": (
+            "Score each stock independently on absolute merit for this strategy. "
+            "Return one score object per input symbol."
+        ),
+        "stocks": stocks,
+    }
+    if include_market_context and shared_mc:
+        body["market_context"] = shared_mc
+
+    return _payload_json(body)
 
 
 def _extract_json(text: str) -> dict:
@@ -294,39 +280,48 @@ def _validate_batch(
     missing = [s for s in expected_symbols if s not in by_sym]
     if missing:
         raise ValueError(f"response missing symbols: {missing}")
-    # Keep only expected symbols, in input order
     return [by_sym[s] for s in expected_symbols]
 
 
-def _call_gemini(strategy: str, user_content: str) -> tuple[str, dict[str, int], float]:
-    client = _client_get()
-    system = _load_skeleton() + "\n\n" + _load_strategy_block(strategy)
-    config = types.GenerateContentConfig(
-        system_instruction=system,
-        response_mime_type="application/json",
-        response_schema=BatchScoreResponse,
-    )
+def _call_gemini(
+    strategy: str,
+    user_content: str,
+    *,
+    cache_name: str | None = None,
+) -> tuple[str, dict[str, int], float]:
     t0 = time.monotonic()
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=user_content,
-        config=config,
+    response = generate_batch_scoring(
+        strategy,
+        user_content,
+        BatchScoreResponse,
+        cache_name=cache_name,
     )
     elapsed = time.monotonic() - t0
     tokens = extract_usage(response)
     log.debug(
-        "[BATCH SCORING] Gemini %s batch call — %s elapsed=%.2fs payload=%d chars",
+        "[BATCH SCORING] Gemini %s batch call — %s cached=%s elapsed=%.2fs payload=%d chars",
         strategy,
         f"prompt={tokens['prompt_tokens']} output={tokens['output_tokens']} "
         f"total={tokens['total_tokens']}",
+        tokens.get("cached_tokens"),
         elapsed,
         len(user_content),
     )
     return response.text or "", tokens, elapsed
 
 
+def _system_prompt_chars(
+    strategy: str,
+    *,
+    cache_name: str | None,
+    shared_market_context: dict[str, Any] | None,
+) -> int:
+    if cache_name and shared_market_context:
+        return len(batch_scoring_cache_instruction(strategy, shared_market_context))
+    return len(batch_scoring_system_base(strategy))
+
+
 def _retry_sleep_sec(err: Exception, attempt: int) -> float:
-    """Parse Gemini's 'Please retry in Xs' hint; else exponential backoff."""
     m = re.search(r"retry in ([0-9.]+)", str(err), re.I)
     if m:
         return max(float(m.group(1)) + 0.5, 1.0)
@@ -345,6 +340,8 @@ def _score_one_batch(
     batch: list[dict],
     *,
     usage: LlmUsageCollector | None = None,
+    cache_name: str | None = None,
+    shared_market_context: dict[str, Any] | None = None,
 ) -> list[dict]:
     """Score one batch; retry once on parse errors, more on rate limits."""
     symbols = [r["symbol"].upper() for r in batch]
@@ -362,13 +359,29 @@ def _score_one_batch(
                     f"— {row['symbol']} flagged (momentum proxy, no earnings data)"
                 )
 
-    payload = _build_batch_payload(strategy, batch)
+    mc = shared_market_context or extract_shared_market_context(batch[0].get("dossier") or {})
+    include_mc_in_user = cache_name is None and bool(mc)
+    payload = _build_batch_payload(
+        strategy,
+        batch,
+        include_market_context=include_mc_in_user,
+        shared_market_context=mc,
+    )
     payload_chars = len(payload)
-    payload_breakdown = _payload_breakdown(strategy, batch)
-    system_prompt_chars = _system_prompt_chars(strategy)
+    payload_breakdown = _payload_breakdown(
+        strategy,
+        batch,
+        include_market_context=include_mc_in_user,
+        shared_market_context=mc,
+    )
+    system_prompt_chars = _system_prompt_chars(
+        strategy,
+        cache_name=cache_name,
+        shared_market_context=mc,
+    )
     last_err: Exception | None = None
     scores: list[BatchStockScore] | None = None
-    max_attempts = 5  # parse fails stop earlier; 429 can use the full budget
+    max_attempts = 5
     batch_tokens = empty_tokens()
     batch_elapsed_ms = 0
     attempts_used = 0
@@ -378,7 +391,11 @@ def _score_one_batch(
     for attempt in range(1, max_attempts + 1):
         attempts_used = attempt
         try:
-            text, tokens, elapsed = _call_gemini(strategy, payload)
+            text, tokens, elapsed = _call_gemini(
+                strategy,
+                payload,
+                cache_name=cache_name,
+            )
             last_response_text = text or ""
             add_tokens(batch_tokens, tokens)
             batch_elapsed_ms += int(elapsed * 1000)
@@ -421,7 +438,6 @@ def _score_one_batch(
             f"GAVE UP after retries — {last_err}"
         )
         batch_status = "degraded"
-        # Degrade to skip so the pipeline continues
         scores = [
             BatchStockScore(
                 symbol=s,
@@ -450,6 +466,7 @@ def _score_one_batch(
                 "system_prompt_chars": system_prompt_chars,
                 "model": GEMINI_MODEL,
                 "attempts_used": attempts_used,
+                "context_cache": bool(cache_name),
             },
         )
 
@@ -480,6 +497,7 @@ def run_batch_scoring(
     *,
     as_of: date | None = None,
     usage_collector: LlmUsageCollector | None = None,
+    shared_market_context: dict[str, Any] | None = None,
 ) -> BatchScoringResult:
     """
     Score all funnel candidates for one strategy in batches of BATCH_SIZE.
@@ -497,6 +515,22 @@ def run_batch_scoring(
         print(f"[BATCH SCORING] {strategy.capitalize()}: nothing to score")
         return BatchScoringResult(survivors=[], usage=empty_tokens())
 
+    mc = shared_market_context
+    if mc is None and candidates:
+        mc = extract_shared_market_context(candidates[0].get("dossier") or {})
+
+    cache_name = get_or_create_batch_scoring_cache(strategy, mc)
+    if cache_name:
+        print(
+            f"[BATCH SCORING] {strategy.capitalize()}: using Gemini context cache "
+            f"({cache_name})"
+        )
+    elif mc:
+        print(
+            f"[BATCH SCORING] {strategy.capitalize()}: context cache unavailable — "
+            f"market_context included in user payload"
+        )
+
     batches = _chunk(candidates, BATCH_SIZE)
     all_scored: list[dict] = []
     for i, batch in enumerate(batches, 1):
@@ -513,6 +547,8 @@ def run_batch_scoring(
                 len(batches),
                 batch,
                 usage=usage_collector,
+                cache_name=cache_name,
+                shared_market_context=mc,
             )
         )
 

@@ -1,0 +1,27 @@
+REFERENCE — DOSSIER FIELDS (read-only context; do not recalculate)
+- meta: symbol, sector, as_of date, data freshness flags.
+- fundamentals: PE, PB, ROE, debt/equity, earnings_growth_yoy, book value — use as given.
+- technicals: RSI(2), RSI(14), distance from 50/200 DMA, 52-week high/low proximity, relative strength vs Nifty (1m/3m/6m).
+- chart_shape: trend labels (stage2_uptrend, base, breakdown), moving-average slopes (rising/flat/falling).
+- events: upcoming earnings, ex-dates, corporate actions within the lookahead window.
+- news: recent headlines with short summaries — treat as sentiment/risk colour, not primary thesis.
+- order_book / big_trades: optional tape colour; low weight unless extreme.
+- funnel_reasons: math-funnel pass reasons — established fact, do not re-derive filters.
+- sector: per-stock sector context when market_context is batch-level.
+
+CONVICTION CALIBRATION (absolute merit, not vs batch peers)
+- Textbook (80-100): strategy's core signals clearly satisfied, risks minor or well-flagged, tape supportive or neutral.
+- Solid (60-79): core thesis holds with one caveat (e.g. flat 200 DMA, thin earnings data, mild sector headwind).
+- Mixed (40-59): signal present but conflicted (e.g. oversold RSI but weakening trend, or value cheap but deteriorating quality).
+- Weak (20-39): marginal fit — one core criterion barely met or multiple yellow flags.
+- Fail (0-19): violates a hard skip rule for this strategy (e.g. dip below 200 DMA, value with unsustainable leverage).
+
+REASONING STYLE
+- Cite specific dossier numbers that drove the verdict (RSI, DMA position, PE, relative strength).
+- One paragraph per stock: thesis + main risk + verdict alignment with conviction band.
+- Never compare stocks to each other ("better than X in this batch") — each stands alone.
+
+INDIAN MARKET NOTES
+- NSE symbols; prices in INR. Respect elevated India VIX / weak Nifty — raise the bar for aggressive buys.
+- Earnings season: flag event risk inside 14 days; prefer watch over buy when event imminent unless strategy explicitly ignores events.
+- Illiquid smallcaps: note wide spreads / thin volume as execution risk when visible in dossier.
