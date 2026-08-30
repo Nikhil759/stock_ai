@@ -258,6 +258,258 @@
     .api-status-dot.idle{background:var(--line2)}
     .api-status-dot.checking{background:var(--clay);animation:api-pulse 1s ease-in-out infinite}
     @keyframes api-pulse{0%,100%{opacity:0.35}50%{opacity:1}}
+    .llm-panel{
+      background:var(--panel);border:1px solid var(--line);border-radius:14px;
+      padding:16px;overflow:hidden;
+    }
+    .llm-headline{
+      display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+      margin-bottom:14px;
+    }
+    .llm-headline h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-0.01em}
+    .llm-model{
+      font-family:var(--mono);font-size:11px;font-weight:600;color:var(--clay);
+      background:var(--wolf-tint);border:1px solid #EDD3B6;border-radius:999px;padding:3px 10px;
+    }
+    .llm-totals{display:grid;gap:10px;margin-bottom:14px}
+    .llm-subtabs{
+      display:flex;gap:6px;margin:0 0 12px;padding:3px;
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:10px;
+    }
+    .llm-subtab{
+      flex:1;padding:8px 12px;border:none;border-radius:8px;background:transparent;
+      font-family:inherit;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;
+    }
+    .llm-subtab:hover{color:var(--ink);background:rgba(255,255,255,0.45)}
+    .llm-subtab.active{
+      background:var(--panel);color:var(--ink);border:1px solid var(--line);
+      box-shadow:0 1px 3px rgba(160,90,40,0.06);
+    }
+    .llm-view-panel{display:none}
+    .llm-view-panel.active{display:block}
+    .llm-metric-card{
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:12px;
+      margin-bottom:8px;overflow:hidden;
+    }
+    .llm-metric-card summary{
+      cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;
+      padding:12px 14px;font-size:14px;font-weight:600;
+    }
+    .llm-metric-card summary::-webkit-details-marker{display:none}
+    .llm-metric-card summary::after{
+      content:'\ea62';font-family:'tabler-icons' !important;margin-left:auto;color:var(--ink2);font-size:15px;
+    }
+    .llm-metric-card[open] summary::after{content:'\ea61'}
+    .llm-metric-label{
+      font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);
+      font-weight:700;min-width:88px;
+    }
+    .llm-metric-value{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink)}
+    .llm-metric-card.llm-cost-highlight{
+      background:linear-gradient(135deg,var(--wolf-tint),var(--panel));border-color:#EDD3B6;
+    }
+    .llm-metric-card.llm-cost-highlight .llm-metric-value{color:var(--clay);font-size:18px}
+    .llm-split-table{
+      width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;
+      border-top:1px solid var(--line);
+    }
+    .llm-split-table th,.llm-split-table td{
+      text-align:left;padding:8px 14px;border-bottom:1px solid var(--line);
+    }
+    .llm-split-table th{
+      font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);
+      background:rgba(255,255,255,0.35);font-weight:700;
+    }
+    .llm-split-table td:first-child{text-transform:capitalize;font-weight:600;color:var(--ink)}
+    .llm-period-bar{
+      display:flex;flex-wrap:wrap;gap:12px;margin:10px 0 6px;align-items:center;
+    }
+    .llm-period-bar label{
+      display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);
+    }
+    .llm-period-bar select{
+      font-family:var(--mono);font-size:11px;padding:5px 8px;border:1px solid var(--line);
+      border-radius:8px;background:var(--panel);color:var(--ink);
+    }
+    .llm-batch-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+    .llm-batch-section h4{margin:0 0 10px;font-size:14px;font-weight:700}
+    .llm-batch-filters{
+      display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;align-items:center;
+    }
+    .llm-batch-filters label{
+      display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);
+    }
+    .llm-batch-filters select{
+      font-family:var(--mono);font-size:11px;padding:5px 8px;border:1px solid var(--line);
+      border-radius:8px;background:var(--panel);color:var(--ink);
+    }
+    .llm-batch-count{font-size:11px;color:var(--ink2);margin-left:auto;font-family:var(--mono)}
+    .llm-stat{
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:12px;padding:11px 12px;
+    }
+    .llm-stat-label{
+      font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink2);
+      font-weight:700;margin-bottom:4px;
+    }
+    .llm-stat-value{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink)}
+    .llm-batch-table-wrap{overflow-x:auto;margin-top:12px}
+    .llm-batch-table{
+      width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px;
+      table-layout:auto;min-width:860px;
+    }
+    .llm-batch-table th,.llm-batch-table td{
+      text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);vertical-align:middle;
+    }
+    .llm-batch-table th:not(.col-drift),.llm-batch-table td:not(.col-drift){
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .llm-batch-table th{
+      font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);
+      background:var(--wolf-mist);
+    }
+    .llm-cost-highlight{
+      background:linear-gradient(135deg,var(--wolf-tint),var(--panel));
+      border:1px solid #EDD3B6;
+    }
+    .llm-cost-highlight .llm-stat-value{color:var(--clay);font-size:18px}
+    .llm-pricing-note{font-size:11px;color:var(--ink2);margin:0 0 14px;line-height:1.45}
+    .health-tabs{
+      display:flex;gap:8px;margin:0 0 24px;padding:4px;
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:12px;
+    }
+    .health-tab{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 14px;border:none;border-radius:9px;background:transparent;
+      font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);
+      cursor:pointer;transition:background 0.15s,color 0.15s,box-shadow 0.15s;
+    }
+    .health-tab:hover{color:var(--ink);background:rgba(255,255,255,0.45)}
+    .health-tab.active{
+      background:var(--panel);color:var(--ink);
+      box-shadow:0 1px 4px rgba(160,90,40,0.08);border:1px solid var(--line);
+    }
+    .health-tab i{font-size:16px}
+    .health-tab-panel{display:none}
+    .health-tab-panel.active{display:block}
+    .ingestion-meta{
+      font-size:12px;color:var(--ink2);margin:6px 0 0;line-height:1.45;
+    }
+    .drift-badge{
+      font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;
+      border-radius:999px;border:1px solid transparent;white-space:nowrap;
+    }
+    .llm-batch-table .drift-badge{
+      font-size:10.5px;padding:3px 9px;min-width:3.4em;text-align:center;display:inline-block;
+    }
+    .drift-badge.ok{color:var(--green);background:rgba(62,122,82,0.1);border-color:rgba(62,122,82,0.22)}
+    .drift-badge.warn{color:var(--clay);background:rgba(191,91,45,0.1);border-color:rgba(191,91,45,0.24)}
+    .drift-badge.alert{color:var(--red);background:rgba(176,73,56,0.1);border-color:rgba(176,73,56,0.24)}
+    .llm-batch-table th.col-run,.llm-batch-table td.llm-run-at{
+      width:58px;max-width:58px;padding-left:5px;padding-right:4px;
+      font-size:10px;color:var(--ink2);
+    }
+    .llm-batch-table th.col-strat,.llm-batch-table td.col-strat{width:48px;max-width:56px}
+    .llm-batch-table th.col-num,.llm-batch-table td.col-num{width:24px;text-align:center}
+    .llm-batch-table th.col-drift,.llm-batch-table td.col-drift{
+      width:88px;min-width:88px;max-width:88px;
+      text-align:center;padding-left:6px;padding-right:6px;
+      overflow:visible;white-space:normal;
+    }
+    .llm-batch-table th.col-drift{
+      font-size:9px;line-height:1.25;letter-spacing:0.03em;
+    }
+    .llm-batch-table tr.drift-warn td{background:rgba(191,91,45,0.04)}
+    .llm-batch-table tr.drift-alert td{background:rgba(176,73,56,0.05)}
+    .llm-batch-table tr.hidden{display:none}
+    .llm-batch-pagination{
+      display:flex;align-items:center;justify-content:flex-end;gap:10px;
+      margin-top:10px;font-size:12px;color:var(--ink2);
+    }
+    .llm-batch-pagination button{
+      font-family:inherit;font-size:12px;font-weight:600;padding:5px 12px;
+      border:1px solid var(--line);border-radius:8px;background:var(--panel);
+      color:var(--ink);cursor:pointer;
+    }
+    .llm-batch-pagination button:disabled{opacity:0.45;cursor:not-allowed}
+    .llm-batch-pagination button:not(:disabled):hover{background:var(--wolf-mist)}
+    .llm-page-info{font-family:var(--mono);font-size:11px;min-width:7em;text-align:center}
+    .llm-batch-table tr.llm-batch-debug-row{cursor:pointer}
+    .llm-batch-table tr.llm-batch-debug-row:hover td{background:rgba(255,255,255,0.55)}
+    .drift-debug-backdrop{
+      display:none;position:fixed;inset:0;background:rgba(40,28,18,0.45);
+      z-index:200;align-items:center;justify-content:center;padding:20px;
+    }
+    .drift-debug-backdrop.open{display:flex}
+    .drift-debug-modal{
+      width:min(920px,96vw);max-height:88vh;overflow:hidden;
+      background:var(--panel);border:1px solid var(--line);border-radius:16px;
+      box-shadow:0 18px 50px rgba(40,28,18,0.18);display:flex;flex-direction:column;
+    }
+    .drift-debug-head{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      padding:16px 18px;border-bottom:1px solid var(--line);
+    }
+    .drift-debug-head h3{margin:0;font-size:16px}
+    .drift-debug-sub{font-size:12px;color:var(--ink2);margin-top:4px;line-height:1.45}
+    .drift-debug-close{
+      border:none;background:transparent;font-size:22px;line-height:1;
+      cursor:pointer;color:var(--ink2);padding:2px 6px;
+    }
+    .drift-debug-body{padding:16px 18px;overflow:auto;flex:1}
+    .drift-debug-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px;
+    }
+    .drift-debug-stat{
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    }
+    .drift-debug-stat label{
+      display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;
+      color:var(--ink2);font-weight:700;margin-bottom:4px;
+    }
+    .drift-debug-stat span{font-family:var(--mono);font-size:13px;font-weight:700}
+    .drift-debug-section{margin-top:14px}
+    .drift-debug-section h4{margin:0 0 8px;font-size:13px}
+    .drift-debug-bars{display:flex;flex-direction:column;gap:6px}
+    .drift-debug-bar-row{display:grid;grid-template-columns:92px 1fr 56px;gap:8px;align-items:center;font-size:11px}
+    .drift-debug-bar{height:8px;background:var(--wolf-mist);border-radius:999px;overflow:hidden}
+    .drift-debug-bar > span{display:block;height:100%;background:var(--clay);border-radius:999px}
+    .drift-debug-logs{
+      font-family:var(--mono);font-size:10.5px;line-height:1.45;
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:10px;
+      padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;
+    }
+    .drift-debug-log-line{margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+    .drift-debug-log-line:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+    .drift-debug-empty{font-size:12px;color:var(--ink2)}
+    .drift-debug-tabs{
+      display:flex;gap:6px;margin:0 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px;
+    }
+    .drift-debug-tab{
+      border:1px solid var(--line);background:var(--wolf-mist);color:var(--ink2);
+      font-family:inherit;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;
+    }
+    .drift-debug-tab.active{background:var(--panel);color:var(--ink);border-color:var(--clay)}
+    .drift-debug-panel{display:none}
+    .drift-debug-panel.active{display:block}
+    .drift-debug-analysis-summary{
+      font-size:13px;line-height:1.45;margin:0 0 10px;padding:10px 12px;
+      background:rgba(191,91,45,0.06);border:1px solid rgba(191,91,45,0.18);border-radius:10px;
+    }
+    .drift-debug-reasons,.drift-debug-contributors{
+      width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;
+    }
+    .drift-debug-reasons td,.drift-debug-contributors th,.drift-debug-contributors td{
+      padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;
+    }
+    .drift-debug-contributors th{
+      font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2);
+    }
+    .drift-debug-code{
+      font-family:var(--mono);font-size:10px;line-height:1.45;
+      background:var(--wolf-mist);border:1px solid var(--line);border-radius:10px;
+      padding:10px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+    }
+    .baseline-note{font-size:11px;color:var(--ink2);margin-top:8px}
   </style>
 </head>
 <body>
@@ -278,7 +530,7 @@
   <main>
     <p class="eyebrow">Ops · Pipeline Health</p>
     <h1>Health Check</h1>
-    <p class="sub">Morning ingestion (<code>health_runs</code>) and daily fund manager (<code>fund_manager_runs</code>) from Supabase.</p>
+    <p class="sub">Pipeline health from Supabase — <strong>Data ingestion</strong> (<code>health_runs</code>) and <strong>Wolf executions</strong> (<code>fund_manager_runs</code>).</p>
 
     {% if not authorized %}
       <div class="gate {% if email %}denied{% endif %}">
@@ -308,17 +560,6 @@
         </div>
       {% endif %}
 
-      <div class="ops-bar">
-        {% if cron_api_configured %}
-          <button type="button" id="run-pipeline-btn" class="btn-primary">
-            <i class="ti ti-player-play" style="font-size:15px;"></i>Run full pipeline
-          </button>
-          <p id="run-pipeline-msg">Build dossiers → funnels → LLM scoring (~1–2 min to start updating).</p>
-        {% else %}
-          <p><strong>Manual run unavailable.</strong> Set <code>DOSSIER_API_URL</code> on <code>stock_ai</code> to trigger <code>data-layer-cron</code>.</p>
-        {% endif %}
-      </div>
-
       <section>
         <h2>External APIs</h2>
         <div class="api-grid" id="api-grid">
@@ -334,14 +575,326 @@
         </div>
       </section>
 
+      <nav class="health-tabs" aria-label="Health dashboard sections">
+        <button type="button" class="health-tab active" data-tab="ingestion" id="tab-btn-ingestion">
+          <i class="ti ti-database-import"></i>Data ingestion
+        </button>
+        <button type="button" class="health-tab" data-tab="wolf" id="tab-btn-wolf">
+          <i class="ti ti-paw"></i>Wolf executions
+        </button>
+      </nav>
+
+      <div id="tab-ingestion" class="health-tab-panel active" role="tabpanel" aria-labelledby="tab-btn-ingestion">
+
+      <div class="ops-bar">
+        {% if cron_api_configured %}
+          <button type="button" id="run-pipeline-btn" class="btn-primary">
+            <i class="ti ti-player-play" style="font-size:15px;"></i>Run full pipeline
+          </button>
+          <p id="run-pipeline-msg">Build dossiers → funnels → LLM scoring (~1–2 min to start updating).</p>
+        {% else %}
+          <p><strong>Manual run unavailable.</strong> Set <code>DOSSIER_API_URL</code> on <code>stock_ai</code> to trigger <code>data-layer-cron</code>.</p>
+        {% endif %}
+      </div>
+
+      <section>
+        <h2>LLM usage</h2>
+        {% if llm_usage %}
+          <div class="llm-panel">
+            <div class="llm-headline">
+              <h3>Batch scoring</h3>
+              <span class="llm-model">{{ llm_usage.model }}</span>
+            </div>
+            <div class="llm-period-bar">
+              <label>Period
+                <select id="llm-filter-days">
+                  <option value="1">Today</option>
+                  <option value="3">Last 3 days</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="14" selected>Last 14 days</option>
+                </select>
+              </label>
+            </div>
+            <p class="llm-pricing-note">{{ llm_usage.pricing_note }}</p>
+            {% if llm_usage.baseline and llm_usage.baseline.sample_size %}
+              <p class="baseline-note">Baseline: median of last {{ llm_usage.baseline.sample_size }} ingestion run(s) with LLM data</p>
+            {% endif %}
+            <div class="llm-subtabs" role="tablist" aria-label="LLM metric view">
+              <button type="button" class="llm-subtab active" data-llm-view="totals">Totals</button>
+              <button type="button" class="llm-subtab" data-llm-view="averages">Averages</button>
+            </div>
+
+            <div id="llm-view-totals" class="llm-view-panel active">
+              <div class="llm-totals">
+                <details class="llm-metric-card llm-cost-highlight" open>
+                  <summary>
+                    <span class="llm-metric-label">Est. cost</span>
+                    <span class="llm-metric-value" id="llm-total-cost">{{ format_cost_usd(llm_usage.totals.estimated_cost_usd) }}</span>
+                    <span id="llm-total-cost-per-symbol" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.totals.cost_per_symbol_usd %}display:none{% endif %}">
+                      {% if llm_usage.totals.cost_per_symbol_usd %}{{ format_cost_usd(llm_usage.totals.cost_per_symbol_usd) }}/symbol{% endif %}
+                    </span>
+                    <span id="llm-total-cost-drift" class="drift-badge llm-period-drift {{ llm_usage.totals.drift.total_cost.severity }}" style="{% if llm_usage.totals.drift.total_cost.delta_pct is none %}display:none{% endif %}">
+                      {% if llm_usage.totals.drift.total_cost.delta_pct is not none %}{{ format_delta_pct(llm_usage.totals.drift.total_cost.delta_pct) }} vs median{% endif %}
+                    </span>
+                    <span id="llm-total-system-cost" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.totals.system_prompt_estimated_cost_usd %}display:none{% endif %}">
+                      {% if llm_usage.totals.system_prompt_estimated_cost_usd %}
+                        system {{ format_cost_usd(llm_usage.totals.system_prompt_estimated_cost_usd) }}
+                        ({{ format_token_count(llm_usage.totals.system_prompt_estimated_tokens) }} tok est)
+                      {% endif %}
+                    </span>
+                  </summary>
+                  {% if llm_usage.strategies %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Cost</th><th>$/symbol</th><th>System est</th><th>Batches</th></tr></thead>
+                      <tbody id="llm-cost-split-tbody">
+                        {% for s in llm_usage.strategies %}
+                          <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{{ format_cost_usd(s.estimated_cost_usd) }}</td>
+                            <td>{{ format_cost_usd(s.cost_per_symbol_usd) }}</td>
+                            <td>{{ format_token_count(s.system_prompt_estimated_tokens) }}</td>
+                            <td>{{ s.calls }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% endif %}
+                </details>
+
+                <details class="llm-metric-card">
+                  <summary>
+                    <span class="llm-metric-label">Tokens</span>
+                    <span class="llm-metric-value" id="llm-total-tokens">{{ format_token_count(llm_usage.totals.total_tokens) }}</span>
+                    <span id="llm-total-calls-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;">
+                      {{ llm_usage.totals.calls }} call{% if llm_usage.totals.calls != 1 %}s{% endif %}
+                      · prompt {{ format_token_count(llm_usage.totals.prompt_tokens) }}
+                      · output {{ format_token_count(llm_usage.totals.output_tokens) }}
+                    </span>
+                  </summary>
+                  {% if llm_usage.strategies %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Total</th><th>Prompt</th><th>Output</th><th>Thoughts</th><th>Tok/sym</th><th>Calls</th><th>Retries</th><th>LLM time</th></tr></thead>
+                      <tbody id="llm-tokens-split-tbody">
+                        {% for s in llm_usage.strategies %}
+                          <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{{ format_token_count(s.total_tokens) }}</td>
+                            <td>{{ format_token_count(s.prompt_tokens) }}</td>
+                            <td>{{ format_token_count(s.output_tokens) }}</td>
+                            <td>{{ format_token_count(s.thoughts_tokens) }}</td>
+                            <td>{% if s.tokens_per_symbol %}{{ '%.0f'|format(s.tokens_per_symbol) }}{% else %}—{% endif %}</td>
+                            <td>{{ s.calls }}</td>
+                            <td>{{ s.retries }}</td>
+                            <td>{{ format_duration_ms(s.elapsed_ms) }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% endif %}
+                </details>
+              </div>
+            </div>
+
+            <div id="llm-view-averages" class="llm-view-panel">
+              <div class="llm-totals">
+                <details class="llm-metric-card llm-cost-highlight" open>
+                  <summary>
+                    <span class="llm-metric-label">Avg / batch</span>
+                    <span class="llm-metric-value" id="llm-avg-cost">{{ format_cost_usd(llm_usage.totals.avg_cost_per_batch_usd) }}</span>
+                    <span id="llm-avg-cost-drift" class="drift-badge llm-period-drift {{ llm_usage.totals.drift.avg_batch_cost.severity }}" style="{% if llm_usage.totals.drift.avg_batch_cost.delta_pct is none %}display:none{% endif %}">
+                      {% if llm_usage.totals.drift.avg_batch_cost.delta_pct is not none %}{{ format_delta_pct(llm_usage.totals.drift.avg_batch_cost.delta_pct) }} vs median{% endif %}
+                    </span>
+                  </summary>
+                  {% if llm_usage.strategies %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Avg cost / batch</th><th>Batches</th></tr></thead>
+                      <tbody id="llm-avg-cost-split-tbody">
+                        {% for s in llm_usage.strategies %}
+                          <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{{ format_cost_usd(s.avg_cost_per_batch_usd) }}</td>
+                            <td>{{ s.calls }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% endif %}
+                </details>
+
+                <details class="llm-metric-card">
+                  <summary>
+                    <span class="llm-metric-label">Avg tokens</span>
+                    <span class="llm-metric-value" id="llm-avg-tokens">{{ format_token_count(llm_usage.totals.avg_tokens_per_batch) }}</span>
+                    <span id="llm-avg-tokens-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;">
+                      prompt {{ format_token_count(llm_usage.totals.avg_prompt_tokens_per_batch) }}/batch
+                      · output {{ format_token_count(llm_usage.totals.avg_output_tokens_per_batch) }}/batch
+                    </span>
+                    <span id="llm-avg-tokens-drift" class="drift-badge llm-period-drift {{ llm_usage.totals.drift.avg_batch_tokens.severity }}" style="{% if llm_usage.totals.drift.avg_batch_tokens.delta_pct is none %}display:none{% endif %}">
+                      {% if llm_usage.totals.drift.avg_batch_tokens.delta_pct is not none %}{{ format_delta_pct(llm_usage.totals.drift.avg_batch_tokens.delta_pct) }} vs median{% endif %}
+                    </span>
+                  </summary>
+                  {% if llm_usage.strategies %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Total/batch</th><th>Prompt/batch</th><th>Output/batch</th><th>Batches</th></tr></thead>
+                      <tbody id="llm-avg-tokens-split-tbody">
+                        {% for s in llm_usage.strategies %}
+                          <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{{ format_token_count(s.avg_tokens_per_batch) }}</td>
+                            <td>{{ format_token_count(s.avg_prompt_tokens_per_batch) }}</td>
+                            <td>{{ format_token_count(s.avg_output_tokens_per_batch) }}</td>
+                            <td>{{ s.calls }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% endif %}
+                </details>
+
+                <details class="llm-metric-card">
+                  <summary>
+                    <span class="llm-metric-label">Per symbol</span>
+                    <span class="llm-metric-value" id="llm-per-symbol-payload">{% if llm_usage.totals.payload_tokens_per_symbol %}{{ format_token_count(llm_usage.totals.payload_tokens_per_symbol) }}{% else %}—{% endif %}</span>
+                    <span id="llm-per-symbol-drift" class="drift-badge llm-period-drift {{ llm_usage.totals.drift.payload_tokens_per_symbol.severity }}" style="{% if llm_usage.totals.drift.payload_tokens_per_symbol.delta_pct is none %}display:none{% endif %}">
+                      {% if llm_usage.totals.drift.payload_tokens_per_symbol.delta_pct is not none %}{{ format_delta_pct(llm_usage.totals.drift.payload_tokens_per_symbol.delta_pct) }} vs median{% endif %}
+                    </span>
+                    <span id="llm-per-symbol-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;">
+                      dossier payload only (excludes system prompt)
+                      · <span id="llm-per-symbol-allin">{% if llm_usage.totals.cost_per_symbol_usd %}{{ format_cost_usd(llm_usage.totals.cost_per_symbol_usd) }}/symbol all-in{% else %}—{% endif %}</span>
+                    </span>
+                  </summary>
+                  {% if llm_usage.strategies %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Payload tok/sym</th><th>Tok/sym</th><th>Output/sym</th><th>$/symbol</th><th>Scored</th></tr></thead>
+                      <tbody id="llm-per-symbol-split-tbody">
+                        {% for s in llm_usage.strategies %}
+                          <tr>
+                            <td>{{ s.name }}</td>
+                            <td>{% if s.payload_tokens_per_symbol %}{{ format_token_count(s.payload_tokens_per_symbol) }}{% else %}—{% endif %}</td>
+                            <td>{% if s.tokens_per_symbol %}{{ '%.0f'|format(s.tokens_per_symbol) }}{% else %}—{% endif %}</td>
+                            <td>{% if s.output_tokens_per_symbol %}{{ '%.0f'|format(s.output_tokens_per_symbol) }}{% else %}—{% endif %}</td>
+                            <td>{{ format_cost_usd(s.cost_per_symbol_usd) }}</td>
+                            <td>{% if s.candidates_scored is not none %}{{ s.candidates_scored }}{% else %}—{% endif %}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% endif %}
+                </details>
+              </div>
+            </div>
+
+            {% if llm_usage.batches %}
+              <script type="application/json" id="llm-batch-metrics">{{ llm_usage.batches | tojson }}</script>
+              <script type="application/json" id="llm-today-drift">{{ llm_usage.today_drift | default({}) | tojson }}</script>
+              <div class="llm-batch-section">
+                <h4>Batch breakdown</h4>
+                <div class="llm-batch-filters">
+                  <label>Strategy
+                    <select id="llm-filter-strategy">
+                      <option value="">All</option>
+                      {% for name in ['value', 'winners', 'box', 'dip'] %}
+                        {% if llm_usage.batches | selectattr('strategy', 'equalto', name) | list %}
+                          <option value="{{ name }}">{{ name }}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <label>Batch
+                    <select id="llm-filter-batch">
+                      <option value="">All</option>
+                    </select>
+                  </label>
+                  <span class="llm-batch-count" id="llm-batch-visible-count">{{ llm_usage.batches|length }} batches</span>
+                </div>
+                <div class="llm-batch-table-wrap">
+                <table class="llm-batch-table" id="llm-batch-table">
+                  <thead>
+                    <tr>
+                      <th class="col-run">When</th>
+                      <th class="col-strat">Strat</th>
+                      <th>Batch</th>
+                      <th class="col-num">#</th>
+                      <th>Cost</th>
+                      <th>Tok</th>
+                      <th>Pay/sym</th>
+                      <th>Sys</th>
+                      <th>Time</th>
+                      <th>Status</th>
+                      <th class="col-drift">Payload<br>drift</th>
+                      <th class="col-drift">Latency<br>drift</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for b in llm_usage.batches %}
+                      <tr
+                        class="llm-batch-row llm-batch-debug-row{% if b.drift.severity == 'alert' %} drift-alert{% elif b.drift.severity == 'warn' %} drift-warn{% endif %}"
+                        data-run-id="{{ b.run_id or '' }}"
+                        data-strategy="{{ b.strategy }}"
+                        data-batch="{{ b.batch }}"
+                        data-run-date="{{ b.run_date or '' }}"
+                        title="Click to debug drift"
+                      >
+                        <td class="llm-run-at" title="{{ b.run_at or '' }}">{{ b.run_at_short or b.run_at or '—' }}</td>
+                        <td class="col-strat" title="{{ b.strategy }}">{{ b.strategy }}</td>
+                        <td>{{ b.batch }}</td>
+                        <td class="col-num">{{ b.symbol_count or '—' }}</td>
+                        <td>{{ format_cost_usd(b.estimated_cost_usd) }}</td>
+                        <td>{{ format_token_count(b.total_tokens) }}</td>
+                        <td>{% if b.payload_tokens_per_symbol %}{{ format_token_count(b.payload_tokens_per_symbol) }}{% else %}—{% endif %}</td>
+                        <td>{{ format_token_count(b.system_prompt_estimated_tokens) }}</td>
+                        <td>{{ format_duration_ms(b.elapsed_ms) }}</td>
+                        <td>{{ b.status }}{% if b.attempts > 1 %} ×{{ b.attempts }}{% endif %}</td>
+                        <td class="col-drift">
+                          {% if b.drift.payload_tokens_per_symbol.delta_pct is not none %}
+                            <span class="drift-badge {{ b.drift.payload_tokens_per_symbol.severity or b.drift.severity }}">{{ format_delta_pct(b.drift.payload_tokens_per_symbol.delta_pct) }}</span>
+                          {% else %}—{% endif %}
+                        </td>
+                        <td class="col-drift">
+                          {% if b.drift.latency.delta_pct is not none %}
+                            <span class="drift-badge {{ b.drift.latency.severity }}">{{ format_delta_pct(b.drift.latency.delta_pct) }}</span>
+                          {% else %}—{% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                </div>
+                <div class="llm-batch-pagination" id="llm-batch-pagination">
+                  <button type="button" id="llm-page-prev" disabled>← Prev</button>
+                  <span class="llm-page-info" id="llm-page-info">Page 1 of 1</span>
+                  <button type="button" id="llm-page-next" disabled>Next →</button>
+                </div>
+              </div>
+              <div class="drift-debug-backdrop" id="drift-debug-backdrop" aria-hidden="true">
+                <div class="drift-debug-modal" role="dialog" aria-labelledby="drift-debug-title">
+                  <div class="drift-debug-head">
+                    <div>
+                      <h3 id="drift-debug-title">Drift debug</h3>
+                      <div class="drift-debug-sub" id="drift-debug-sub">Select a batch row to inspect drift.</div>
+                    </div>
+                    <button type="button" class="drift-debug-close" id="drift-debug-close" aria-label="Close">×</button>
+                  </div>
+                  <div class="drift-debug-body" id="drift-debug-body">
+                    <p class="drift-debug-empty">Loading…</p>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <p class="empty">No LLM usage recorded yet for today — run batch scoring to populate token stats.</p>
+        {% endif %}
+      </section>
+
       <section>
         {% if not recent %}
-          <h2>Last 5 runs</h2>
+          <h2>Last 5 ingestion runs</h2>
           <p class="empty">No pipeline runs yet — run morning ingestion to create a status row.</p>
         {% else %}
           <details class="recent-dropdown">
             <summary>
-              <span class="recent-summary-label">Last 5 runs</span>
+              <span class="recent-summary-label">Last 5 ingestion runs</span>
               <span class="dot-strip" aria-label="Pipeline run status for the last {{ recent|length }} run(s)">
                 {% for day in recent %}
                   <span
@@ -363,70 +916,12 @@
                       <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
                     {% endfor %}
                   </div>
-                </div>
-              {% endfor %}
-            </div>
-          </details>
-        {% endif %}
-      </section>
-
-      <section>
-        <h2>Daily fund manager · today</h2>
-        {% if fm_error %}
-          <p class="empty" style="color:var(--red);">{{ fm_error }}</p>
-          <p class="empty">Apply <code>fund_manager_health/schema.sql</code> in Supabase if the table is missing.</p>
-        {% elif fm_not_started %}
-          <p class="empty">Not started — no fund manager runs for today yet.</p>
-        {% elif not fm_today %}
-          <p class="empty">No wolf runs recorded today.</p>
-        {% else %}
-          {% for w in fm_today %}
-            <details class="stage"{% if loop.first %} open{% endif %}>
-              <summary>
-                <span class="chip {{ w.overall_chip }}">{{ w.overall }}</span>
-                <span>{{ w.wolf_name }} · {{ w.wolf_id }} · {{ w.strategy }}</span>
-                <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);margin-left:auto;">{{ w.run_at }}</span>
-              </summary>
-              <div class="stage-body">
-                {% if w.error %}<p style="color:var(--red);margin:0 0 10px;">{{ w.error }}</p>{% endif %}
-                <div class="chips">
-                  {% for s in w.stages %}
-                    <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
-                  {% endfor %}
-                </div>
-                {% for s in w.stages %}
-                  <p style="font-size:13px;margin:8px 0 0;color:var(--ink2);"><strong>{{ s.label }}:</strong> {{ s.detail }}</p>
-                {% endfor %}
-              </div>
-            </details>
-          {% endfor %}
-        {% endif %}
-      </section>
-
-      <section>
-        <h2>Fund manager · last 5 days</h2>
-        {% if fm_error %}
-          <p class="empty">Unavailable.</p>
-        {% elif not fm_recent %}
-          <p class="empty">No fund manager history yet.</p>
-        {% else %}
-          <details class="recent-dropdown">
-            <summary>
-              <span class="recent-summary-label">Wolf run summary</span>
-              <span class="dot-strip">
-                {% for day in fm_recent %}
-                  <span class="run-dot {{ day.overall_chip }}" title="{{ day.date }} · {{ day.detail }}"></span>
-                {% endfor %}
-              </span>
-            </summary>
-            <div class="recent-dropdown-body">
-              {% for day in fm_recent %}
-                <div class="day-card">
-                  <div class="day-head">
-                    <span class="day-date">{{ day.date }}</span>
-                    <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
-                  </div>
-                  <p style="font-size:13px;color:var(--ink2);margin:8px 0 0;">{{ day.detail }}</p>
+                  {% if day.llm_tokens %}
+                    <p class="ingestion-meta">
+                      LLM: {{ format_token_count(day.llm_tokens) }} tokens · {{ format_cost_usd(day.llm_cost_usd) }}
+                      {% if day.llm_calls %} · {{ day.llm_calls }} call{% if day.llm_calls != 1 %}s{% endif %}{% endif %}
+                    </p>
+                  {% endif %}
                 </div>
               {% endfor %}
             </div>
@@ -496,6 +991,76 @@
         {% endfor %}
       </section>
 
+      </div><!-- /tab-ingestion -->
+
+      <div id="tab-wolf" class="health-tab-panel" role="tabpanel" aria-labelledby="tab-btn-wolf">
+
+      <section>
+        <h2>Wolf executions · today</h2>
+        {% if fm_error %}
+          <p class="empty" style="color:var(--red);">{{ fm_error }}</p>
+          <p class="empty">Apply <code>fund_manager_health/schema.sql</code> in Supabase if the table is missing.</p>
+        {% elif fm_not_started %}
+          <p class="empty">Not started — no fund manager runs for today yet.</p>
+        {% elif not fm_today %}
+          <p class="empty">No wolf runs recorded today.</p>
+        {% else %}
+          {% for w in fm_today %}
+            <details class="stage"{% if loop.first %} open{% endif %}>
+              <summary>
+                <span class="chip {{ w.overall_chip }}">{{ w.overall }}</span>
+                <span>{{ w.wolf_name }} · {{ w.wolf_id }} · {{ w.strategy }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--ink2);margin-left:auto;">{{ w.run_at }}</span>
+              </summary>
+              <div class="stage-body">
+                {% if w.error %}<p style="color:var(--red);margin:0 0 10px;">{{ w.error }}</p>{% endif %}
+                <div class="chips">
+                  {% for s in w.stages %}
+                    <span class="mini-chip {{ s.chip }}" title="{{ s.detail }}">{{ s.label }}</span>
+                  {% endfor %}
+                </div>
+                {% for s in w.stages %}
+                  <p style="font-size:13px;margin:8px 0 0;color:var(--ink2);"><strong>{{ s.label }}:</strong> {{ s.detail }}</p>
+                {% endfor %}
+              </div>
+            </details>
+          {% endfor %}
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Wolf executions · last 5 days</h2>
+        {% if fm_error %}
+          <p class="empty">Unavailable.</p>
+        {% elif not fm_recent %}
+          <p class="empty">No fund manager history yet.</p>
+        {% else %}
+          <details class="recent-dropdown">
+            <summary>
+              <span class="recent-summary-label">Wolf run summary</span>
+              <span class="dot-strip">
+                {% for day in fm_recent %}
+                  <span class="run-dot {{ day.overall_chip }}" title="{{ day.date }} · {{ day.detail }}"></span>
+                {% endfor %}
+              </span>
+            </summary>
+            <div class="recent-dropdown-body">
+              {% for day in fm_recent %}
+                <div class="day-card">
+                  <div class="day-head">
+                    <span class="day-date">{{ day.date }}</span>
+                    <span class="chip {{ day.overall_chip }}">{{ day.overall }}</span>
+                  </div>
+                  <p style="font-size:13px;color:var(--ink2);margin:8px 0 0;">{{ day.detail }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+      </section>
+
+      </div><!-- /tab-wolf -->
+
       <p class="footer-note">
         <span class="auth-avatar-chip">{{ email[0]|upper if email else "?" }}</span>
         Signed in as {{ email }}
@@ -540,6 +1105,707 @@
   </script>
   {% endif %}
   {% if authorized %}
+  <script>
+    (function () {
+      const tabs = document.querySelectorAll('.health-tab');
+      const panels = {
+        ingestion: document.getElementById('tab-ingestion'),
+        wolf: document.getElementById('tab-wolf'),
+      };
+
+      function activateTab(name) {
+        if (!panels[name]) return;
+        tabs.forEach(function (btn) {
+          const on = btn.getAttribute('data-tab') === name;
+          btn.classList.toggle('active', on);
+        });
+        Object.keys(panels).forEach(function (key) {
+          panels[key].classList.toggle('active', key === name);
+        });
+        if (location.hash !== '#' + name) {
+          history.replaceState(null, '', '#' + name);
+        }
+      }
+
+      tabs.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          activateTab(btn.getAttribute('data-tab') || 'ingestion');
+        });
+      });
+
+      const hash = (location.hash || '').replace(/^#/, '');
+      activateTab(hash === 'wolf' ? 'wolf' : 'ingestion');
+      window.addEventListener('hashchange', function () {
+        const h = (location.hash || '').replace(/^#/, '');
+        activateTab(h === 'wolf' ? 'wolf' : 'ingestion');
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      const subtabs = document.querySelectorAll('.llm-subtab');
+      const llmPanels = {
+        totals: document.getElementById('llm-view-totals'),
+        averages: document.getElementById('llm-view-averages'),
+      };
+      if (!subtabs.length) return;
+
+      function activateLlmView(name) {
+        if (!llmPanels[name]) return;
+        subtabs.forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-llm-view') === name);
+        });
+        Object.keys(llmPanels).forEach(function (key) {
+          llmPanels[key].classList.toggle('active', key === name);
+        });
+      }
+
+      subtabs.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          activateLlmView(btn.getAttribute('data-llm-view') || 'totals');
+        });
+      });
+
+      const metricsEl = document.getElementById('llm-batch-metrics');
+      const driftEl = document.getElementById('llm-today-drift');
+      let batchMetrics = [];
+      let todayDrift = { totals: {}, strategies: {} };
+      if (metricsEl) {
+        try {
+          batchMetrics = JSON.parse(metricsEl.textContent || '[]');
+        } catch (e) { batchMetrics = []; }
+      }
+      if (driftEl) {
+        try {
+          todayDrift = JSON.parse(driftEl.textContent || '{}');
+        } catch (e) { todayDrift = { totals: {}, strategies: {} }; }
+      }
+
+      function safeDiv(a, b) {
+        return b ? a / b : null;
+      }
+
+      function fmtCost(amount) {
+        const value = parseFloat(amount) || 0;
+        if (value >= 1) return '$' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (value >= 0.01) return '$' + value.toFixed(2);
+        if (value > 0) return '$' + value.toFixed(4);
+        return '$0.00';
+      }
+
+      function fmtTok(n) {
+        return (parseInt(n, 10) || 0).toLocaleString();
+      }
+
+      function fmtDur(ms) {
+        const value = parseInt(ms, 10) || 0;
+        if (value < 1000) return value + 'ms';
+        return (value / 1000).toFixed(1) + 's';
+      }
+
+      function fmtPct(n) {
+        if (n === null || n === undefined || isNaN(n)) return '';
+        const v = parseFloat(n);
+        return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+      }
+
+      function withinDays(runDateStr, days) {
+        if (!runDateStr) return true;
+        const dayCount = parseInt(days, 10);
+        if (!dayCount || dayCount >= 14) return true;
+        const parts = runDateStr.split('-');
+        if (parts.length < 3) return true;
+        const runDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const cutoff = new Date();
+        cutoff.setHours(0, 0, 0, 0);
+        cutoff.setDate(cutoff.getDate() - (dayCount - 1));
+        return runDate >= cutoff;
+      }
+
+      function aggregateBatchMetrics(batches) {
+        const byStrategy = {};
+        const totals = {
+          calls: 0,
+          retries: 0,
+          total_tokens: 0,
+          prompt_tokens: 0,
+          output_tokens: 0,
+          thoughts_tokens: 0,
+          cached_tokens: 0,
+          elapsed_ms: 0,
+          estimated_cost_usd: 0,
+          system_prompt_estimated_tokens: 0,
+          system_prompt_estimated_cost_usd: 0,
+          payload_tokens: 0,
+          payload_chars: 0,
+          symbol_count: 0,
+        };
+
+        batches.forEach(function (b) {
+          totals.calls += 1;
+          const attempts = parseInt(b.attempts, 10) || 1;
+          totals.retries += Math.max(0, attempts - 1);
+          ['total_tokens', 'prompt_tokens', 'output_tokens', 'thoughts_tokens', 'cached_tokens', 'elapsed_ms'].forEach(function (k) {
+            totals[k] += parseInt(b[k], 10) || 0;
+          });
+          totals.estimated_cost_usd += parseFloat(b.estimated_cost_usd) || 0;
+          totals.system_prompt_estimated_tokens += parseInt(b.system_prompt_estimated_tokens, 10) || 0;
+          totals.system_prompt_estimated_cost_usd += parseFloat(b.system_prompt_estimated_cost_usd) || 0;
+          totals.payload_tokens += parseInt(b.payload_tokens, 10) || 0;
+          totals.payload_chars += parseInt(b.payload_chars, 10) || 0;
+          totals.symbol_count += parseInt(b.symbol_count, 10) || 0;
+
+          const name = b.strategy || '?';
+          if (!byStrategy[name]) {
+            byStrategy[name] = {
+              name: name,
+              calls: 0,
+              retries: 0,
+              total_tokens: 0,
+              prompt_tokens: 0,
+              output_tokens: 0,
+              thoughts_tokens: 0,
+              elapsed_ms: 0,
+              estimated_cost_usd: 0,
+              system_prompt_estimated_tokens: 0,
+              symbol_count: 0,
+              payload_tokens: 0,
+            };
+          }
+          const s = byStrategy[name];
+          s.calls += 1;
+          s.retries += Math.max(0, attempts - 1);
+          ['total_tokens', 'prompt_tokens', 'output_tokens', 'thoughts_tokens', 'elapsed_ms'].forEach(function (k) {
+            s[k] += parseInt(b[k], 10) || 0;
+          });
+          s.estimated_cost_usd += parseFloat(b.estimated_cost_usd) || 0;
+          s.system_prompt_estimated_tokens += parseInt(b.system_prompt_estimated_tokens, 10) || 0;
+          s.symbol_count += parseInt(b.symbol_count, 10) || 0;
+          s.payload_tokens += parseInt(b.payload_tokens, 10) || 0;
+        });
+
+        totals.avg_cost_per_batch_usd = safeDiv(totals.estimated_cost_usd, totals.calls);
+        totals.avg_tokens_per_batch = safeDiv(totals.total_tokens, totals.calls);
+        totals.avg_prompt_tokens_per_batch = safeDiv(totals.prompt_tokens, totals.calls);
+        totals.avg_output_tokens_per_batch = safeDiv(totals.output_tokens + totals.thoughts_tokens, totals.calls);
+        totals.cost_per_symbol_usd = safeDiv(totals.estimated_cost_usd, totals.symbol_count);
+        totals.tokens_per_symbol = safeDiv(totals.total_tokens, totals.symbol_count);
+        totals.payload_tokens_per_symbol = safeDiv(totals.payload_tokens, totals.symbol_count);
+        totals.output_tokens_per_symbol = safeDiv(totals.output_tokens + totals.thoughts_tokens, totals.symbol_count);
+
+        Object.keys(byStrategy).forEach(function (name) {
+          const s = byStrategy[name];
+          s.avg_cost_per_batch_usd = safeDiv(s.estimated_cost_usd, s.calls);
+          s.avg_tokens_per_batch = safeDiv(s.total_tokens, s.calls);
+          s.avg_prompt_tokens_per_batch = safeDiv(s.prompt_tokens, s.calls);
+          s.avg_output_tokens_per_batch = safeDiv(s.output_tokens + s.thoughts_tokens, s.calls);
+          s.cost_per_symbol_usd = safeDiv(s.estimated_cost_usd, s.symbol_count);
+          s.tokens_per_symbol = safeDiv(s.total_tokens, s.symbol_count);
+          s.payload_tokens_per_symbol = safeDiv(s.payload_tokens, s.symbol_count);
+          s.output_tokens_per_symbol = safeDiv(s.output_tokens + s.thoughts_tokens, s.symbol_count);
+        });
+
+        const order = ['value', 'winners', 'box', 'dip'];
+        const strategies = order.filter(function (n) { return byStrategy[n]; }).map(function (n) {
+          return byStrategy[n];
+        });
+        return { totals: totals, strategies: strategies };
+      }
+
+      function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
+      function setVisible(id, show) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = show ? '' : 'none';
+      }
+
+      function renderStrategyRows(tbodyId, renderFn, strategies) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.innerHTML = strategies.map(renderFn).join('');
+      }
+
+      function updateDriftBadge(id, drift, showDrift) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!showDrift || !drift || drift.delta_pct === null || drift.delta_pct === undefined) {
+          el.style.display = 'none';
+          return;
+        }
+        el.style.display = '';
+        el.textContent = fmtPct(drift.delta_pct) + ' vs median';
+        el.className = 'drift-badge llm-period-drift ' + (drift.severity || 'ok');
+      }
+
+      function updateLlmMetrics(days) {
+        const filtered = batchMetrics.filter(function (b) {
+          return withinDays(b.run_date || '', days);
+        });
+        const agg = aggregateBatchMetrics(filtered);
+        const totals = agg.totals;
+        const strategies = agg.strategies;
+        const showDrift = String(days) === '1';
+
+        document.querySelectorAll('.llm-period-drift').forEach(function (el) {
+          el.style.display = showDrift ? '' : 'none';
+        });
+
+        setText('llm-total-cost', fmtCost(totals.estimated_cost_usd));
+        if (totals.cost_per_symbol_usd != null) {
+          setText('llm-total-cost-per-symbol', fmtCost(totals.cost_per_symbol_usd) + '/symbol');
+          setVisible('llm-total-cost-per-symbol', true);
+        } else {
+          setVisible('llm-total-cost-per-symbol', false);
+        }
+        if (totals.system_prompt_estimated_cost_usd) {
+          setText(
+            'llm-total-system-cost',
+            'system ' + fmtCost(totals.system_prompt_estimated_cost_usd) +
+            ' (' + fmtTok(totals.system_prompt_estimated_tokens) + ' tok est)'
+          );
+          setVisible('llm-total-system-cost', true);
+        } else {
+          setVisible('llm-total-system-cost', false);
+        }
+        if (showDrift) {
+          updateDriftBadge('llm-total-cost-drift', (todayDrift.totals || {}).total_cost, true);
+          updateDriftBadge('llm-avg-cost-drift', (todayDrift.totals || {}).avg_batch_cost, true);
+          updateDriftBadge('llm-avg-tokens-drift', (todayDrift.totals || {}).avg_batch_tokens, true);
+          updateDriftBadge('llm-per-symbol-drift', (todayDrift.totals || {}).payload_tokens_per_symbol, true);
+        }
+
+        setText('llm-total-tokens', fmtTok(totals.total_tokens));
+        setText(
+          'llm-total-calls-meta',
+          totals.calls + ' call' + (totals.calls === 1 ? '' : 's') +
+          ' · prompt ' + fmtTok(totals.prompt_tokens) +
+          ' · output ' + fmtTok(totals.output_tokens)
+        );
+
+        setText('llm-avg-cost', totals.avg_cost_per_batch_usd != null ? fmtCost(totals.avg_cost_per_batch_usd) : '—');
+        setText('llm-avg-tokens', totals.avg_tokens_per_batch != null ? fmtTok(Math.round(totals.avg_tokens_per_batch)) : '—');
+        setText(
+          'llm-avg-tokens-meta',
+          'prompt ' + (totals.avg_prompt_tokens_per_batch != null ? fmtTok(Math.round(totals.avg_prompt_tokens_per_batch)) : '—') + '/batch' +
+          ' · output ' + (totals.avg_output_tokens_per_batch != null ? fmtTok(Math.round(totals.avg_output_tokens_per_batch)) : '—') + '/batch'
+        );
+
+        setText(
+          'llm-per-symbol-payload',
+          totals.payload_tokens_per_symbol != null ? fmtTok(Math.round(totals.payload_tokens_per_symbol)) : '—'
+        );
+        setText(
+          'llm-per-symbol-allin',
+          totals.cost_per_symbol_usd != null ? fmtCost(totals.cost_per_symbol_usd) + '/symbol all-in' : '—'
+        );
+
+        renderStrategyRows('llm-cost-split-tbody', function (s) {
+          return '<tr><td>' + s.name + '</td><td>' + fmtCost(s.estimated_cost_usd) + '</td><td>' +
+            (s.cost_per_symbol_usd != null ? fmtCost(s.cost_per_symbol_usd) : '—') + '</td><td>' +
+            fmtTok(s.system_prompt_estimated_tokens) + '</td><td>' + s.calls + '</td></tr>';
+        }, strategies);
+
+        renderStrategyRows('llm-tokens-split-tbody', function (s) {
+          return '<tr><td>' + s.name + '</td><td>' + fmtTok(s.total_tokens) + '</td><td>' +
+            fmtTok(s.prompt_tokens) + '</td><td>' + fmtTok(s.output_tokens) + '</td><td>' +
+            fmtTok(s.thoughts_tokens) + '</td><td>' +
+            (s.tokens_per_symbol != null ? Math.round(s.tokens_per_symbol) : '—') + '</td><td>' +
+            s.calls + '</td><td>' + s.retries + '</td><td>' + fmtDur(s.elapsed_ms) + '</td></tr>';
+        }, strategies);
+
+        renderStrategyRows('llm-avg-cost-split-tbody', function (s) {
+          return '<tr><td>' + s.name + '</td><td>' +
+            (s.avg_cost_per_batch_usd != null ? fmtCost(s.avg_cost_per_batch_usd) : '—') + '</td><td>' +
+            s.calls + '</td></tr>';
+        }, strategies);
+
+        renderStrategyRows('llm-avg-tokens-split-tbody', function (s) {
+          return '<tr><td>' + s.name + '</td><td>' +
+            (s.avg_tokens_per_batch != null ? fmtTok(Math.round(s.avg_tokens_per_batch)) : '—') + '</td><td>' +
+            (s.avg_prompt_tokens_per_batch != null ? fmtTok(Math.round(s.avg_prompt_tokens_per_batch)) : '—') + '</td><td>' +
+            (s.avg_output_tokens_per_batch != null ? fmtTok(Math.round(s.avg_output_tokens_per_batch)) : '—') + '</td><td>' +
+            s.calls + '</td></tr>';
+        }, strategies);
+
+        renderStrategyRows('llm-per-symbol-split-tbody', function (s) {
+          return '<tr><td>' + s.name + '</td><td>' +
+            (s.payload_tokens_per_symbol != null ? fmtTok(Math.round(s.payload_tokens_per_symbol)) : '—') + '</td><td>' +
+            (s.tokens_per_symbol != null ? Math.round(s.tokens_per_symbol) : '—') + '</td><td>' +
+            (s.output_tokens_per_symbol != null ? Math.round(s.output_tokens_per_symbol) : '—') + '</td><td>' +
+            (s.cost_per_symbol_usd != null ? fmtCost(s.cost_per_symbol_usd) : '—') + '</td><td>—</td></tr>';
+        }, strategies);
+      }
+
+      const PAGE_SIZE = 10;
+      const daysSelect = document.getElementById('llm-filter-days');
+      const strategySelect = document.getElementById('llm-filter-strategy');
+      const batchSelect = document.getElementById('llm-filter-batch');
+      const rows = Array.from(document.querySelectorAll('.llm-batch-row'));
+      const countEl = document.getElementById('llm-batch-visible-count');
+      const pagePrev = document.getElementById('llm-page-prev');
+      const pageNext = document.getElementById('llm-page-next');
+      const pageInfo = document.getElementById('llm-page-info');
+      let currentPage = 1;
+
+      function batchOptionsForStrategy(strategy) {
+        if (!strategySelect || !batchSelect) return [];
+        const seen = new Set();
+        const opts = [];
+        const days = daysSelect ? daysSelect.value : '14';
+        rows.forEach(function (row) {
+          const runDate = row.getAttribute('data-run-date') || '';
+          if (!withinDays(runDate, days)) return;
+          const s = row.getAttribute('data-strategy') || '';
+          const b = row.getAttribute('data-batch') || '';
+          if (strategy && s !== strategy) return;
+          const key = s + '|' + b;
+          if (!b || seen.has(key)) return;
+          seen.add(key);
+          opts.push({ strategy: s, batch: b, label: s + ' ' + b });
+        });
+        opts.sort(function (a, b) {
+          return a.label.localeCompare(b.label);
+        });
+        return opts;
+      }
+
+      function rebuildBatchSelect() {
+        if (!strategySelect || !batchSelect) return;
+        const strategy = strategySelect.value;
+        const prev = batchSelect.value;
+        batchSelect.innerHTML = '<option value="">All</option>';
+        batchOptionsForStrategy(strategy).forEach(function (opt) {
+          const el = document.createElement('option');
+          el.value = opt.strategy + '|' + opt.batch;
+          el.textContent = opt.label;
+          batchSelect.appendChild(el);
+        });
+        if (prev) {
+          const match = Array.from(batchSelect.options).find(function (o) {
+            return o.value === prev;
+          });
+          batchSelect.value = match ? prev : '';
+        }
+      }
+
+      function rowMatchesFilters(row) {
+        if (!strategySelect || !batchSelect) return true;
+        const strategy = strategySelect.value;
+        const batchVal = batchSelect.value;
+        const days = daysSelect ? daysSelect.value : '14';
+        let batchStrategy = '';
+        let batch = '';
+        if (batchVal) {
+          const parts = batchVal.split('|');
+          batchStrategy = parts[0] || '';
+          batch = parts[1] || '';
+        }
+        const rowStrategy = row.getAttribute('data-strategy') || '';
+        const rowBatch = row.getAttribute('data-batch') || '';
+        const runDate = row.getAttribute('data-run-date') || '';
+        return (
+          withinDays(runDate, days) &&
+          (!strategy || rowStrategy === strategy) &&
+          (!batchVal || (rowStrategy === batchStrategy && rowBatch === batch))
+        );
+      }
+
+      function filteredRows() {
+        return rows.filter(function (row) {
+          return rowMatchesFilters(row);
+        });
+      }
+
+      function applyPagination(resetPage) {
+        if (resetPage) currentPage = 1;
+        const matching = filteredRows();
+        const total = matching.length;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const end = start + PAGE_SIZE;
+        const visibleOnPage = matching.slice(start, end);
+        const visibleSet = new Set(visibleOnPage);
+
+        rows.forEach(function (row) {
+          const show = visibleSet.has(row);
+          row.classList.toggle('hidden', !show);
+        });
+
+        if (countEl) {
+          if (!total) {
+            countEl.textContent = '0 batches';
+          } else {
+            countEl.textContent =
+              'Showing ' + (start + 1) + '–' + Math.min(end, total) + ' of ' + total;
+          }
+        }
+        if (pageInfo) {
+          pageInfo.textContent = total ? ('Page ' + currentPage + ' of ' + totalPages) : 'No rows';
+        }
+        if (pagePrev) pagePrev.disabled = currentPage <= 1;
+        if (pageNext) pageNext.disabled = currentPage >= totalPages || total === 0;
+      }
+
+      function applyPeriodChange() {
+        const days = daysSelect ? daysSelect.value : '14';
+        updateLlmMetrics(days);
+        if (batchSelect) batchSelect.value = '';
+        rebuildBatchSelect();
+        applyPagination(true);
+      }
+
+      if (daysSelect) {
+        daysSelect.addEventListener('change', applyPeriodChange);
+        applyPeriodChange();
+      } else if (batchMetrics.length) {
+        updateLlmMetrics('14');
+      }
+
+      if (strategySelect && batchSelect && rows.length) {
+        strategySelect.addEventListener('change', function () {
+          batchSelect.value = '';
+          rebuildBatchSelect();
+          applyPagination(true);
+        });
+        batchSelect.addEventListener('change', function () {
+          applyPagination(true);
+        });
+
+        if (pagePrev) {
+          pagePrev.addEventListener('click', function () {
+            if (currentPage > 1) {
+              currentPage -= 1;
+              applyPagination(false);
+            }
+          });
+        }
+        if (pageNext) {
+          pageNext.addEventListener('click', function () {
+            const totalPages = Math.max(1, Math.ceil(filteredRows().length / PAGE_SIZE));
+            if (currentPage < totalPages) {
+              currentPage += 1;
+              applyPagination(false);
+            }
+          });
+        }
+
+        rebuildBatchSelect();
+        applyPagination(true);
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      const backdrop = document.getElementById('drift-debug-backdrop');
+      const bodyEl = document.getElementById('drift-debug-body');
+      const subEl = document.getElementById('drift-debug-sub');
+      const titleEl = document.getElementById('drift-debug-title');
+      const closeBtn = document.getElementById('drift-debug-close');
+      if (!backdrop || !bodyEl) return;
+
+      function esc(text) {
+        return String(text == null ? '' : text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function fmtPct(v) {
+        if (v == null || v === '') return '—';
+        const n = Number(v);
+        if (Number.isNaN(n)) return '—';
+        return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+      }
+
+      function statBlock(label, value) {
+        return (
+          '<div class="drift-debug-stat"><label>' + esc(label) +
+          '</label><span>' + esc(value) + '</span></div>'
+        );
+      }
+
+      function renderBreakdown(breakdown) {
+        const sections = (breakdown && breakdown.sections) || {};
+        const keys = Object.keys(sections).sort(function (a, b) {
+          return (sections[b] || 0) - (sections[a] || 0);
+        });
+        if (!keys.length) {
+          return '<p class="drift-debug-empty">No payload breakdown stored for this batch — re-run ingestion to populate.</p>';
+        }
+        const max = Math.max.apply(null, keys.map(function (k) { return sections[k] || 0; })) || 1;
+        let html = '<div class="drift-debug-bars">';
+        keys.forEach(function (key) {
+          const val = sections[key] || 0;
+          const pct = Math.max(4, Math.round((val / max) * 100));
+          html += '<div class="drift-debug-bar-row"><span>' + esc(key) +
+            '</span><div class="drift-debug-bar"><span style="width:' + pct + '%"></span></div><span>' +
+            esc(val.toLocaleString()) + '</span></div>';
+        });
+        html += '</div>';
+        return html;
+      }
+
+      function renderLogs(entries) {
+        if (!entries || !entries.length) {
+          return '<p class="drift-debug-empty">No run logs stored for this batch — re-run ingestion to capture logs.</p>';
+        }
+        return entries.map(function (row) {
+          const ts = row.ts || '';
+          const level = row.level || '';
+          const msg = row.message || '';
+          return '<div class="drift-debug-log-line">[' + esc(ts) + '] ' + esc(level) +
+            ' ' + esc(msg) + '</div>';
+        }).join('');
+      }
+
+      function renderAnalysis(analysis, breakdown) {
+        let html = '';
+        html += '<div class="drift-debug-section"><h4>Payload breakdown (chars by section)</h4>' +
+          renderBreakdown(breakdown) + '</div>';
+        if (analysis && analysis.contributors && analysis.contributors.length) {
+          html += '<div class="drift-debug-section"><h4>Per-symbol section drift vs baseline</h4>';
+          html += '<table class="drift-debug-contributors"><thead><tr><th>Symbol</th><th>Section</th><th>Now</th><th>Baseline</th><th>Δ</th></tr></thead><tbody>';
+          analysis.contributors.forEach(function (c) {
+            html += '<tr><td>' + esc(c.symbol) + '</td><td>' + esc(c.section) + '</td><td>' +
+              esc(c.current_chars) + '</td><td>' + esc(c.baseline_median) +
+              ' <span class="drift-debug-sub">(n=' + esc(c.baseline_n) + ')</span></td><td>' +
+              esc(fmtPct(c.delta_pct)) + ' (' + esc(c.delta_chars) + ' chars)</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        return html;
+      }
+
+      function renderIoBlock(text, emptyMsg) {
+        if (!text) {
+          return '<p class="drift-debug-empty">' + esc(emptyMsg) + '</p>';
+        }
+        var pretty = text;
+        try {
+          pretty = JSON.stringify(JSON.parse(text), null, 2);
+        } catch (e) { /* keep raw */ }
+        return '<pre class="drift-debug-code">' + esc(pretty) + '</pre>';
+      }
+
+      function bindDebugTabs() {
+        const tabs = bodyEl.querySelectorAll('.drift-debug-tab');
+        const panels = bodyEl.querySelectorAll('.drift-debug-panel');
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            const name = tab.getAttribute('data-tab');
+            tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
+            panels.forEach(function (p) {
+              p.classList.toggle('active', p.getAttribute('data-panel') === name);
+            });
+          });
+        });
+      }
+
+      function renderDebug(data, logs) {
+        const drift = data.drift || {};
+        const payloadDrift = drift.payload_tokens_per_symbol || {};
+        const latencyDrift = drift.latency || {};
+        const report = data.drift_report || {};
+        const analysis = data.analysis || {};
+        const llmIo = data.llm_io || {};
+
+        let html = '<div class="drift-debug-grid">';
+        html += statBlock('Payload tok/sym', data.payload_tokens_per_symbol);
+        html += statBlock('Payload drift', fmtPct(payloadDrift.delta_pct));
+        html += statBlock('Baseline median', payloadDrift.baseline_median);
+        html += statBlock('Z-score', payloadDrift.z_score);
+        html += statBlock('Latency', ((data.batch_row || {}).elapsed_ms || 0) + ' ms');
+        html += statBlock('Latency drift', fmtPct(latencyDrift.delta_pct));
+        html += statBlock('Attempts', (data.batch_row || {}).attempts);
+        html += statBlock('Baseline runs', report.baseline_sample_size);
+        html += '</div>';
+
+        html += '<div class="drift-debug-tabs">';
+        ['analysis', 'input', 'output', 'logs'].forEach(function (name, idx) {
+          const label = name.charAt(0).toUpperCase() + name.slice(1);
+          html += '<button type="button" class="drift-debug-tab' + (idx === 0 ? ' active' : '') +
+            '" data-tab="' + name + '">' + label + '</button>';
+        });
+        html += '</div>';
+
+        html += '<div class="drift-debug-panel active" data-panel="analysis">' +
+          renderAnalysis(analysis, data.payload_breakdown) + '</div>';
+        html += '<div class="drift-debug-panel" data-panel="input">';
+        if (llmIo.system_prompt_chars) {
+          html += '<p class="drift-debug-sub">System prompt ~' + esc(llmIo.system_prompt_chars) +
+            ' chars (' + esc(llmIo.model || '') + ')</p>';
+        }
+        html += renderIoBlock(llmIo.user_content, 'No LLM input stored — re-run ingestion to capture user payload.');
+        html += '</div>';
+        html += '<div class="drift-debug-panel" data-panel="output">';
+        html += renderIoBlock(llmIo.response_text, 'No LLM output stored for this batch.');
+        html += '</div>';
+        html += '<div class="drift-debug-panel" data-panel="logs"><div class="drift-debug-logs">' +
+          renderLogs((logs && logs.entries) || []) + '</div></div>';
+
+        bodyEl.innerHTML = html;
+        bindDebugTabs();
+      }
+
+      function openDebug(runId, strategy, batch) {
+        if (!runId) {
+          bodyEl.innerHTML = '<p class="drift-debug-empty">No run ID on this batch — re-run ingestion to attach run metadata.</p>';
+          backdrop.classList.add('open');
+          return;
+        }
+        titleEl.textContent = 'Drift debug · ' + strategy + ' ' + batch;
+        subEl.textContent = 'Run ' + runId;
+        bodyEl.innerHTML = '<p class="drift-debug-empty">Loading…</p>';
+        backdrop.classList.add('open');
+
+        const q = '?strategy=' + encodeURIComponent(strategy) + '&batch=' + encodeURIComponent(batch);
+        Promise.all([
+          fetch('/api/ops/health-runs/' + encodeURIComponent(runId) + '/batch-debug' + q).then(function (r) {
+            return r.json();
+          }),
+          fetch('/api/ops/health-runs/' + encodeURIComponent(runId) + '/logs' + q + '&limit=80').then(function (r) {
+            return r.json();
+          }),
+        ]).then(function (results) {
+          const debug = results[0];
+          const logs = results[1];
+          if (debug.error) {
+            bodyEl.innerHTML = '<p class="drift-debug-empty">' + esc(debug.error) + '</p>';
+            return;
+          }
+          renderDebug(debug, logs);
+        }).catch(function (err) {
+          bodyEl.innerHTML = '<p class="drift-debug-empty">Failed to load debug data: ' + esc(err) + '</p>';
+        });
+      }
+
+      function closeDebug() {
+        backdrop.classList.remove('open');
+      }
+
+      document.querySelectorAll('.llm-batch-debug-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          openDebug(
+            row.getAttribute('data-run-id') || '',
+            row.getAttribute('data-strategy') || '',
+            row.getAttribute('data-batch') || ''
+          );
+        });
+      });
+
+      if (closeBtn) closeBtn.addEventListener('click', closeDebug);
+      backdrop.addEventListener('click', function (ev) {
+        if (ev.target === backdrop) closeDebug();
+      });
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') closeDebug();
+      });
+    })();
+  </script>
   <script>
     (function () {
       const grid = document.getElementById('api-grid');

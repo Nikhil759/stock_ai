@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from datetime import date
 from pathlib import Path
@@ -28,9 +29,25 @@ from funnels.value_funnel import run_value_funnel
 from funnels.winners_funnel import run_winners_funnel
 from funnels.box_funnel import run_box_funnel
 from funnels.dip_funnel import run_dip_funnel
-from scoring.batch_scorer import run_batch_scoring, apply_llm_cap, BATCH_SIZE, DEFAULT_LLM_CAPS
+from scoring.batch_scorer import (
+    run_batch_scoring,
+    apply_llm_cap,
+    BATCH_SIZE,
+    DEFAULT_LLM_CAPS,
+    GEMINI_MODEL,
+)
 from cache.shortlist_cache import save_shortlist
-from health_status import start_run, update_stage, finalize
+from health_status import finalize, start_run, update_stage
+from health_status.run_log import flush_run_logs, start_run_logging, stop_run_logging
+from selector.llm.usage import (
+    LlmUsageCollector,
+    build_llm_baselines,
+    finalize_llm_usage_payload,
+    log_llm_drift_summary,
+    stamp_llm_run_context,
+)
+
+log = logging.getLogger(__name__)
 
 ALL_STRATEGIES = ("value", "winners", "box", "dip")
 
@@ -123,6 +140,7 @@ def run_scoring(
     strategies: list[str],
     as_of: date | None = None,
     max_candidates: int = 0,
+    run_context: dict | None = None,
 ) -> dict[str, list[dict]]:
     """Phase D — batch score + shortlist cache; health per strategy."""
     as_of = as_of or date.today()
@@ -132,6 +150,7 @@ def run_scoring(
         + (f", hard_cap={max_candidates}" if max_candidates else "")
     )
     shortlists: dict[str, list[dict]] = {}
+    usage_collector = LlmUsageCollector(phase="daily_ingestion", model=GEMINI_MODEL)
     for strategy in strategies:
         candidates = apply_llm_cap(
             strategy,
@@ -140,9 +159,21 @@ def run_scoring(
         )
         n_score = len(candidates)
         try:
-            scored = run_batch_scoring(strategy, candidates, as_of=as_of)
+            result = run_batch_scoring(
+                strategy,
+                candidates,
+                as_of=as_of,
+                usage_collector=usage_collector,
+            )
+            scored = result.survivors
             save_shortlist(strategy, as_of, scored)
             shortlists[strategy] = scored
+            usage_collector.merge_strategy_meta(
+                strategy,
+                candidates_scored=n_score,
+                survivors=len(scored),
+                status="success",
+            )
             update_stage(
                 f"batch_scoring.{strategy}",
                 {
@@ -168,6 +199,12 @@ def run_scoring(
         except Exception as e:
             print(f"[BATCH SCORING] {strategy} FAILED: {e}")
             shortlists[strategy] = []
+            usage_collector.merge_strategy_meta(
+                strategy,
+                candidates_scored=n_score,
+                survivors=0,
+                status="failed",
+            )
             update_stage(
                 f"batch_scoring.{strategy}",
                 {
@@ -179,6 +216,27 @@ def run_scoring(
             )
             update_stage("cache_saved", {strategy: False})
             update_stage(f"shortlists.{strategy}", [])
+    llm_payload = usage_collector.log_run_summary()
+    if run_context:
+        llm_payload = stamp_llm_run_context(
+            llm_payload,
+            run_id=run_context.get("id"),
+            run_date=run_context.get("date"),
+            run_started_at=run_context.get("started_at"),
+        )
+    try:
+        from health_status import get_recent_statuses
+
+        baseline_runs = [
+            r for r in get_recent_statuses(14)
+            if r.get("id") != (run_context or {}).get("id")
+        ]
+        baselines = build_llm_baselines(baseline_runs)
+        log_llm_drift_summary(llm_payload, baselines)
+        llm_payload = finalize_llm_usage_payload(llm_payload, baselines)
+    except Exception as e:
+        log.warning("[LLM DRIFT] could not compute drift summary: %s", e)
+    update_stage("llm_usage", llm_payload)
     return shortlists
 
 
@@ -198,7 +256,16 @@ def run_pipeline(
     long-running process (e.g. the data-layer-cron scheduler), not just the
     CLI below.
     """
-    start_run(date.today())
+    run_row = start_run(date.today())
+    start_run_logging(str(run_row.get("id") or ""))
+
+    def _finish_run(status: str | None = None) -> None:
+        try:
+            flush_run_logs()
+        except Exception as exc:
+            log.warning("[HEALTH STATUS] could not flush run logs: %s", exc)
+        stop_run_logging()
+        finalize(status)
 
     try:
         if not skip_build:
@@ -215,7 +282,7 @@ def run_pipeline(
                     "fetch",
                     {"status": "failed", "detail": f"build failed: {e}"},
                 )
-                finalize("failed")
+                _finish_run("failed")
                 raise
 
         dossiers = load_all_dossiers()
@@ -225,7 +292,7 @@ def run_pipeline(
                 "fetch",
                 {"status": "failed", "detail": "no dossiers found"},
             )
-            finalize("failed")
+            _finish_run("failed")
             raise RuntimeError("no dossiers found")
 
         _record_prep_from_dossiers(dossiers, skipped_build=skip_build)
@@ -243,7 +310,7 @@ def run_pipeline(
 
         if skip_scoring:
             print("\n[BATCH SCORING] skipped (skip_scoring=True)")
-            finalize()
+            _finish_run()
             return
 
         strategies = [s.strip().lower() for s in (strategies or []) if s.strip()] or list(
@@ -252,13 +319,14 @@ def run_pipeline(
         unknown = [s for s in strategies if s not in ALL_STRATEGIES]
         if unknown:
             print(f"[BATCH SCORING] unknown strategies: {unknown}")
-            finalize("failed")
+            _finish_run("failed")
             raise ValueError(f"unknown strategies: {unknown}")
 
         shortlists = run_scoring(
             results,
             strategies,
             max_candidates=max_candidates or 0,
+            run_context=run_row,
         )
         print("\n[SHORTLIST CACHE] summary:")
         print(
@@ -273,10 +341,10 @@ def run_pipeline(
                 indent=2,
             )
         )
-        finalize()
+        _finish_run()
     except Exception as e:
         print(f"[HEALTH STATUS] pipeline aborted: {e}")
-        finalize("failed")
+        _finish_run("failed")
         raise
 
 

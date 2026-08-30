@@ -17,6 +17,7 @@ from scoring.batch_scorer import (
     _winners_proxy_note,
     run_batch_scoring,
 )
+from selector.llm.usage import LlmUsageCollector, empty_tokens
 from cache.shortlist_cache import save_shortlist, load_shortlist, shortlist_path
 
 
@@ -125,17 +126,35 @@ def test_batch_scoring_mocked_parse_retry():
     def fake_call(strategy, payload):
         calls["n"] += 1
         if calls["n"] == 1:
-            return bad
-        return good
+            return bad, empty_tokens(), 0.05
+        return good, {
+            "prompt_tokens": 500,
+            "output_tokens": 80,
+            "cached_tokens": 0,
+            "thoughts_tokens": 0,
+            "total_tokens": 580,
+        }, 0.12
 
+    collector = LlmUsageCollector(model="gemini-2.5-flash")
     with patch("scoring.batch_scorer._call_gemini", side_effect=fake_call):
         with patch("scoring.batch_scorer.BATCH_PAUSE_SEC", 0):
-            survivors = run_batch_scoring("value", candidates, as_of=date(2026, 7, 14))
+            result = run_batch_scoring(
+                "value",
+                candidates,
+                as_of=date(2026, 7, 14),
+                usage_collector=collector,
+            )
 
     assert calls["n"] == 2  # one retry after parse failure
-    assert len(survivors) == 2
-    assert {s["symbol"] for s in survivors} == {"X", "Y"}
-    assert survivors[0]["price"] == 123.45
+    assert len(result.survivors) == 2
+    assert {s["symbol"] for s in result.survivors} == {"X", "Y"}
+    assert result.survivors[0]["price"] == 123.45
+    assert result.usage["total_tokens"] == 580
+    usage_payload = collector.to_dict()
+    assert usage_payload["totals"]["calls"] == 1
+    assert usage_payload["totals"]["retries"] == 1
+    # Failed parse attempt still billed if the API returned usage on retry path
+    assert usage_payload["totals"]["total_tokens"] == 580
 
 
 if __name__ == "__main__":

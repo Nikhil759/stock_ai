@@ -11,17 +11,20 @@ Call-count controls:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
 from datetime import date
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
+
+from selector.llm.usage import LlmUsageCollector, add_tokens, empty_tokens, extract_usage
 
 _REPO = Path(__file__).resolve().parents[1]
 load_dotenv(_REPO / ".env")
@@ -40,9 +43,16 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-
 PROMPTS_DIR = _REPO / "selector" / "prompts"
 SKELETON_PATH = Path(__file__).resolve().parent / "batch_skeleton.txt"
 
+log = logging.getLogger(__name__)
+
 _client: genai.Client | None = None
 _skeleton: str | None = None
 _strategy_blocks: dict[str, str] = {}
+
+
+class BatchScoringResult(NamedTuple):
+    survivors: list[dict]
+    usage: dict[str, Any]
 
 
 class BatchStockScore(BaseModel):
@@ -80,6 +90,11 @@ def _load_strategy_block(strategy: str) -> str:
             raise FileNotFoundError(f"Missing strategy prompt: {path}")
         _strategy_blocks[strategy] = path.read_text(encoding="utf-8")
     return _strategy_blocks[strategy]
+
+
+def _system_prompt_chars(strategy: str) -> int:
+    """Character length of skeleton + strategy system instruction (fixed per batch call)."""
+    return len(_load_skeleton() + "\n\n" + _load_strategy_block(strategy))
 
 
 def _chunk(items: list, size: int) -> list[list]:
@@ -200,6 +215,32 @@ def _slim_dossier(dossier: dict) -> dict:
     return {k: dossier.get(k) for k in keep if k in dossier}
 
 
+def _payload_breakdown(strategy: str, batch: list[dict]) -> dict[str, Any]:
+    """Character counts per dossier section for drift debugging."""
+    section_totals: dict[str, int] = {}
+    per_symbol: dict[str, dict[str, int]] = {}
+    for row in batch:
+        sym = str(row.get("symbol") or "").upper()
+        if not sym:
+            continue
+        sections: dict[str, int] = {}
+        d = _slim_dossier(row.get("dossier") or {})
+        for key, val in d.items():
+            chars = len(json.dumps(val, default=str))
+            sections[key] = chars
+            section_totals[key] = section_totals.get(key, 0) + chars
+        if strategy == "winners" and _winners_proxy_note(row.get("funnel_reasons") or {}):
+            sections["winners_note"] = sections.get("winners_note", 0) + 120
+            section_totals["winners_note"] = section_totals.get("winners_note", 0) + 120
+        sym_meta = dict(row.get("funnel_reasons") or {})
+        if sym_meta:
+            fr_chars = len(json.dumps(sym_meta, default=str))
+            sections["funnel_reasons"] = fr_chars
+            section_totals["funnel_reasons"] = section_totals.get("funnel_reasons", 0) + fr_chars
+        per_symbol[sym] = sections
+    return {"sections": section_totals, "per_symbol": per_symbol}
+
+
 def _build_batch_payload(strategy: str, batch: list[dict]) -> str:
     stocks = []
     for row in batch:
@@ -257,7 +298,7 @@ def _validate_batch(
     return [by_sym[s] for s in expected_symbols]
 
 
-def _call_gemini(strategy: str, user_content: str) -> str:
+def _call_gemini(strategy: str, user_content: str) -> tuple[str, dict[str, int], float]:
     client = _client_get()
     system = _load_skeleton() + "\n\n" + _load_strategy_block(strategy)
     config = types.GenerateContentConfig(
@@ -265,12 +306,23 @@ def _call_gemini(strategy: str, user_content: str) -> str:
         response_mime_type="application/json",
         response_schema=BatchScoreResponse,
     )
+    t0 = time.monotonic()
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=user_content,
         config=config,
     )
-    return response.text or ""
+    elapsed = time.monotonic() - t0
+    tokens = extract_usage(response)
+    log.debug(
+        "[BATCH SCORING] Gemini %s batch call — %s elapsed=%.2fs payload=%d chars",
+        strategy,
+        f"prompt={tokens['prompt_tokens']} output={tokens['output_tokens']} "
+        f"total={tokens['total_tokens']}",
+        elapsed,
+        len(user_content),
+    )
+    return response.text or "", tokens, elapsed
 
 
 def _retry_sleep_sec(err: Exception, attempt: int) -> float:
@@ -291,55 +343,73 @@ def _score_one_batch(
     batch_idx: int,
     batch_total: int,
     batch: list[dict],
+    *,
+    usage: LlmUsageCollector | None = None,
 ) -> list[dict]:
     """Score one batch; retry once on parse errors, more on rate limits."""
     symbols = [r["symbol"].upper() for r in batch]
-    label = f"{strategy.capitalize()}: batch {batch_idx}/{batch_total} [{', '.join(symbols)}]"
+    batch_label = f"{batch_idx}/{batch_total}"
+    label = f"{strategy.capitalize()}: batch {batch_label} [{', '.join(symbols)}]"
     print(f"[BATCH SCORING] {label}")
+    log.info("[BATCH SCORING] %s", label)
 
     for row in batch:
         if strategy == "winners":
             note = _winners_proxy_note(row.get("funnel_reasons") or {})
             if note:
                 print(
-                    f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_idx}/{batch_total} "
+                    f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
                     f"— {row['symbol']} flagged (momentum proxy, no earnings data)"
                 )
 
     payload = _build_batch_payload(strategy, batch)
+    payload_chars = len(payload)
+    payload_breakdown = _payload_breakdown(strategy, batch)
+    system_prompt_chars = _system_prompt_chars(strategy)
     last_err: Exception | None = None
     scores: list[BatchStockScore] | None = None
     max_attempts = 5  # parse fails stop earlier; 429 can use the full budget
+    batch_tokens = empty_tokens()
+    batch_elapsed_ms = 0
+    attempts_used = 0
+    batch_status = "ok"
+    last_response_text = ""
 
     for attempt in range(1, max_attempts + 1):
+        attempts_used = attempt
         try:
-            text = _call_gemini(strategy, payload)
+            text, tokens, elapsed = _call_gemini(strategy, payload)
+            last_response_text = text or ""
+            add_tokens(batch_tokens, tokens)
+            batch_elapsed_ms += int(elapsed * 1000)
             raw = _extract_json(text)
             scores = _validate_batch(raw, symbols)
             break
         except (ValidationError, ValueError, json.JSONDecodeError) as e:
             last_err = e
             print(
-                f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_idx}/{batch_total} "
+                f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
                 f"parse/validate FAILED attempt={attempt}/2 — {e}"
             )
             if attempt >= 2:
+                batch_status = "failed"
                 break
         except Exception as e:
             last_err = e
             rate = _is_rate_limit(e)
             print(
-                f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_idx}/{batch_total} "
+                f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
                 f"API FAILED attempt={attempt}/{max_attempts if rate else 2} — {e}"
             )
             if rate and attempt < max_attempts:
                 wait = _retry_sleep_sec(e, attempt)
                 print(
-                    f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_idx}/{batch_total} "
+                    f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
                     f"rate-limited — sleeping {wait:.1f}s before retry"
                 )
                 time.sleep(wait)
                 continue
+            batch_status = "failed"
             if not rate and attempt >= 2:
                 break
             if not rate:
@@ -347,9 +417,10 @@ def _score_one_batch(
 
     if scores is None:
         print(
-            f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_idx}/{batch_total} "
+            f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
             f"GAVE UP after retries — {last_err}"
         )
+        batch_status = "degraded"
         # Degrade to skip so the pipeline continues
         scores = [
             BatchStockScore(
@@ -360,6 +431,27 @@ def _score_one_batch(
             )
             for s in symbols
         ]
+
+    if usage is not None:
+        usage.record_batch(
+            strategy=strategy,
+            batch_label=batch_label,
+            symbols=symbols,
+            tokens=batch_tokens,
+            elapsed_ms=batch_elapsed_ms,
+            attempts=attempts_used,
+            status=batch_status,
+            payload_chars=payload_chars,
+            system_prompt_chars=system_prompt_chars,
+            payload_breakdown=payload_breakdown,
+            llm_io={
+                "user_content": payload,
+                "response_text": last_response_text or "",
+                "system_prompt_chars": system_prompt_chars,
+                "model": GEMINI_MODEL,
+                "attempts_used": attempts_used,
+            },
+        )
 
     out: list[dict] = []
     by_row = {r["symbol"].upper(): r for r in batch}
@@ -387,12 +479,13 @@ def run_batch_scoring(
     candidates: list[dict],
     *,
     as_of: date | None = None,
-) -> list[dict]:
+    usage_collector: LlmUsageCollector | None = None,
+) -> BatchScoringResult:
     """
     Score all funnel candidates for one strategy in batches of BATCH_SIZE.
 
     Returns buy/watch survivors only (absolute-merit survivors for the shortlist),
-    each with symbol, conviction, verdict, reasoning, price (frozen).
+    each with symbol, conviction, verdict, reasoning, price (frozen), plus usage stats.
     """
     strategy = strategy.lower().strip()
     as_of = as_of or date.today()
@@ -402,7 +495,7 @@ def run_batch_scoring(
     )
     if not candidates:
         print(f"[BATCH SCORING] {strategy.capitalize()}: nothing to score")
-        return []
+        return BatchScoringResult(survivors=[], usage=empty_tokens())
 
     batches = _chunk(candidates, BATCH_SIZE)
     all_scored: list[dict] = []
@@ -413,7 +506,15 @@ def run_batch_scoring(
                 f"{BATCH_PAUSE_SEC:.0f}s between batches (rate-limit guard)"
             )
             time.sleep(BATCH_PAUSE_SEC)
-        all_scored.extend(_score_one_batch(strategy, i, len(batches), batch))
+        all_scored.extend(
+            _score_one_batch(
+                strategy,
+                i,
+                len(batches),
+                batch,
+                usage=usage_collector,
+            )
+        )
 
     survivors = [s for s in all_scored if s["verdict"] in ("buy", "watch")]
     failed = sum(
@@ -430,4 +531,9 @@ def run_batch_scoring(
             f"[BATCH SCORING] {strategy.capitalize()}: WARNING — every batch failed "
             f"(API/parse). Shortlist will be empty; check GEMINI_API_KEY / quota."
         )
-    return survivors
+
+    strategy_usage = empty_tokens()
+    if usage_collector is not None:
+        strat_block = usage_collector.by_strategy.get(strategy) or {}
+        strategy_usage = {k: int(strat_block.get(k, 0) or 0) for k in empty_tokens()}
+    return BatchScoringResult(survivors=survivors, usage=strategy_usage)

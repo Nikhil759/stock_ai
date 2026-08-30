@@ -18,6 +18,8 @@ def setup_app_logging(verbose: bool = True) -> None:
     for name in (
         "selector",
         "selector.llm.client",
+        "selector.llm.usage",
+        "scoring.batch_scorer",
         "wolf_brain",
         "wolf_executor",
         "deploy",

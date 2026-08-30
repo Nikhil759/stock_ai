@@ -327,6 +327,11 @@ def _get_latest_for_day(day_s: str, *, unfinished_only: bool = False) -> dict | 
     return _pg_get_latest_for_day(day_s, unfinished_only=unfinished_only)
 
 
+def get_run_by_id(run_id: str) -> dict | None:
+    """Fetch a single health_runs row by UUID."""
+    return _get_run_by_id(run_id)
+
+
 def _get_run_by_id(run_id: str) -> dict | None:
     client = _get_supabase()
     if client is not None:

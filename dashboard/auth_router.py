@@ -9,7 +9,7 @@ import hashlib
 import os
 import secrets
 import base64
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -296,6 +296,19 @@ def _format_run_time(started_at: str | None) -> str:
     return local.strftime("%d %b %Y, %H:%M IST")
 
 
+def _format_run_time_compact(started_at: str | None) -> str:
+    """Short timestamp for dense tables — time only if today, else day + time."""
+    if not started_at:
+        return "—"
+    dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    ist = ZoneInfo("Asia/Kolkata")
+    local = dt.astimezone(ist)
+    today = datetime.now(ist).date()
+    if local.date() == today:
+        return local.strftime("%H:%M")
+    return local.strftime("%d %b %H:%M")
+
+
 def _stage_chip(status: str | None) -> str:
     if status == "success":
         return "ok"
@@ -436,6 +449,402 @@ def _flatten_stages(stages: dict) -> list[dict[str, Any]]:
     return rows
 
 
+def _format_token_count(n: int | float | None) -> str:
+    try:
+        return f"{int(n or 0):,}"
+    except (TypeError, ValueError):
+        return "0"
+
+
+def _format_duration_ms(ms: int | float | None) -> str:
+    try:
+        value = int(ms or 0)
+    except (TypeError, ValueError):
+        return "0s"
+    if value < 1000:
+        return f"{value}ms"
+    return f"{value / 1000:.1f}s"
+
+
+def _format_cost_usd(amount: int | float | None) -> str:
+    try:
+        value = float(amount or 0)
+    except (TypeError, ValueError):
+        return "$0.00"
+    if value >= 1.0:
+        return f"${value:,.2f}"
+    if value >= 0.01:
+        return f"${value:.2f}"
+    if value > 0:
+        return f"${value:.4f}"
+    return "$0.00"
+
+
+def _format_delta_pct(delta: float | None) -> str:
+    if delta is None:
+        return "—"
+    sign = "+" if delta > 0 else ""
+    return f"{sign}{delta:.0f}%"
+
+
+def _ingestion_run_summary(stages: dict | None) -> dict[str, Any]:
+    """Compact ingestion stats for recent-run cards."""
+    from selector.llm.usage import extract_run_llm_snapshot
+
+    snap = extract_run_llm_snapshot(stages)
+    if not snap:
+        return {"llm_tokens": 0, "llm_cost_usd": 0.0, "llm_calls": 0}
+    totals = snap.get("totals") or {}
+    return {
+        "llm_tokens": int(totals.get("total_tokens", 0) or 0),
+        "llm_cost_usd": float(totals.get("estimated_cost_usd", 0) or 0),
+        "llm_calls": int(totals.get("calls", 0) or 0),
+        "avg_cost_per_batch_usd": totals.get("avg_cost_per_batch_usd"),
+    }
+
+
+def _llm_usage_for_health(
+    stages: dict | None,
+    baselines: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Build dashboard view-model for daily-ingestion LLM usage."""
+    from selector.llm.usage import build_llm_drift_report, extract_run_llm_snapshot
+
+    raw = extract_run_llm_snapshot(stages)
+    if not raw:
+        return None
+
+    totals = raw.get("totals") or {}
+    by_strategy = raw.get("by_strategy") or {}
+    model = raw.get("model") or "—"
+    drift_report = build_llm_drift_report(raw, baselines)
+    totals_drift = drift_report.get("totals") or {}
+
+    strategies: list[dict[str, Any]] = []
+    for name in ("value", "winners", "box", "dip"):
+        info = by_strategy.get(name)
+        if not isinstance(info, dict):
+            continue
+        strat_drift = (drift_report.get("strategies") or {}).get(name, {})
+        drifts = strat_drift.get("drifts") or {}
+
+        strategies.append(
+            {
+                "name": name,
+                "calls": int(info.get("calls", 0) or 0),
+                "retries": int(info.get("retries", 0) or 0),
+                "total_tokens": int(info.get("total_tokens", 0) or 0),
+                "prompt_tokens": int(info.get("prompt_tokens", 0) or 0),
+                "output_tokens": int(info.get("output_tokens", 0) or 0),
+                "cached_tokens": int(info.get("cached_tokens", 0) or 0),
+                "thoughts_tokens": int(info.get("thoughts_tokens", 0) or 0),
+                "elapsed_ms": int(info.get("elapsed_ms", 0) or 0),
+                "estimated_cost_usd": float(info.get("estimated_cost_usd", 0) or 0),
+                "avg_cost_per_batch_usd": info.get("avg_cost_per_batch_usd"),
+                "avg_tokens_per_batch": info.get("avg_tokens_per_batch"),
+                "avg_prompt_tokens_per_batch": info.get("avg_prompt_tokens_per_batch"),
+                "avg_output_tokens_per_batch": info.get("avg_output_tokens_per_batch"),
+                "cost_per_symbol_usd": info.get("cost_per_symbol_usd"),
+                "tokens_per_symbol": info.get("tokens_per_symbol"),
+                "prompt_tokens_per_symbol": info.get("prompt_tokens_per_symbol"),
+                "output_tokens_per_symbol": info.get("output_tokens_per_symbol"),
+                "payload_tokens_per_symbol": info.get("payload_tokens_per_symbol"),
+                "payload_chars_per_symbol": info.get("payload_chars_per_symbol"),
+                "system_prompt_estimated_cost_usd": info.get("system_prompt_estimated_cost_usd"),
+                "system_prompt_estimated_tokens": info.get("system_prompt_estimated_tokens"),
+                "retry_rate": info.get("retry_rate"),
+                "candidates_scored": info.get("candidates_scored"),
+                "survivors": info.get("survivors"),
+                "status": info.get("status"),
+                "drift": {
+                    "payload_tokens_per_symbol": drifts.get("payload_tokens_per_symbol") or {},
+                    "tokens_per_symbol": drifts.get("tokens_per_symbol") or {},
+                    "cost_per_symbol": drifts.get("cost_per_symbol_usd") or {},
+                    "total_cost": drifts.get("estimated_cost_usd") or {},
+                    "severity": strat_drift.get("severity") or "ok",
+                },
+            }
+        )
+
+    batch_drift_by_key = {
+        (b.get("strategy"), b.get("batch")): b
+        for b in (drift_report.get("batches") or [])
+    }
+
+    def _batch_row(batch: dict[str, Any], bd: dict[str, Any]) -> dict[str, Any]:
+        drifts = bd.get("drifts") or {}
+        scored_at = batch.get("scored_at") or batch.get("run_started_at")
+        return {
+            "strategy": batch.get("strategy") or "?",
+            "batch": batch.get("batch") or "?",
+            "symbols": ", ".join(batch.get("symbols") or []),
+            "symbol_count": int(batch.get("symbol_count", 0) or 0),
+            "status": batch.get("status") or "?",
+            "attempts": int(batch.get("attempts", 1) or 1),
+            "total_tokens": int(batch.get("total_tokens", 0) or 0),
+            "prompt_tokens": int(batch.get("prompt_tokens", 0) or 0),
+            "output_tokens": int(batch.get("output_tokens", 0) or 0),
+            "elapsed_ms": int(batch.get("elapsed_ms", 0) or 0),
+            "estimated_cost_usd": float(batch.get("estimated_cost_usd", 0) or 0),
+            "cost_per_symbol_usd": batch.get("cost_per_symbol_usd"),
+            "tokens_per_symbol": batch.get("tokens_per_symbol"),
+            "prompt_tokens_per_symbol": batch.get("prompt_tokens_per_symbol"),
+            "output_tokens_per_symbol": batch.get("output_tokens_per_symbol"),
+            "payload_chars": batch.get("payload_chars"),
+            "payload_tokens": batch.get("payload_tokens"),
+            "payload_chars_per_symbol": batch.get("payload_chars_per_symbol"),
+            "payload_tokens_per_symbol": batch.get("payload_tokens_per_symbol"),
+            "system_prompt_chars": batch.get("system_prompt_chars"),
+            "system_prompt_estimated_tokens": batch.get("system_prompt_estimated_tokens"),
+            "system_prompt_estimated_cost_usd": batch.get("system_prompt_estimated_cost_usd"),
+            "run_id": batch.get("run_id"),
+            "run_date": batch.get("run_date"),
+            "run_started_at": batch.get("run_started_at"),
+            "scored_at": scored_at,
+            "run_at": _format_run_time(scored_at or batch.get("run_started_at")),
+            "run_at_short": _format_run_time_compact(scored_at or batch.get("run_started_at")),
+            "run_date_label": batch.get("run_date") or "—",
+            "drift": {
+                "payload_tokens_per_symbol": drifts.get("payload_tokens_per_symbol") or {},
+                "tokens_per_symbol": drifts.get("tokens_per_symbol") or {},
+                "cost_per_symbol": drifts.get("cost_per_symbol_usd") or {},
+                "latency": drifts.get("elapsed_ms") or {},
+                "severity": bd.get("severity") or "ok",
+            },
+        }
+
+    batches = []
+    for batch in raw.get("batches") or []:
+        if not isinstance(batch, dict):
+            continue
+        key = (batch.get("strategy"), batch.get("batch"))
+        bd = batch_drift_by_key.get(key, {})
+        batches.append(_batch_row(batch, bd))
+
+    batches.sort(key=lambda b: float(b.get("estimated_cost_usd", 0) or 0), reverse=True)
+
+    return {
+        "phase": raw.get("phase") or "daily_ingestion",
+        "model": model,
+        "pricing_note": "Est. Gemini paid-tier list price (input + output + cache)",
+        "baseline": {
+            "sample_size": int((baselines or {}).get("sample_size", 0) or 0),
+            "window": int((baselines or {}).get("window", 0) or 0),
+        },
+        "drift_max_severity": drift_report.get("max_severity") or "ok",
+        "totals": {
+            "calls": int(totals.get("calls", 0) or 0),
+            "retries": int(totals.get("retries", 0) or 0),
+            "total_tokens": int(totals.get("total_tokens", 0) or 0),
+            "prompt_tokens": int(totals.get("prompt_tokens", 0) or 0),
+            "output_tokens": int(totals.get("output_tokens", 0) or 0),
+            "cached_tokens": int(totals.get("cached_tokens", 0) or 0),
+            "thoughts_tokens": int(totals.get("thoughts_tokens", 0) or 0),
+            "elapsed_ms": int(totals.get("elapsed_ms", 0) or 0),
+            "estimated_cost_usd": float(totals.get("estimated_cost_usd", 0) or 0),
+            "avg_cost_per_batch_usd": totals.get("avg_cost_per_batch_usd"),
+            "avg_tokens_per_batch": totals.get("avg_tokens_per_batch"),
+            "avg_prompt_tokens_per_batch": totals.get("avg_prompt_tokens_per_batch"),
+            "avg_output_tokens_per_batch": totals.get("avg_output_tokens_per_batch"),
+            "cost_per_symbol_usd": totals.get("cost_per_symbol_usd"),
+            "tokens_per_symbol": totals.get("tokens_per_symbol"),
+            "prompt_tokens_per_symbol": totals.get("prompt_tokens_per_symbol"),
+            "output_tokens_per_symbol": totals.get("output_tokens_per_symbol"),
+            "payload_tokens_per_symbol": totals.get("payload_tokens_per_symbol"),
+            "payload_chars_per_symbol": totals.get("payload_chars_per_symbol"),
+            "payload_tokens_total": totals.get("payload_tokens_total"),
+            "payload_chars_total": totals.get("payload_chars_total"),
+            "system_prompt_estimated_cost_usd": totals.get("system_prompt_estimated_cost_usd"),
+            "system_prompt_estimated_tokens": totals.get("system_prompt_estimated_tokens"),
+            "avg_system_prompt_estimated_cost_usd": totals.get("avg_system_prompt_estimated_cost_usd"),
+            "retry_rate": totals.get("retry_rate"),
+            "drift": {
+                "total_cost": totals_drift.get("estimated_cost_usd") or {},
+                "payload_tokens_per_symbol": totals_drift.get("payload_tokens_per_symbol") or {},
+                "tokens_per_symbol": totals_drift.get("tokens_per_symbol") or {},
+                "system_prompt_cost": totals_drift.get("system_prompt_estimated_cost_usd") or {},
+                "avg_batch_cost": totals_drift.get("avg_cost_per_batch_usd") or {},
+                "avg_batch_tokens": totals_drift.get("avg_tokens_per_batch") or {},
+                "cost_per_symbol": totals_drift.get("cost_per_symbol_usd") or {},
+            },
+        },
+        "strategies": strategies,
+        "batches": batches,
+    }
+
+
+def _llm_batches_history(
+    recent_runs: list[dict[str, Any]],
+    *,
+    max_days: int = 14,
+) -> list[dict[str, Any]]:
+    """Merge batch rows from recent ingestion runs for the batch breakdown table."""
+    from selector.llm.usage import build_llm_baselines, build_llm_drift_report, extract_run_llm_snapshot
+
+    cutoff = date.today() - timedelta(days=max(1, max_days) - 1)
+    rows: list[dict[str, Any]] = []
+
+    for i, run in enumerate(recent_runs):
+        run_date_raw = run.get("date")
+        if run_date_raw:
+            try:
+                run_day = date.fromisoformat(str(run_date_raw)[:10])
+                if run_day < cutoff:
+                    continue
+            except ValueError:
+                pass
+
+        snap = extract_run_llm_snapshot(run.get("stages") or {})
+        if not snap:
+            continue
+
+        prior_runs = recent_runs[i + 1 :]
+        baselines = build_llm_baselines(prior_runs)
+        drift_report = build_llm_drift_report(snap, baselines)
+        batch_drift_by_key = {
+            (b.get("strategy"), b.get("batch")): b for b in (drift_report.get("batches") or [])
+        }
+
+        run_id = run.get("id")
+        run_date = str(run_date_raw)[:10] if run_date_raw else None
+        run_started_at = run.get("started_at")
+
+        for batch in snap.get("batches") or []:
+            if not isinstance(batch, dict):
+                continue
+            enriched = dict(batch)
+            enriched.setdefault("run_id", run_id)
+            enriched.setdefault("run_date", run_date)
+            enriched.setdefault("run_started_at", run_started_at)
+            if not enriched.get("scored_at"):
+                enriched["scored_at"] = run_started_at
+
+            key = (enriched.get("strategy"), enriched.get("batch"))
+            stored_debug = enriched.get("drift_debug") if isinstance(enriched.get("drift_debug"), dict) else {}
+            bd = batch_drift_by_key.get(key, {})
+            drifts = stored_debug.get("drifts") or bd.get("drifts") or {}
+            severity = stored_debug.get("severity") or bd.get("severity") or "ok"
+            scored_at = enriched.get("scored_at") or run_started_at
+            rows.append(
+                {
+                    "strategy": enriched.get("strategy") or "?",
+                    "batch": enriched.get("batch") or "?",
+                    "symbols": ", ".join(enriched.get("symbols") or []),
+                    "symbol_list": enriched.get("symbols") or [],
+                    "symbol_count": int(enriched.get("symbol_count", 0) or 0),
+                    "status": enriched.get("status") or "?",
+                    "attempts": int(enriched.get("attempts", 1) or 1),
+                    "total_tokens": int(enriched.get("total_tokens", 0) or 0),
+                    "prompt_tokens": int(enriched.get("prompt_tokens", 0) or 0),
+                    "output_tokens": int(enriched.get("output_tokens", 0) or 0),
+                    "thoughts_tokens": int(enriched.get("thoughts_tokens", 0) or 0),
+                    "cached_tokens": int(enriched.get("cached_tokens", 0) or 0),
+                    "elapsed_ms": int(enriched.get("elapsed_ms", 0) or 0),
+                    "estimated_cost_usd": float(enriched.get("estimated_cost_usd", 0) or 0),
+                    "cost_per_symbol_usd": enriched.get("cost_per_symbol_usd"),
+                    "tokens_per_symbol": enriched.get("tokens_per_symbol"),
+                    "payload_chars": int(enriched.get("payload_chars", 0) or 0),
+                    "payload_tokens": int(enriched.get("payload_tokens", 0) or 0),
+                    "payload_tokens_per_symbol": enriched.get("payload_tokens_per_symbol"),
+                    "payload_breakdown": enriched.get("payload_breakdown") or {},
+                    "system_prompt_estimated_tokens": enriched.get("system_prompt_estimated_tokens"),
+                    "system_prompt_estimated_cost_usd": enriched.get("system_prompt_estimated_cost_usd"),
+                    "run_id": enriched.get("run_id"),
+                    "run_date": run_date,
+                    "run_started_at": run_started_at,
+                    "scored_at": scored_at,
+                    "run_at": _format_run_time(scored_at),
+                    "run_at_short": _format_run_time_compact(scored_at),
+                    "drift": {
+                        "payload_tokens_per_symbol": drifts.get("payload_tokens_per_symbol") or {},
+                        "latency": drifts.get("elapsed_ms") or {},
+                        "severity": severity,
+                    },
+                }
+            )
+
+    rows.sort(
+        key=lambda b: (b.get("scored_at") or b.get("run_started_at") or "", b.get("strategy") or ""),
+        reverse=True,
+    )
+    return rows
+
+
+def _batch_debug_from_run(
+    run: dict[str, Any] | None,
+    *,
+    strategy: str,
+    batch: str,
+    recent_runs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    from selector.llm.usage import (
+        analyze_batch_drift,
+        build_symbol_section_baselines,
+        extract_run_llm_snapshot,
+        find_batch_in_llm_usage,
+    )
+
+    if not run:
+        return None
+    stages = run.get("stages") or {}
+    llm_usage = extract_run_llm_snapshot(stages) or (stages.get("llm_usage") if isinstance(stages.get("llm_usage"), dict) else None)
+    if not llm_usage:
+        return None
+
+    batch_row = find_batch_in_llm_usage(llm_usage, strategy=strategy, batch=batch)
+    if not batch_row:
+        return None
+
+    if recent_runs is None:
+        from health_status import get_recent_statuses
+
+        recent_runs = get_recent_statuses(14)
+
+    from scoring.batch_scorer import BATCH_SIZE
+
+    symbol_baselines = build_symbol_section_baselines(
+        recent_runs,
+        strategy,
+        exclude_run_id=run.get("id"),
+    )
+    analysis = analyze_batch_drift(batch_row, symbol_baselines, batch_size=BATCH_SIZE)
+
+    drift_debug = batch_row.get("drift_debug") if isinstance(batch_row.get("drift_debug"), dict) else {}
+    drifts = drift_debug.get("drifts") or {}
+    payload_drift = drifts.get("payload_tokens_per_symbol") or {}
+    latency_drift = drifts.get("elapsed_ms") or {}
+    breakdown = batch_row.get("payload_breakdown") if isinstance(batch_row.get("payload_breakdown"), dict) else {}
+    drift_report = llm_usage.get("drift_report") if isinstance(llm_usage.get("drift_report"), dict) else {}
+    llm_io = batch_row.get("llm_io") if isinstance(batch_row.get("llm_io"), dict) else {}
+
+    return {
+        "run_id": run.get("id"),
+        "run_date": run.get("date"),
+        "run_started_at": run.get("started_at"),
+        "run_finished_at": run.get("finished_at"),
+        "strategy": strategy,
+        "batch": batch,
+        "batch_row": batch_row,
+        "symbols": batch_row.get("symbols") or [],
+        "payload_tokens_per_symbol": batch_row.get("payload_tokens_per_symbol"),
+        "payload_breakdown": breakdown,
+        "llm_io": llm_io,
+        "analysis": analysis,
+        "drift": {
+            "severity": drift_debug.get("severity"),
+            "payload_tokens_per_symbol": payload_drift,
+            "latency": latency_drift,
+        },
+        "drift_report": {
+            "baseline_sample_size": drift_report.get("baseline_sample_size"),
+            "baseline_window": drift_report.get("baseline_window"),
+            "max_severity": drift_report.get("max_severity"),
+            "totals": drift_report.get("totals"),
+        },
+        "run_logs_meta": (stages.get("run_logs") or {}) if isinstance(stages.get("run_logs"), dict) else {},
+    }
+
+
 def _flatten_fm_stages(stages: dict) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for key, label in (
@@ -535,6 +944,7 @@ async def health_page(request: Request):
     today_row = None
     today_rows: list[dict] = []
     shortlists: dict[str, list] = {}
+    llm_usage: dict[str, Any] | None = None
     db_error: str | None = None
     fm_today: list[dict] = []
     fm_recent: list[dict] = []
@@ -546,9 +956,18 @@ async def health_page(request: Request):
         try:
             from health_status import get_recent_statuses, get_status
 
-            recent_raw = get_recent_statuses(5)
-            for r in recent_raw:
+            recent_raw = get_recent_statuses(14)
+            today_row = get_status(date.today())
+            today_id = (today_row or {}).get("id")
+            baseline_runs = [r for r in recent_raw if r.get("id") != today_id]
+
+            from selector.llm.usage import build_llm_baselines
+
+            llm_baselines = build_llm_baselines(baseline_runs)
+
+            for r in recent_raw[:5]:
                 stages = r.get("stages") or {}
+                ingestion = _ingestion_run_summary(stages)
                 recent.append(
                     {
                         "date": r.get("date"),
@@ -556,12 +975,36 @@ async def health_page(request: Request):
                         "overall": r.get("overall_status") or "unknown",
                         "overall_chip": _stage_chip(r.get("overall_status")),
                         "stages": _flatten_stages(stages),
+                        "llm_tokens": ingestion["llm_tokens"],
+                        "llm_cost_usd": ingestion["llm_cost_usd"],
+                        "llm_calls": ingestion["llm_calls"],
                     }
                 )
-            today_row = get_status(date.today())
             today_stages = (today_row or {}).get("stages") or {}
             today_rows = _flatten_stages(today_stages)
             shortlists = _resolve_shortlists_for_health(today_stages)
+            llm_usage = _llm_usage_for_health(today_stages, llm_baselines)
+            if llm_usage is not None:
+                today_drift = {
+                    "totals": (llm_usage.get("totals") or {}).get("drift") or {},
+                    "strategies": {
+                        s["name"]: s.get("drift") or {}
+                        for s in (llm_usage.get("strategies") or [])
+                    },
+                }
+                llm_usage["batches"] = _llm_batches_history(recent_raw, max_days=14)
+                from selector.llm.usage import aggregate_llm_batches
+
+                agg = aggregate_llm_batches(
+                    llm_usage["batches"],
+                    model=str(llm_usage.get("model") or ""),
+                )
+                llm_usage["totals"] = {**agg["totals"], "drift": today_drift["totals"]}
+                llm_usage["strategies"] = [
+                    {**s, "drift": today_drift["strategies"].get(s["name"], {})}
+                    for s in agg["strategies"]
+                ]
+                llm_usage["today_drift"] = today_drift
         except Exception as e:
             import logging
 
@@ -634,6 +1077,11 @@ async def health_page(request: Request):
             "today": today_row,
             "today_rows": today_rows,
             "shortlists": shortlists,
+            "llm_usage": llm_usage,
+            "format_token_count": _format_token_count,
+            "format_duration_ms": _format_duration_ms,
+            "format_cost_usd": _format_cost_usd,
+            "format_delta_pct": _format_delta_pct,
             "not_started": authed and not db_error and today_row is None,
             "db_error": db_error,
             "fm_today": fm_today,
@@ -847,6 +1295,84 @@ async def api_external_health(request: Request):
             status_code=500,
         )
     return {"checks": checks}
+
+
+@router.get("/api/ops/health-runs/{run_id}/batch-debug")
+async def api_batch_debug(
+    request: Request,
+    run_id: str,
+    strategy: str,
+    batch: str,
+):
+    """Drift debug payload for one LLM batch within an ingestion run."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+    from health_status import get_run_by_id
+
+    try:
+        run = get_run_by_id(run_id)
+        payload = _batch_debug_from_run(run, strategy=strategy.strip().lower(), batch=batch.strip())
+        if not payload:
+            return JSONResponse({"error": "Batch not found for run"}, status_code=404)
+        return payload
+    except Exception as e:
+        from db.connection import connection_hint
+
+        return JSONResponse(
+            {
+                "error": "Database unavailable",
+                "detail": str(e),
+                "hint": connection_hint(e).strip() or None,
+            },
+            status_code=503,
+        )
+
+
+@router.get("/api/ops/health-runs/{run_id}/logs")
+async def api_run_logs(
+    request: Request,
+    run_id: str,
+    event: str | None = None,
+    strategy: str | None = None,
+    batch: str | None = None,
+    limit: int = 120,
+):
+    """Filtered run logs persisted during morning ingestion."""
+    if not is_authorized(request):
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+    from health_status import filter_run_logs, get_run_by_id
+
+    try:
+        run = get_run_by_id(run_id)
+        if not run:
+            return JSONResponse({"error": "Run not found"}, status_code=404)
+        stages = run.get("stages") or {}
+        run_logs = stages.get("run_logs") if isinstance(stages.get("run_logs"), dict) else {}
+        entries = filter_run_logs(
+            run_logs,
+            event=event,
+            strategy=strategy.strip().lower() if strategy else None,
+            batch=batch.strip() if batch else None,
+            limit=max(1, min(int(limit or 120), 400)),
+        )
+        return {
+            "run_id": run_id,
+            "run_started_at": run.get("started_at"),
+            "count": len(entries),
+            "truncated": bool(run_logs.get("truncated")),
+            "entries": entries,
+        }
+    except Exception as e:
+        from db.connection import connection_hint
+
+        return JSONResponse(
+            {
+                "error": "Database unavailable",
+                "detail": str(e),
+                "hint": connection_hint(e).strip() or None,
+            },
+            status_code=503,
+        )
 
 
 @router.get("/api/ops/health-status")
