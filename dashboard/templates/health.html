@@ -725,55 +725,39 @@
                     <span id="llm-quality-grounding-pct" class="drift-badge ok" style="font-weight:600;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.grounding.metrics_cited %}display:none{% endif %}">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.grounding.metrics_cited %}
                         {{ '%.0f'|format(llm_usage.quality_summary.grounding.match_pct) }}% grounding
+                      {% else %}
+                        —
                       {% endif %}
                     </span>
-                    <span id="llm-quality-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.has_data %}display:none{% endif %}">
-                      {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
-                        {{ llm_usage.quality_summary.symbols_clean }}/{{ llm_usage.quality_summary.total_symbols }} symbol scores
-                        · {{ llm_usage.quality_summary.batches_clean }}/{{ llm_usage.quality_summary.total_batches }} batches
-                      {% endif %}
-                    </span>
-                    <span id="llm-quality-grounding" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.has_data %}display:none{% endif %}">
-                      {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
-                        {% if llm_usage.quality_summary.grounding.metrics_cited %}
-                          {{ llm_usage.quality_summary.grounding.metrics_matched }}/{{ llm_usage.quality_summary.grounding.metrics_cited }} cited facts matched
-                        {% else %}
-                          no explicit metrics cited
-                        {% endif %}
-                      {% endif %}
-                    </span>
-                    <span id="llm-quality-categories" class="drift-badge ok quality-flag-link" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}" title="Click to view all flags">
-                      {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
-                        {{ llm_usage.quality_summary.by_category.facts }} facts
-                        · {{ llm_usage.quality_summary.by_category.rules }} rules
-                        · {{ llm_usage.quality_summary.by_category.patterns }} patterns
-                      {% endif %}
-                    </span>
-                    <span id="llm-quality-severity" class="drift-badge quality-flag-link {{ llm_usage.quality_summary.severity if llm_usage.quality_summary else 'ok' }}" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}" title="Click to view all flags">
-                      {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
-                        {{ llm_usage.quality_summary.flag_count }} flag{% if llm_usage.quality_summary.flag_count != 1 %}s{% endif %}
+                    <span id="llm-quality-view-flags" class="drift-badge quality-flag-link warn" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.symbols_flagged %}display:none{% endif %}" title="View flagged symbols">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.symbols_flagged %}
+                        {{ llm_usage.quality_summary.symbols_flagged }} flagged
                       {% endif %}
                     </span>
                   </summary>
                   {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
                     <p class="quality-period-note" id="llm-quality-period">
-                      Last 14 days · {{ llm_usage.quality_summary.run_count }} ingestion run(s)
+                      Last 14 days · {{ llm_usage.quality_summary.run_count }} run(s)
+                      · {{ llm_usage.quality_summary.unique_symbols }} ticker(s)
                       · {{ llm_usage.quality_summary.total_batches }} batch(es)
-                      · {{ llm_usage.quality_summary.total_symbols }} symbol scores
-                      {% if llm_usage.quality_summary.unique_symbols %}
-                        ({{ llm_usage.quality_summary.unique_symbols }} unique tickers)
-                      {% endif %}
                     </p>
                     <table class="llm-split-table">
-                      <thead><tr><th>Strategy</th><th>Symbol scores</th><th>Clean</th><th>Grounding</th><th>Facts</th><th>Rules</th><th>Patterns</th><th>Batches</th></tr></thead>
+                      <thead><tr><th>Strategy</th><th>Clean</th><th>Grounding</th></tr></thead>
                       <tbody id="llm-quality-split-tbody">
                         {% for name in ['value', 'winners', 'box', 'dip'] %}
                           {% set qs = llm_usage.quality_summary.by_strategy.get(name) %}
                           {% if qs %}
                             <tr>
                               <td>{{ name }}</td>
-                              <td>{{ qs.symbols_clean }}/{{ qs.total_symbols }}</td>
-                              <td>{% if qs.clean_pct is not none %}{{ '%.0f'|format(qs.clean_pct) }}%{% else %}—{% endif %}</td>
+                              <td>
+                                {% if qs.symbols_flagged %}
+                                  <span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-symbols-only="1" title="Click to see {{ qs.symbols_flagged }} flagged symbol(s)">{% if qs.clean_pct is not none %}{{ '%.0f'|format(qs.clean_pct) }}%{% else %}—{% endif %}</span>
+                                {% elif qs.clean_pct is not none %}
+                                  {{ '%.0f'|format(qs.clean_pct) }}%
+                                {% else %}
+                                  —
+                                {% endif %}
+                              </td>
                               <td>
                                 {% if qs.grounding and qs.grounding.metrics_cited %}
                                   {{ '%.0f'|format(qs.grounding.match_pct) }}%
@@ -781,18 +765,15 @@
                                   —
                                 {% endif %}
                               </td>
-                              <td>{% if qs.by_category.facts %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="facts">{{ qs.by_category.facts }}</span>{% else %}0{% endif %}</td>
-                              <td>{% if qs.by_category.rules %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="rules">{{ qs.by_category.rules }}</span>{% else %}0{% endif %}</td>
-                              <td>{% if qs.by_category.patterns %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="patterns">{{ qs.by_category.patterns }}</span>{% else %}0{% endif %}</td>
-                              <td>{{ qs.batches_clean }}/{{ qs.total_batches }}</td>
                             </tr>
                           {% endif %}
                         {% endfor %}
                       </tbody>
                     </table>
                     <p class="drift-debug-sub" style="margin:10px 0 0;font-size:11px;line-height:1.45">
-                      Checks per symbol: fact grounding vs dossier, verdict/rule consistency, batch pattern outliers.
-                      Grounding % applies only when the model cites explicit metrics (RSI, P/E, etc.).
+                      <strong>Clean</strong> = scored symbols with zero quality flags.
+                      <strong>Grounding</strong> = share of explicit cited metrics (RSI, P/E, etc.) that match the dossier.
+                      Click a flagged Clean % to see details.
                     </p>
                   {% else %}
                     <p class="drift-debug-sub" style="margin:0;font-size:12px">No output quality data for this period — re-run ingestion after the quality checker is deployed.</p>
@@ -1614,7 +1595,7 @@
       function collectQualityFlagEntries(batches, filter) {
         const entries = [];
         const stratFilter = filter && filter.strategy ? filter.strategy : '';
-        const catFilter = filter && filter.category ? filter.category : '';
+        const symbolsOnly = !!(filter && filter.symbolsOnly);
 
         batches.forEach(function (b) {
           const q = b.output_quality;
@@ -1622,57 +1603,50 @@
           if (stratFilter && b.strategy !== stratFilter) return;
 
           function pushEntry(entry) {
-            if (catFilter && entry.category !== catFilter) return;
+            if (symbolsOnly && (!entry.symbol || entry.symbol === '—')) return;
             entries.push(entry);
           }
 
-          (q.batch_flags || []).forEach(function (f) {
-            pushEntry({
-              run_date: b.run_date || '',
-              run_at: b.run_at_short || b.run_at || '',
-              strategy: b.strategy || '?',
-              batch: b.batch || '?',
-              run_id: b.run_id || '',
-              symbol: '—',
-              verdict: '—',
-              conviction: '—',
-              code: f.code || '',
-              message: f.message || '',
-              severity: f.severity || 'warn',
-              category: categorizeQualityFlag(f.code || ''),
+          if (!symbolsOnly) {
+            (q.batch_flags || []).forEach(function (f) {
+              pushEntry({
+                run_date: b.run_date || '',
+                run_at: b.run_at_short || b.run_at || '',
+                strategy: b.strategy || '?',
+                batch: b.batch || '?',
+                symbol: '—',
+                code: f.code || '',
+                message: f.message || '',
+                severity: f.severity || 'warn',
+              });
             });
-          });
-          (q.outliers || []).forEach(function (f) {
-            pushEntry({
-              run_date: b.run_date || '',
-              run_at: b.run_at_short || b.run_at || '',
-              strategy: b.strategy || '?',
-              batch: b.batch || '?',
-              run_id: b.run_id || '',
-              symbol: '—',
-              verdict: '—',
-              conviction: '—',
-              code: f.code || '',
-              message: f.message || '',
-              severity: f.severity || 'warn',
-              category: categorizeQualityFlag(f.code || ''),
+            (q.outliers || []).forEach(function (f) {
+              pushEntry({
+                run_date: b.run_date || '',
+                run_at: b.run_at_short || b.run_at || '',
+                strategy: b.strategy || '?',
+                batch: b.batch || '?',
+                symbol: '—',
+                code: f.code || '',
+                message: f.message || '',
+                severity: f.severity || 'warn',
+              });
             });
-          });
+          }
           (q.stocks || []).forEach(function (stock) {
+            if (!stock.flags || !stock.flags.length) return;
             (stock.flags || []).forEach(function (f) {
               pushEntry({
                 run_date: b.run_date || '',
                 run_at: b.run_at_short || b.run_at || '',
                 strategy: b.strategy || '?',
                 batch: b.batch || '?',
-                run_id: b.run_id || '',
                 symbol: stock.symbol || '—',
                 verdict: stock.verdict || '—',
                 conviction: stock.conviction != null ? stock.conviction : '—',
                 code: f.code || '',
                 message: f.message || '',
                 severity: f.severity || 'warn',
-                category: categorizeQualityFlag(f.code || ''),
               });
             });
           });
@@ -1712,33 +1686,24 @@
           ['value', 'winners', 'box', 'dip'].map(function (s) {
             return '<option value="' + s + '"' + (filter.strategy === s ? ' selected' : '') + '>' + s + '</option>';
           }).join('') + '</select></label>' +
-          '<label>Category <select id="quality-flags-category"><option value="">All</option>' +
-          ['facts', 'rules', 'patterns'].map(function (c) {
-            return '<option value="' + c + '"' + (filter.category === c ? ' selected' : '') + '>' + c + '</option>';
-          }).join('') + '</select></label>' +
           '</div><div id="quality-flags-table-wrap"></div>';
 
         const stratSel = document.getElementById('quality-flags-strategy');
-        const catSel = document.getElementById('quality-flags-category');
         const tableWrap = document.getElementById('quality-flags-table-wrap');
+        const symbolsOnly = !!filter.symbolsOnly;
 
         function applyFilters() {
           const active = {
             strategy: stratSel ? stratSel.value : '',
-            category: catSel ? catSel.value : '',
+            symbolsOnly: symbolsOnly,
           };
           const entries = collectQualityFlagEntries(qualityFilteredBatches, active);
-          const parts = [];
-          if (active.strategy) parts.push(active.strategy);
-          if (active.category) parts.push(active.category);
-          subEl.textContent = parts.length
-            ? parts.join(' · ') + ' · ' + entries.length + ' flag(s)'
-            : entries.length + ' flag(s) in the selected period';
+          subEl.textContent = (active.strategy ? active.strategy + ' · ' : '') +
+            entries.length + ' issue(s)' + (symbolsOnly ? ' (symbol-level)' : '');
           if (tableWrap) tableWrap.innerHTML = renderQualityFlagsTable(entries);
         }
 
         if (stratSel) stratSel.onchange = applyFilters;
-        if (catSel) catSel.onchange = applyFilters;
         applyFilters();
       }
 
@@ -1747,23 +1712,14 @@
         if (backdrop) backdrop.classList.remove('open');
       }
 
-      function qualityFlagCell(count, strategy, category) {
-        if (!count) return '0';
-        return '<span class="quality-flag-link" data-quality-filter-strategy="' + esc(strategy) +
-          '" data-quality-filter-category="' + esc(category) + '">' + count + '</span>';
-      }
-
       function updateQualityCard(quality, days) {
         const cleanEl = document.getElementById('llm-quality-clean');
         if (!cleanEl) return;
 
         if (!quality || !quality.has_data) {
           cleanEl.textContent = '—';
-          setVisible('llm-quality-meta', false);
-          setVisible('llm-quality-grounding', false);
           setVisible('llm-quality-grounding-pct', false);
-          setVisible('llm-quality-categories', false);
-          setVisible('llm-quality-severity', false);
+          setVisible('llm-quality-view-flags', false);
           setText('llm-quality-period', '');
           renderStrategyRows('llm-quality-split-tbody', function () { return ''; }, []);
           return;
@@ -1773,20 +1729,9 @@
 
         const periodEl = document.getElementById('llm-quality-period');
         if (periodEl) {
-          let periodText = periodLabel(days) + ' · ' + quality.run_count + ' ingestion run(s)' +
-            ' · ' + quality.total_batches + ' batch(es) · ' + quality.total_symbols + ' symbol scores';
-          if (quality.unique_symbols) {
-            periodText += ' (' + quality.unique_symbols + ' unique tickers)';
-          }
-          periodEl.textContent = periodText;
+          periodEl.textContent = periodLabel(days) + ' · ' + quality.run_count + ' run(s) · ' +
+            quality.unique_symbols + ' ticker(s) · ' + quality.total_batches + ' batch(es)';
         }
-
-        setText(
-          'llm-quality-meta',
-          quality.symbols_clean + '/' + quality.total_symbols + ' symbol scores · ' +
-          quality.batches_clean + '/' + quality.total_batches + ' batches'
-        );
-        setVisible('llm-quality-meta', true);
 
         const groundingPctEl = document.getElementById('llm-quality-grounding-pct');
         if (quality.grounding.metrics_cited) {
@@ -1794,33 +1739,19 @@
             groundingPctEl.style.display = '';
             groundingPctEl.textContent = Math.round(quality.grounding.match_pct) + '% grounding';
           }
-          setText(
-            'llm-quality-grounding',
-            quality.grounding.metrics_matched + '/' + quality.grounding.metrics_cited + ' cited facts matched'
-          );
-        } else {
-          setVisible('llm-quality-grounding-pct', false);
-          setText('llm-quality-grounding', 'no explicit metrics cited');
+        } else if (groundingPctEl) {
+          groundingPctEl.style.display = '';
+          groundingPctEl.textContent = '— grounding';
         }
-        setVisible('llm-quality-grounding', true);
 
-        if (quality.flag_count) {
-          setText(
-            'llm-quality-categories',
-            quality.by_category.facts + ' facts · ' +
-            quality.by_category.rules + ' rules · ' +
-            quality.by_category.patterns + ' patterns'
-          );
-          setVisible('llm-quality-categories', true);
-          const sevEl = document.getElementById('llm-quality-severity');
-          if (sevEl) {
-            sevEl.style.display = '';
-            sevEl.textContent = quality.flag_count + ' flag' + (quality.flag_count === 1 ? '' : 's');
-            sevEl.className = 'drift-badge quality-flag-link ' + (quality.severity || 'warn');
+        const viewFlagsEl = document.getElementById('llm-quality-view-flags');
+        if (viewFlagsEl) {
+          if (quality.symbols_flagged) {
+            viewFlagsEl.style.display = '';
+            viewFlagsEl.textContent = quality.symbols_flagged + ' flagged';
+          } else {
+            viewFlagsEl.style.display = 'none';
           }
-        } else {
-          setVisible('llm-quality-categories', false);
-          setVisible('llm-quality-severity', false);
         }
 
         const order = ['value', 'winners', 'box', 'dip'];
@@ -1831,12 +1762,12 @@
           const qs = row.data;
           const g = qs.grounding || {};
           const groundingCell = g.metrics_cited ? Math.round(g.match_pct) + '%' : '—';
-          return '<tr><td>' + row.name + '</td><td>' + qs.symbols_clean + '/' + qs.total_symbols + '</td><td>' +
-            (qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—') + '</td><td>' + groundingCell + '</td><td>' +
-            qualityFlagCell(qs.by_category.facts, row.name, 'facts') + '</td><td>' +
-            qualityFlagCell(qs.by_category.rules, row.name, 'rules') + '</td><td>' +
-            qualityFlagCell(qs.by_category.patterns, row.name, 'patterns') + '</td><td>' +
-            qs.batches_clean + '/' + qs.total_batches + '</td></tr>';
+          const cleanPct = qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—';
+          const cleanCell = qs.symbols_flagged
+            ? '<span class="quality-flag-link" data-quality-filter-strategy="' + esc(row.name) +
+              '" data-quality-symbols-only="1" title="Click to see ' + qs.symbols_flagged + ' flagged symbol(s)">' + cleanPct + '</span>'
+            : cleanPct;
+          return '<tr><td>' + row.name + '</td><td>' + cleanCell + '</td><td>' + groundingCell + '</td></tr>';
         }, strategyRows);
       }
 
@@ -2104,7 +2035,8 @@
         ev.stopPropagation();
         openQualityFlagsModal({
           strategy: link.getAttribute('data-quality-filter-strategy') || '',
-          category: link.getAttribute('data-quality-filter-category') || '',
+          symbolsOnly: link.getAttribute('data-quality-symbols-only') === '1' ||
+            link.id === 'llm-quality-view-flags',
         });
       });
 
