@@ -10,11 +10,14 @@ sys.path.insert(0, str(_REPO))
 from scoring.batch_scorer import BatchStockScore
 from scoring.output_quality import (
     build_quality_summary,
+    check_conviction_soft_bands,
     check_directional_claims,
     check_metric_citations,
+    check_reasoning_quality,
     check_strategy_rules,
     check_verdict_bands,
     evaluate_batch_output,
+    refresh_output_quality,
 )
 
 
@@ -74,6 +77,44 @@ def test_batch_all_buy_outlier():
     assert any(f["code"] == "batch_all_buy" for f in report["batch_flags"])
 
 
+def test_conviction_buy_marginal():
+    flags = check_conviction_soft_bands(62, "buy")
+    assert any(f["code"] == "conviction_buy_marginal" for f in flags)
+
+
+def test_conviction_watch_high():
+    flags = check_conviction_soft_bands(57, "watch")
+    assert any(f["code"] == "conviction_watch_high" for f in flags)
+
+
+def test_reasoning_too_short():
+    flags = check_reasoning_quality("Too brief.", "buy")
+    assert any(f["code"] == "reasoning_too_short" for f in flags)
+
+
+def test_refresh_output_quality_reapplies_clean_rules():
+    q = {
+        "flag_count": 0,
+        "symbols_flagged": 0,
+        "batch_flags": [],
+        "outliers": [],
+        "stocks": [
+            {
+                "symbol": "A",
+                "conviction": 62,
+                "verdict": "buy",
+                "flags": [{"code": "grounding_dma_contradiction", "severity": "alert", "message": "x"}],
+            },
+        ],
+    }
+    refreshed = refresh_output_quality(q, strategy="dip")
+    codes = [f["code"] for f in refreshed["stocks"][0]["flags"]]
+    assert "conviction_buy_marginal" in codes
+    assert "grounding_dma_contradiction" in codes
+    assert refreshed["symbols_flagged"] == 1
+    assert refreshed["symbols_grounding_flagged"] == 1
+
+
 def test_build_quality_summary_rollup():
     batches = [
         {
@@ -109,13 +150,18 @@ def test_build_quality_summary_rollup():
             "run_id": "run-2",
             "symbols": ["C", "D"],
             "output_quality": {
-                "flag_count": 0,
-                "symbols_flagged": 0,
-                "severity": "ok",
+                "flag_count": 1,
+                "symbols_flagged": 1,
+                "severity": "warn",
                 "batch_flags": [],
                 "outliers": [],
                 "stocks": [
-                    {"symbol": "C", "flag_count": 0, "flags": [], "grounding": {"metrics_cited": 0, "metrics_matched": 0}},
+                    {
+                        "symbol": "C",
+                        "flag_count": 1,
+                        "flags": [{"code": "verdict_band_mismatch", "severity": "warn", "message": "x"}],
+                        "grounding": {"metrics_cited": 0, "metrics_matched": 0},
+                    },
                     {"symbol": "D", "flag_count": 0, "flags": [], "grounding": {"metrics_cited": 0, "metrics_matched": 0}},
                 ],
             },
@@ -126,14 +172,18 @@ def test_build_quality_summary_rollup():
     assert summary["run_count"] == 2
     assert summary["unique_symbols"] == 4
     assert summary["total_symbols"] == 4
+    assert summary["symbols_flagged"] == 1
+    assert summary["symbols_grounding_flagged"] == 1
     assert summary["symbols_clean"] == 3
     assert summary["clean_pct"] == 75.0
     assert summary["by_category"]["facts"] == 1
     assert summary["grounding"]["metrics_cited"] == 2
     assert summary["grounding"]["metrics_matched"] == 1
     assert summary["grounding"]["match_pct"] == 50.0
-    assert summary["by_strategy"]["dip"]["clean_pct"] == 50.0
-    assert summary["by_strategy"]["dip"]["grounding"]["match_pct"] == 50.0
+    assert summary["by_strategy"]["dip"]["clean_pct"] == 100.0
+    assert summary["by_strategy"]["dip"]["symbols_grounding_flagged"] == 1
+    assert summary["by_strategy"]["value"]["clean_pct"] == 50.0
+    assert summary["by_strategy"]["value"]["grounding"]["match_pct"] is None
 
 
 if __name__ == "__main__":
@@ -142,6 +192,10 @@ if __name__ == "__main__":
     test_grounding_rsi_match()
     test_grounding_rsi_mismatch()
     test_directional_dma_contradiction()
+    test_conviction_buy_marginal()
+    test_conviction_watch_high()
+    test_reasoning_too_short()
+    test_refresh_output_quality_reapplies_clean_rules()
     test_batch_all_buy_outlier()
     test_build_quality_summary_rollup()
     print("OK — output quality tests passed")

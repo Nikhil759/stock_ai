@@ -827,6 +827,12 @@ def finalize_llm_usage_payload(
             "payload_breakdown": row.get("payload_breakdown"),
         }
         q = row.get("output_quality") if isinstance(row.get("output_quality"), dict) else {}
+        if q:
+            from scoring.output_quality import enrich_batch_quality_outliers, refresh_output_quality
+
+            strat = str(row.get("strategy") or "")
+            row["output_quality"] = refresh_output_quality(q, strategy=strat)
+            q = row["output_quality"]
         if q and quality_baselines:
             from scoring.output_quality import enrich_batch_quality_outliers
 

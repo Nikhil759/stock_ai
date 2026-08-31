@@ -717,7 +717,7 @@
                     <span class="llm-metric-label">Output quality</span>
                     <span class="llm-metric-value" id="llm-quality-clean">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
-                        {{ '%.0f'|format(llm_usage.quality_summary.clean_pct) }}% clean
+                        {{ format_clean_pct(llm_usage.quality_summary.clean_pct, llm_usage.quality_summary.symbols_flagged) }}% clean
                       {% else %}
                         —
                       {% endif %}
@@ -729,7 +729,7 @@
                         —
                       {% endif %}
                     </span>
-                    <span id="llm-quality-view-flags" class="drift-badge quality-flag-link warn" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.symbols_flagged %}display:none{% endif %}" title="View flagged symbols">
+                    <span id="llm-quality-view-flags" class="drift-badge quality-flag-link warn" data-quality-flag-scope="clean" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.symbols_flagged %}display:none{% endif %}" title="View rule and pattern flags">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.symbols_flagged %}
                         {{ llm_usage.quality_summary.symbols_flagged }} flagged
                       {% endif %}
@@ -751,15 +751,19 @@
                               <td>{{ name }}</td>
                               <td>
                                 {% if qs.symbols_flagged %}
-                                  <span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-symbols-only="1" title="Click to see {{ qs.symbols_flagged }} flagged symbol(s)">{% if qs.clean_pct is not none %}{{ '%.0f'|format(qs.clean_pct) }}%{% else %}—{% endif %}</span>
+                                  <span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-flag-scope="clean" data-quality-symbols-only="1" title="Click to see {{ qs.symbols_flagged }} rule/pattern flag(s)">{% if qs.clean_pct is not none %}{{ format_clean_pct(qs.clean_pct, qs.symbols_flagged) }}%{% else %}—{% endif %}</span>
                                 {% elif qs.clean_pct is not none %}
-                                  {{ '%.0f'|format(qs.clean_pct) }}%
+                                  {{ format_clean_pct(qs.clean_pct, qs.symbols_flagged) }}%
                                 {% else %}
                                   —
                                 {% endif %}
                               </td>
                               <td>
-                                {% if qs.grounding and qs.grounding.metrics_cited %}
+                                {% if qs.symbols_grounding_flagged %}
+                                  <span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-flag-scope="grounding" data-quality-symbols-only="1" title="Click to see {{ qs.symbols_grounding_flagged }} grounding issue(s)">
+                                    {% if qs.grounding and qs.grounding.metrics_cited %}{{ '%.0f'|format(qs.grounding.match_pct) }}%{% else %}—{% endif %}
+                                  </span>
+                                {% elif qs.grounding and qs.grounding.metrics_cited %}
                                   {{ '%.0f'|format(qs.grounding.match_pct) }}%
                                 {% else %}
                                   —
@@ -771,9 +775,8 @@
                       </tbody>
                     </table>
                     <p class="drift-debug-sub" style="margin:10px 0 0;font-size:11px;line-height:1.45">
-                      <strong>Clean</strong> = scored symbols with zero quality flags.
-                      <strong>Grounding</strong> = share of explicit cited metrics (RSI, P/E, etc.) that match the dossier.
-                      Click a flagged Clean % to see details.
+                      <strong>Clean</strong> = symbols with no rule or pattern flags (verdict bands, marginal conviction, short reasoning, batch outliers).
+                      <strong>Grounding</strong> = cited metrics (RSI, P/E, etc.) matching the dossier — click when flagged to see DMA/metric issues.
                     </p>
                   {% else %}
                     <p class="drift-debug-sub" style="margin:0;font-size:12px">No output quality data for this period — re-run ingestion after the quality checker is deployed.</p>
@@ -868,6 +871,21 @@
                     </table>
                   {% endif %}
                 </details>
+              </div>
+            </div>
+
+            <div class="drift-debug-backdrop" id="quality-flags-backdrop" aria-hidden="true">
+              <div class="drift-debug-modal" role="dialog" aria-labelledby="quality-flags-title">
+                <div class="drift-debug-head">
+                  <div>
+                    <h3 id="quality-flags-title">Quality flags</h3>
+                    <div class="drift-debug-sub" id="quality-flags-sub">Why symbols were flagged.</div>
+                  </div>
+                  <button type="button" class="drift-debug-close" id="quality-flags-close" aria-label="Close">×</button>
+                </div>
+                <div class="drift-debug-body" id="quality-flags-body">
+                  <p class="drift-debug-empty">No flags in this view.</p>
+                </div>
               </div>
             </div>
 
@@ -972,20 +990,6 @@
                   </div>
                   <div class="drift-debug-body" id="drift-debug-body">
                     <p class="drift-debug-empty">Loading…</p>
-                  </div>
-                </div>
-              </div>
-              <div class="drift-debug-backdrop" id="quality-flags-backdrop" aria-hidden="true">
-                <div class="drift-debug-modal" role="dialog" aria-labelledby="quality-flags-title">
-                  <div class="drift-debug-head">
-                    <div>
-                      <h3 id="quality-flags-title">Quality flags</h3>
-                      <div class="drift-debug-sub" id="quality-flags-sub">Why symbols or batches were flagged.</div>
-                    </div>
-                    <button type="button" class="drift-debug-close" id="quality-flags-close" aria-label="Close">×</button>
-                  </div>
-                  <div class="drift-debug-body" id="quality-flags-body">
-                    <p class="drift-debug-empty">No flags in this view.</p>
                   </div>
                 </div>
               </div>
@@ -1318,6 +1322,13 @@
         return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
       }
 
+      function esc(text) {
+        return String(text == null ? '' : text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
       function withinDays(runDateStr, days) {
         if (!runDateStr) return true;
         const dayCount = parseInt(days, 10);
@@ -1429,6 +1440,28 @@
         buy_rate_vs_baseline: 1,
       };
 
+      function isGroundingFlag(code) {
+        return String(code || '').indexOf('grounding_') === 0;
+      }
+
+      function stockHasCleanFlags(stock) {
+        return (stock.flags || []).some(function (f) {
+          return f && !isGroundingFlag(f.code);
+        });
+      }
+
+      function stockHasGroundingFlags(stock) {
+        return (stock.flags || []).some(function (f) {
+          return f && isGroundingFlag(f.code);
+        });
+      }
+
+      function batchHasCleanFlags(quality) {
+        if (!quality || typeof quality !== 'object') return false;
+        if ((quality.batch_flags || []).length || (quality.outliers || []).length) return true;
+        return (quality.stocks || []).some(stockHasCleanFlags);
+      }
+
       function categorizeQualityFlag(code) {
         if (!code) return 'rules';
         if (code.indexOf('grounding_') === 0) return 'facts';
@@ -1454,6 +1487,13 @@
         return counts;
       }
 
+      function formatCleanPctDisplay(cleanPct, symbolsFlagged) {
+        if (cleanPct === null || cleanPct === undefined || isNaN(cleanPct)) return '—';
+        var n = Math.floor(parseFloat(cleanPct) + 1e-9);
+        if ((symbolsFlagged || 0) > 0 && n >= 100) n = 99;
+        return String(n);
+      }
+
       function periodLabel(days) {
         const d = String(days);
         if (d === '1') return 'Today';
@@ -1468,6 +1508,7 @@
           unique_symbols: 0,
           total_symbols: 0,
           symbols_flagged: 0,
+          symbols_grounding_flagged: 0,
           symbols_clean: 0,
           clean_pct: null,
           total_batches: 0,
@@ -1510,12 +1551,20 @@
             });
           }
 
-          const symFlagged = parseInt(q.symbols_flagged, 10) || 0;
-          summary.symbols_flagged += symFlagged;
+          const stocks = q.stocks || [];
+          const symCleanFlagged = stocks.filter(stockHasCleanFlags).length;
+          const symGroundingFlagged = stocks.filter(stockHasGroundingFlags).length;
+          if (stocks.length) {
+            summary.symbols_flagged += symCleanFlagged;
+            summary.symbols_grounding_flagged += symGroundingFlagged;
+          } else {
+            summary.symbols_flagged += parseInt(q.symbols_flagged, 10) || 0;
+            summary.symbols_grounding_flagged += parseInt(q.symbols_grounding_flagged, 10) || 0;
+          }
 
           const batchFlags = parseInt(q.flag_count, 10) || 0;
           summary.flag_count += batchFlags;
-          if (batchFlags > 0) summary.batches_with_flags += 1;
+          if (batchHasCleanFlags(q)) summary.batches_with_flags += 1;
 
           const sev = q.severity || 'ok';
           if ((sevRank[sev] || 0) > (sevRank[summary.severity] || 0)) summary.severity = sev;
@@ -1536,6 +1585,7 @@
             summary.by_strategy[strat] = {
               total_symbols: 0,
               symbols_flagged: 0,
+              symbols_grounding_flagged: 0,
               total_batches: 0,
               batches_with_flags: 0,
               by_category: emptyCategoryCounts(),
@@ -1545,9 +1595,15 @@
           }
           const sb = summary.by_strategy[strat];
           sb.total_symbols += symN;
-          sb.symbols_flagged += symFlagged;
+          if (stocks.length) {
+            sb.symbols_flagged += symCleanFlagged;
+            sb.symbols_grounding_flagged += symGroundingFlagged;
+          } else {
+            sb.symbols_flagged += parseInt(q.symbols_flagged, 10) || 0;
+            sb.symbols_grounding_flagged += parseInt(q.symbols_grounding_flagged, 10) || 0;
+          }
           sb.total_batches += 1;
-          if (batchFlags > 0) sb.batches_with_flags += 1;
+          if (batchHasCleanFlags(q)) sb.batches_with_flags += 1;
           Object.keys(cats).forEach(function (k) {
             sb.by_category[k] += cats[k];
           });
@@ -1592,10 +1648,18 @@
 
       let qualityFilteredBatches = [];
 
+      function flagMatchesScope(code, scope) {
+        const grounding = isGroundingFlag(code);
+        if (scope === 'grounding') return grounding;
+        if (scope === 'clean') return !grounding;
+        return true;
+      }
+
       function collectQualityFlagEntries(batches, filter) {
         const entries = [];
         const stratFilter = filter && filter.strategy ? filter.strategy : '';
         const symbolsOnly = !!(filter && filter.symbolsOnly);
+        const flagScope = filter && filter.flagScope ? filter.flagScope : 'clean';
 
         batches.forEach(function (b) {
           const q = b.output_quality;
@@ -1603,11 +1667,12 @@
           if (stratFilter && b.strategy !== stratFilter) return;
 
           function pushEntry(entry) {
+            if (!flagMatchesScope(entry.code, flagScope)) return;
             if (symbolsOnly && (!entry.symbol || entry.symbol === '—')) return;
             entries.push(entry);
           }
 
-          if (!symbolsOnly) {
+          if (!symbolsOnly && flagScope === 'clean') {
             (q.batch_flags || []).forEach(function (f) {
               pushEntry({
                 run_date: b.run_date || '',
@@ -1635,6 +1700,8 @@
           }
           (q.stocks || []).forEach(function (stock) {
             if (!stock.flags || !stock.flags.length) return;
+            if (symbolsOnly && flagScope === 'clean' && !stockHasCleanFlags(stock)) return;
+            if (symbolsOnly && flagScope === 'grounding' && !stockHasGroundingFlags(stock)) return;
             (stock.flags || []).forEach(function (f) {
               pushEntry({
                 run_date: b.run_date || '',
@@ -1675,10 +1742,20 @@
         const backdrop = document.getElementById('quality-flags-backdrop');
         const bodyEl = document.getElementById('quality-flags-body');
         const subEl = document.getElementById('quality-flags-sub');
+        const titleEl = document.getElementById('quality-flags-title');
         if (!backdrop || !bodyEl) return;
 
         filter = filter || {};
+        const flagScope = filter.flagScope || 'clean';
         backdrop.classList.add('open');
+        if (titleEl) {
+          titleEl.textContent = flagScope === 'grounding' ? 'Grounding flags' : 'Rule & pattern flags';
+        }
+        if (subEl) {
+          subEl.textContent = flagScope === 'grounding'
+            ? 'Metric citations and directional claims vs dossier.'
+            : 'Verdict bands, strategy rules, and batch outliers.';
+        }
 
         bodyEl.innerHTML =
           '<div class="quality-flags-filters">' +
@@ -1696,10 +1773,13 @@
           const active = {
             strategy: stratSel ? stratSel.value : '',
             symbolsOnly: symbolsOnly,
+            flagScope: flagScope,
           };
           const entries = collectQualityFlagEntries(qualityFilteredBatches, active);
           subEl.textContent = (active.strategy ? active.strategy + ' · ' : '') +
-            entries.length + ' issue(s)' + (symbolsOnly ? ' (symbol-level)' : '');
+            entries.length + ' issue(s)' +
+            (symbolsOnly ? ' (symbol-level)' : '') +
+            (flagScope === 'grounding' ? ' · grounding' : ' · rules/patterns');
           if (tableWrap) tableWrap.innerHTML = renderQualityFlagsTable(entries);
         }
 
@@ -1725,7 +1805,9 @@
           return;
         }
 
-        cleanEl.textContent = (quality.clean_pct != null ? Math.round(quality.clean_pct) : '—') + '% clean';
+        cleanEl.textContent = (quality.clean_pct != null
+          ? formatCleanPctDisplay(quality.clean_pct, quality.symbols_flagged)
+          : '—') + '% clean';
 
         const periodEl = document.getElementById('llm-quality-period');
         if (periodEl) {
@@ -1743,12 +1825,26 @@
           groundingPctEl.style.display = '';
           groundingPctEl.textContent = '— grounding';
         }
+        if (groundingPctEl) {
+          if (quality.symbols_grounding_flagged) {
+            groundingPctEl.classList.add('quality-flag-link');
+            groundingPctEl.setAttribute('data-quality-flag-scope', 'grounding');
+            groundingPctEl.setAttribute('data-quality-symbols-only', '1');
+            groundingPctEl.title = 'View ' + quality.symbols_grounding_flagged + ' grounding issue(s)';
+          } else {
+            groundingPctEl.classList.remove('quality-flag-link');
+            groundingPctEl.removeAttribute('data-quality-flag-scope');
+            groundingPctEl.removeAttribute('data-quality-symbols-only');
+            groundingPctEl.title = '';
+          }
+        }
 
         const viewFlagsEl = document.getElementById('llm-quality-view-flags');
         if (viewFlagsEl) {
           if (quality.symbols_flagged) {
             viewFlagsEl.style.display = '';
             viewFlagsEl.textContent = quality.symbols_flagged + ' flagged';
+            viewFlagsEl.setAttribute('data-quality-flag-scope', 'clean');
           } else {
             viewFlagsEl.style.display = 'none';
           }
@@ -1761,12 +1857,18 @@
         renderStrategyRows('llm-quality-split-tbody', function (row) {
           const qs = row.data;
           const g = qs.grounding || {};
-          const groundingCell = g.metrics_cited ? Math.round(g.match_pct) + '%' : '—';
-          const cleanPct = qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—';
+          const cleanPct = qs.clean_pct != null
+            ? formatCleanPctDisplay(qs.clean_pct, qs.symbols_flagged) + '%'
+            : '—';
           const cleanCell = qs.symbols_flagged
-            ? '<span class="quality-flag-link" data-quality-filter-strategy="' + esc(row.name) +
-              '" data-quality-symbols-only="1" title="Click to see ' + qs.symbols_flagged + ' flagged symbol(s)">' + cleanPct + '</span>'
+            ? '<span class="quality-flag-link" data-quality-flag-scope="clean" data-quality-filter-strategy="' + esc(row.name) +
+              '" data-quality-symbols-only="1" title="Click to see ' + qs.symbols_flagged + ' rule/pattern flag(s)">' + cleanPct + '</span>'
             : cleanPct;
+          const groundingPct = g.metrics_cited ? Math.round(g.match_pct) + '%' : '—';
+          const groundingCell = qs.symbols_grounding_flagged
+            ? '<span class="quality-flag-link" data-quality-flag-scope="grounding" data-quality-filter-strategy="' + esc(row.name) +
+              '" data-quality-symbols-only="1" title="Click to see ' + qs.symbols_grounding_flagged + ' grounding issue(s)">' + groundingPct + '</span>'
+            : groundingPct;
           return '<tr><td>' + row.name + '</td><td>' + cleanCell + '</td><td>' + groundingCell + '</td></tr>';
         }, strategyRows);
       }
@@ -2035,10 +2137,12 @@
         ev.stopPropagation();
         openQualityFlagsModal({
           strategy: link.getAttribute('data-quality-filter-strategy') || '',
+          flagScope: link.getAttribute('data-quality-flag-scope') || 'clean',
           symbolsOnly: link.getAttribute('data-quality-symbols-only') === '1' ||
-            link.id === 'llm-quality-view-flags',
+            link.id === 'llm-quality-view-flags' ||
+            link.id === 'llm-quality-grounding-pct',
         });
-      });
+      }, true);
 
       const qualityFlagsBackdrop = document.getElementById('quality-flags-backdrop');
       const qualityFlagsClose = document.getElementById('quality-flags-close');

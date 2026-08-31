@@ -487,6 +487,18 @@ def _format_delta_pct(delta: float | None) -> str:
     return f"{sign}{delta:.0f}%"
 
 
+def _format_clean_pct(clean_pct: float | None, symbols_flagged: int = 0) -> str:
+    """Integer clean % for display — floor so 99.9% with flags never shows as 100%."""
+    import math
+
+    if clean_pct is None:
+        return "—"
+    n = int(math.floor(float(clean_pct) + 1e-9))
+    if symbols_flagged > 0 and n >= 100:
+        n = 99
+    return str(n)
+
+
 def _ingestion_run_summary(stages: dict | None) -> dict[str, Any]:
     """Compact ingestion stats for recent-run cards."""
     from selector.llm.usage import extract_run_llm_snapshot
@@ -673,6 +685,14 @@ def _llm_usage_for_health(
     }
 
 
+def _refresh_batch_output_quality(q: dict[str, Any], strategy: str) -> dict[str, Any]:
+    from scoring.output_quality import refresh_output_quality
+
+    if not q or not isinstance(q, dict):
+        return {}
+    return refresh_output_quality(q, strategy=strategy)
+
+
 def _assemble_llm_usage_for_health(
     recent_raw: list[dict[str, Any]],
     baselines: dict[str, Any] | None,
@@ -829,7 +849,10 @@ def _llm_batches_history(
                         "latency": drifts.get("elapsed_ms") or {},
                         "severity": severity,
                     },
-                    "output_quality": enriched.get("output_quality") or {},
+                    "output_quality": _refresh_batch_output_quality(
+                        enriched.get("output_quality") or {},
+                        str(enriched.get("strategy") or ""),
+                    ),
                 }
             )
 
@@ -1132,6 +1155,7 @@ async def health_page(request: Request):
             "format_duration_ms": _format_duration_ms,
             "format_cost_usd": _format_cost_usd,
             "format_delta_pct": _format_delta_pct,
+            "format_clean_pct": _format_clean_pct,
             "not_started": authed and not db_error and today_row is None,
             "db_error": db_error,
             "fm_today": fm_today,

@@ -13,9 +13,14 @@ Severity = Literal["ok", "warn", "alert"]
 
 _SEV_RANK = {"ok": 0, "warn": 1, "alert": 2}
 
-# conviction bands from batch_skeleton.txt
+# Hard verdict bands + soft sub-bands from batch_skeleton.txt.
 _VERDICT_MIN = {"buy": 60, "watch": 40, "skip": 0}
 _VERDICT_MAX = {"buy": 100, "watch": 59, "skip": 39}
+_BUY_MARGINAL_MAX = 64
+_WATCH_HIGH_MIN = 55
+_WATCH_LOW_MAX = 42
+_SKIP_ELEVATED_MIN = 35
+_REASONING_MIN_LEN = 100
 
 _METRIC_PATTERNS: list[tuple[str, str, str]] = [
     (r"rsi\s*\(\s*2\s*\)\s*(?:of|at|=|:)?\s*(\d+(?:\.\d+)?)", "technicals", "rsi_2"),
@@ -228,6 +233,69 @@ def check_verdict_bands(conviction: int, verdict: str) -> list[dict[str, str]]:
     return flags
 
 
+def check_conviction_soft_bands(conviction: int, verdict: str) -> list[dict[str, str]]:
+    """Flag in-band conviction/verdict pairings that sit on the wrong sub-band edge."""
+    flags: list[dict[str, str]] = []
+    v = (verdict or "").lower().strip()
+    if v not in _VERDICT_MIN:
+        return flags
+    c = int(conviction)
+    if v == "buy" and c <= _BUY_MARGINAL_MAX:
+        flags.append(
+            _flag(
+                "conviction_buy_marginal",
+                f"Buy verdict with marginal conviction {c} (solid buy band starts ~65)",
+                severity="warn",
+            )
+        )
+    elif v == "watch":
+        if c >= _WATCH_HIGH_MIN:
+            flags.append(
+                _flag(
+                    "conviction_watch_high",
+                    f"Watch verdict with high conviction {c} (≥{_WATCH_HIGH_MIN} usually buy)",
+                    severity="warn",
+                )
+            )
+        elif c <= _WATCH_LOW_MAX:
+            flags.append(
+                _flag(
+                    "conviction_watch_low",
+                    f"Watch verdict with low conviction {c} (≤{_WATCH_LOW_MAX} usually skip)",
+                    severity="warn",
+                )
+            )
+    elif v == "skip" and c >= _SKIP_ELEVATED_MIN:
+        flags.append(
+            _flag(
+                "conviction_skip_elevated",
+                f"Skip verdict with elevated conviction {c} (weak band is ~20–34)",
+                severity="warn",
+            )
+        )
+    return flags
+
+
+def check_reasoning_quality(reasoning: str, verdict: str) -> list[dict[str, str]]:
+    """Basic reasoning completeness checks."""
+    flags: list[dict[str, str]] = []
+    text = (reasoning or "").strip()
+    v = (verdict or "").lower().strip()
+    if not text:
+        flags.append(_flag("reasoning_empty", "No reasoning text provided", severity="alert"))
+        return flags
+    min_len = _REASONING_MIN_LEN if v in ("buy", "watch") else max(60, _REASONING_MIN_LEN // 2)
+    if len(text) < min_len:
+        flags.append(
+            _flag(
+                "reasoning_too_short",
+                f"Reasoning is short ({len(text)} chars, expect ≥{min_len} for {v})",
+                severity="warn",
+            )
+        )
+    return flags
+
+
 def check_strategy_rules(
     strategy: str,
     *,
@@ -252,20 +320,11 @@ def check_strategy_rules(
                 )
             )
 
-    if strategy == "winners" and winners_note and conviction >= 80 and v == "buy":
+    if strategy == "winners" and winners_note and conviction >= 75 and v == "buy":
         flags.append(
             _flag(
                 "winners_proxy_high_conviction",
-                "Buy conviction ≥80 with momentum-only earnings proxy (policy: prefer lower)",
-                severity="warn",
-            )
-        )
-
-    if v == "skip" and conviction >= 50:
-        flags.append(
-            _flag(
-                "skip_high_conviction",
-                f"Skip verdict with relatively high conviction ({conviction})",
+                "Buy conviction ≥75 with momentum-only earnings proxy (policy: prefer lower)",
                 severity="warn",
             )
         )
@@ -286,6 +345,8 @@ def evaluate_stock_output(
 ) -> dict[str, Any]:
     flags: list[dict[str, str]] = []
     flags.extend(check_verdict_bands(conviction, verdict))
+    flags.extend(check_conviction_soft_bands(conviction, verdict))
+    flags.extend(check_reasoning_quality(reasoning, verdict))
     flags.extend(
         check_strategy_rules(
             strategy,
@@ -300,6 +361,7 @@ def evaluate_stock_output(
     flags.extend(metric_flags)
     flags.extend(check_directional_claims(reasoning, dossier))
 
+    clean_flags = [f for f in flags if not _is_grounding_code(str(f.get("code") or ""))]
     severity = _max_severity(*(f.get("severity", "ok") for f in flags), "ok")
     return {
         "symbol": symbol.upper(),
@@ -307,8 +369,10 @@ def evaluate_stock_output(
         "verdict": verdict,
         "severity": severity,
         "flag_count": len(flags),
+        "clean_flag_count": len(clean_flags),
         "flags": flags,
         "grounding": grounding,
+        "reasoning": (reasoning or "")[:600],
     }
 
 
@@ -349,7 +413,7 @@ def evaluate_batch_output(
 
     batch_flags: list[dict[str, str]] = []
     n = len(stock_reports)
-    if n >= 4:
+    if n >= 3:
         buys = sum(1 for s in stock_reports if s.get("verdict") == "buy")
         if buys == n:
             batch_flags.append(
@@ -362,7 +426,7 @@ def evaluate_batch_output(
             )
 
     convictions = [int(s.get("conviction", 0)) for s in stock_reports]
-    if convictions and max(convictions) - min(convictions) <= 3 and n >= 4:
+    if convictions and max(convictions) - min(convictions) <= 5 and n >= 3:
         batch_flags.append(
             _flag(
                 "batch_flat_conviction",
@@ -371,7 +435,8 @@ def evaluate_batch_output(
             )
         )
 
-    flagged = [s for s in stock_reports if s.get("flag_count", 0) > 0]
+    clean_flagged = [s for s in stock_reports if _stock_has_clean_flags(s)]
+    grounding_flagged = [s for s in stock_reports if _stock_has_grounding_flags(s)]
     total_flags = sum(s.get("flag_count", 0) for s in stock_reports) + len(batch_flags)
     severity = _max_severity(
         *(s.get("severity", "ok") for s in stock_reports),
@@ -382,7 +447,8 @@ def evaluate_batch_output(
     return {
         "severity": severity,
         "flag_count": total_flags,
-        "symbols_flagged": len(flagged),
+        "symbols_flagged": len(clean_flagged),
+        "symbols_grounding_flagged": len(grounding_flagged),
         "batch_flags": batch_flags,
         "stocks": stock_reports,
         "summary": {
@@ -392,6 +458,87 @@ def evaluate_batch_output(
             "mean_conviction": round(statistics.mean(convictions), 1) if convictions else None,
         },
     }
+
+
+def refresh_output_quality(q: dict[str, Any], *, strategy: str = "") -> dict[str, Any]:
+    """Re-apply rule/pattern checks on stored batch quality (preserves grounding flags)."""
+    if not q or not isinstance(q, dict):
+        return q
+
+    stocks_out: list[dict[str, Any]] = []
+    for stock in q.get("stocks") or []:
+        if not isinstance(stock, dict):
+            continue
+        s = dict(stock)
+        existing = s.get("flags") or []
+        grounding_flags = [
+            f for f in existing if isinstance(f, dict) and _is_grounding_code(str(f.get("code") or ""))
+        ]
+        conviction = int(s.get("conviction", 0) or 0)
+        verdict = str(s.get("verdict") or "skip")
+        reasoning = str(s.get("reasoning") or "")
+
+        clean_flags: list[dict[str, str]] = []
+        clean_flags.extend(check_verdict_bands(conviction, verdict))
+        clean_flags.extend(check_conviction_soft_bands(conviction, verdict))
+        if reasoning:
+            clean_flags.extend(check_reasoning_quality(reasoning, verdict))
+
+        flags = clean_flags + grounding_flags
+        s["flags"] = flags
+        s["flag_count"] = len(flags)
+        s["clean_flag_count"] = len(clean_flags)
+        s["severity"] = _max_severity(*(f.get("severity", "ok") for f in flags), "ok")
+        stocks_out.append(s)
+
+    batch_flags: list[dict[str, str]] = []
+    n = len(stocks_out)
+    if n >= 3:
+        buys = sum(1 for s in stocks_out if s.get("verdict") == "buy")
+        if buys == n:
+            batch_flags.append(
+                _flag("batch_all_buy", f"All {n} symbols scored buy (unusual)", severity="warn")
+            )
+        skips = sum(1 for s in stocks_out if s.get("verdict") == "skip")
+        if skips == n:
+            batch_flags.append(
+                _flag("batch_all_skip", f"All {n} symbols scored skip (unusual)", severity="warn")
+            )
+
+    convictions = [int(s.get("conviction", 0) or 0) for s in stocks_out]
+    if convictions and max(convictions) - min(convictions) <= 5 and n >= 3:
+        batch_flags.append(
+            _flag(
+                "batch_flat_conviction",
+                f"Conviction nearly identical across batch ({min(convictions)}–{max(convictions)})",
+                severity="warn",
+            )
+        )
+
+    outliers = [f for f in (q.get("outliers") or []) if isinstance(f, dict)]
+    out = dict(q)
+    out["stocks"] = stocks_out
+    out["batch_flags"] = batch_flags
+    out["outliers"] = outliers
+    out["symbols_flagged"] = sum(1 for s in stocks_out if _stock_has_clean_flags(s))
+    out["symbols_grounding_flagged"] = sum(1 for s in stocks_out if _stock_has_grounding_flags(s))
+    out["flag_count"] = (
+        sum(int(s.get("flag_count", 0) or 0) for s in stocks_out) + len(batch_flags) + len(outliers)
+    )
+    out["severity"] = _max_severity(
+        *(s.get("severity", "ok") for s in stocks_out),
+        *(f.get("severity", "ok") for f in batch_flags),
+        *(f.get("severity", "ok") for f in outliers),
+        "ok",
+    )
+    if strategy and not out.get("summary"):
+        out["summary"] = {
+            "buy": sum(1 for s in stocks_out if s.get("verdict") == "buy"),
+            "watch": sum(1 for s in stocks_out if s.get("verdict") == "watch"),
+            "skip": sum(1 for s in stocks_out if s.get("verdict") == "skip"),
+            "mean_conviction": round(statistics.mean(convictions), 1) if convictions else None,
+        }
+    return out
 
 
 def build_quality_baselines(
@@ -470,12 +617,12 @@ def enrich_batch_quality_outliers(
         med = float(mc_base["median"])
         if med > 0:
             delta = (float(mc) - med) / med * 100
-            if abs(delta) >= 25:
+            if abs(delta) >= 20:
                 outliers.append(
                     _flag(
                         "conviction_vs_baseline",
                         f"Batch mean conviction {mc} vs baseline median {med:.1f} ({delta:+.0f}%)",
-                        severity="warn" if abs(delta) < 40 else "alert",
+                        severity="warn" if abs(delta) < 35 else "alert",
                     )
                 )
 
@@ -485,7 +632,7 @@ def enrich_batch_quality_outliers(
     if buys is not None and sym_total > 0 and br_base.get("median") is not None:
         rate = float(buys) / float(sym_total)
         med = float(br_base["median"])
-        if med >= 0 and abs(rate - med) >= 0.35:
+        if med >= 0 and abs(rate - med) >= 0.25:
             outliers.append(
                 _flag(
                     "buy_rate_vs_baseline",
@@ -511,12 +658,40 @@ _PATTERN_CODES = frozenset(
 )
 
 
+def _is_grounding_code(code: str) -> bool:
+    return str(code or "").startswith("grounding_")
+
+
 def _categorize_flag(code: str) -> str:
-    if code.startswith("grounding_"):
+    if _is_grounding_code(code):
         return "facts"
     if code in _PATTERN_CODES:
         return "patterns"
     return "rules"
+
+
+def _stock_has_clean_flags(stock: dict[str, Any]) -> bool:
+    for f in stock.get("flags") or []:
+        if isinstance(f, dict) and not _is_grounding_code(str(f.get("code") or "")):
+            return True
+    return False
+
+
+def _stock_has_grounding_flags(stock: dict[str, Any]) -> bool:
+    for f in stock.get("flags") or []:
+        if isinstance(f, dict) and _is_grounding_code(str(f.get("code") or "")):
+            return True
+    return False
+
+
+def _batch_has_clean_flags(q: dict[str, Any]) -> bool:
+    for f in (q.get("batch_flags") or []) + (q.get("outliers") or []):
+        if isinstance(f, dict):
+            return True
+    for stock in q.get("stocks") or []:
+        if isinstance(stock, dict) and _stock_has_clean_flags(stock):
+            return True
+    return False
 
 
 def _empty_category_counts() -> dict[str, int]:
@@ -555,8 +730,10 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
     """Roll up per-batch output_quality blocks into run-level (or period-level) metrics."""
     total_symbols = 0
     symbols_flagged = 0
+    symbols_grounding_flagged = 0
     total_batches = 0
     batches_with_flags = 0
+    batches_with_grounding_flags = 0
     flag_count = 0
     by_category = _empty_category_counts()
     metrics_cited = 0
@@ -593,13 +770,25 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
                 if isinstance(stock, dict) and stock.get("symbol"):
                     unique_symbols.add(str(stock["symbol"]).upper())
 
-        batch_symbols_flagged = int(q.get("symbols_flagged", 0) or 0)
-        symbols_flagged += batch_symbols_flagged
+        stocks = q.get("stocks") or []
+        batch_clean_flagged = sum(
+            1 for stock in stocks if isinstance(stock, dict) and _stock_has_clean_flags(stock)
+        )
+        batch_grounding_flagged = sum(
+            1 for stock in stocks if isinstance(stock, dict) and _stock_has_grounding_flags(stock)
+        )
+        if not stocks:
+            batch_clean_flagged = int(q.get("symbols_flagged", 0) or 0)
+            batch_grounding_flagged = int(q.get("symbols_grounding_flagged", 0) or 0)
+        symbols_flagged += batch_clean_flagged
+        symbols_grounding_flagged += batch_grounding_flagged
 
         batch_flag_count = int(q.get("flag_count", 0) or 0)
         flag_count += batch_flag_count
-        if batch_flag_count > 0:
+        if _batch_has_clean_flags(q):
             batches_with_flags += 1
+        if batch_grounding_flagged > 0:
+            batches_with_grounding_flags += 1
 
         max_severity = _max_severity(max_severity, q.get("severity", "ok"))
 
@@ -607,7 +796,7 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
         for key, val in cats.items():
             by_category[key] += val
 
-        for stock in q.get("stocks") or []:
+        for stock in stocks:
             if not isinstance(stock, dict):
                 continue
             grounding = stock.get("grounding") if isinstance(stock.get("grounding"), dict) else {}
@@ -621,18 +810,23 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
                 {
                     "total_symbols": 0,
                     "symbols_flagged": 0,
+                    "symbols_grounding_flagged": 0,
                     "total_batches": 0,
                     "batches_with_flags": 0,
+                    "batches_with_grounding_flags": 0,
                     "by_category": _empty_category_counts(),
                     "metrics_cited": 0,
                     "metrics_matched": 0,
                 },
             )
             sb["total_symbols"] += sym_n
-            sb["symbols_flagged"] += batch_symbols_flagged
+            sb["symbols_flagged"] += batch_clean_flagged
+            sb["symbols_grounding_flagged"] += batch_grounding_flagged
             sb["total_batches"] += 1
-            if batch_flag_count > 0:
+            if _batch_has_clean_flags(q):
                 sb["batches_with_flags"] += 1
+            if batch_grounding_flagged > 0:
+                sb["batches_with_grounding_flags"] += 1
             for key, val in cats.items():
                 sb["by_category"][key] += val
             for stock in q.get("stocks") or []:
@@ -673,10 +867,12 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
         "unique_symbols": len(unique_symbols),
         "total_symbols": total_symbols,
         "symbols_flagged": symbols_flagged,
+        "symbols_grounding_flagged": symbols_grounding_flagged,
         "symbols_clean": symbols_clean,
         "clean_pct": clean_pct,
         "total_batches": total_batches,
         "batches_with_flags": batches_with_flags,
+        "batches_with_grounding_flags": batches_with_grounding_flags,
         "batches_clean": batches_clean,
         "batches_clean_pct": batches_clean_pct,
         "flag_count": flag_count,
