@@ -673,6 +673,75 @@ def _llm_usage_for_health(
     }
 
 
+def _assemble_llm_usage_for_health(
+    recent_raw: list[dict[str, Any]],
+    baselines: dict[str, Any] | None,
+    today_stages: dict | None,
+) -> dict[str, Any] | None:
+    """Build LLM health panel from batch history; today optional for drift badges."""
+    from datetime import date
+
+    from scoring.output_quality import build_quality_summary
+    from selector.llm.usage import aggregate_llm_batches, extract_run_llm_snapshot
+
+    batches = _llm_batches_history(recent_raw, max_days=14)
+    if not batches:
+        return None
+
+    today_usage = _llm_usage_for_health(today_stages, baselines)
+    today_drift: dict[str, Any] = {"totals": {}, "strategies": {}}
+    model = "gemini-2.5-flash"
+    drift_max_severity = "ok"
+    baseline_meta = {
+        "sample_size": int((baselines or {}).get("sample_size", 0) or 0),
+        "window": int((baselines or {}).get("window", 0) or 0),
+    }
+
+    if today_usage is not None:
+        today_drift = {
+            "totals": (today_usage.get("totals") or {}).get("drift") or {},
+            "strategies": {
+                s["name"]: s.get("drift") or {}
+                for s in (today_usage.get("strategies") or [])
+            },
+        }
+        model = str(today_usage.get("model") or model)
+        drift_max_severity = str(today_usage.get("drift_max_severity") or "ok")
+        baseline_meta = today_usage.get("baseline") or baseline_meta
+    else:
+        for run in recent_raw:
+            snap = extract_run_llm_snapshot(run.get("stages") or {})
+            if snap:
+                model = str(snap.get("model") or model)
+                break
+
+    agg = aggregate_llm_batches(batches, model=model)
+    today_s = str(date.today())
+    today_batches = [
+        b
+        for b in batches
+        if isinstance(b, dict) and str(b.get("run_date") or "")[:10] == today_s
+    ]
+
+    return {
+        "phase": "daily_ingestion",
+        "model": model,
+        "pricing_note": "Est. Gemini paid-tier list price (input + output + cache)",
+        "baseline": baseline_meta,
+        "drift_max_severity": drift_max_severity,
+        "today_has_llm": today_usage is not None,
+        "totals": {**agg["totals"], "drift": today_drift["totals"]},
+        "strategies": [
+            {**s, "drift": today_drift["strategies"].get(s["name"], {})}
+            for s in agg["strategies"]
+        ],
+        "batches": batches,
+        "today_drift": today_drift,
+        "quality_summary": build_quality_summary(batches),
+        "today_quality": build_quality_summary(today_batches),
+    }
+
+
 def _llm_batches_history(
     recent_runs: list[dict[str, Any]],
     *,
@@ -760,6 +829,7 @@ def _llm_batches_history(
                         "latency": drifts.get("elapsed_ms") or {},
                         "severity": severity,
                     },
+                    "output_quality": enriched.get("output_quality") or {},
                 }
             )
 
@@ -829,6 +899,7 @@ def _batch_debug_from_run(
         "payload_tokens_per_symbol": batch_row.get("payload_tokens_per_symbol"),
         "payload_breakdown": breakdown,
         "llm_io": llm_io,
+        "output_quality": batch_row.get("output_quality") if isinstance(batch_row.get("output_quality"), dict) else {},
         "analysis": analysis,
         "drift": {
             "severity": drift_debug.get("severity"),
@@ -983,28 +1054,7 @@ async def health_page(request: Request):
             today_stages = (today_row or {}).get("stages") or {}
             today_rows = _flatten_stages(today_stages)
             shortlists = _resolve_shortlists_for_health(today_stages)
-            llm_usage = _llm_usage_for_health(today_stages, llm_baselines)
-            if llm_usage is not None:
-                today_drift = {
-                    "totals": (llm_usage.get("totals") or {}).get("drift") or {},
-                    "strategies": {
-                        s["name"]: s.get("drift") or {}
-                        for s in (llm_usage.get("strategies") or [])
-                    },
-                }
-                llm_usage["batches"] = _llm_batches_history(recent_raw, max_days=14)
-                from selector.llm.usage import aggregate_llm_batches
-
-                agg = aggregate_llm_batches(
-                    llm_usage["batches"],
-                    model=str(llm_usage.get("model") or ""),
-                )
-                llm_usage["totals"] = {**agg["totals"], "drift": today_drift["totals"]}
-                llm_usage["strategies"] = [
-                    {**s, "drift": today_drift["strategies"].get(s["name"], {})}
-                    for s in agg["strategies"]
-                ]
-                llm_usage["today_drift"] = today_drift
+            llm_usage = _assemble_llm_usage_for_health(recent_raw, llm_baselines, today_stages)
         except Exception as e:
             import logging
 

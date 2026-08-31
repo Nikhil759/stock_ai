@@ -793,8 +793,10 @@ def log_llm_drift_summary(snapshot: dict[str, Any], baselines: dict[str, Any] | 
 def finalize_llm_usage_payload(
     payload: dict[str, Any],
     baselines: dict[str, Any] | None,
+    *,
+    quality_baselines: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Attach drift_report and per-batch drift_debug before persisting."""
+    """Attach drift_report, per-batch drift_debug, and quality outlier enrichment."""
     snap = enrich_derived_metrics(dict(payload))
     report = build_llm_drift_report(snap, baselines)
     out = dict(snap)
@@ -824,8 +826,21 @@ def finalize_llm_usage_payload(
             "payload_tokens_per_symbol": row.get("payload_tokens_per_symbol"),
             "payload_breakdown": row.get("payload_breakdown"),
         }
+        q = row.get("output_quality") if isinstance(row.get("output_quality"), dict) else {}
+        if q and quality_baselines:
+            from scoring.output_quality import enrich_batch_quality_outliers
+
+            row["output_quality"] = enrich_batch_quality_outliers(
+                q,
+                str(row.get("strategy") or ""),
+                quality_baselines,
+            )
+            q = row["output_quality"]
         batches.append(row)
     out["batches"] = batches
+    from scoring.output_quality import build_quality_summary
+
+    out["quality_summary"] = build_quality_summary(batches)
     return out
 
 
@@ -1152,6 +1167,7 @@ class LlmUsageCollector:
         system_prompt_chars: int = 0,
         scored_at: str | None = None,
         payload_breakdown: dict[str, Any] | None = None,
+        output_quality: dict[str, Any] | None = None,
         llm_io: dict[str, Any] | None = None,
     ) -> None:
         scored_at = scored_at or datetime.now(timezone.utc).isoformat()
@@ -1164,6 +1180,7 @@ class LlmUsageCollector:
             "payload_chars": payload_chars,
             "payload_tokens": estimate_tokens_from_chars(payload_chars),
             "payload_breakdown": payload_breakdown or {},
+            "output_quality": output_quality or {},
             "llm_io": llm_io or {},
             "system_prompt_chars": system_prompt_chars,
             "scored_at": scored_at,

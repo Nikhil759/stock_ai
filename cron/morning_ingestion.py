@@ -29,6 +29,7 @@ from funnels.value_funnel import run_value_funnel
 from funnels.winners_funnel import run_winners_funnel
 from funnels.box_funnel import run_box_funnel
 from funnels.dip_funnel import run_dip_funnel
+from scoring.output_quality import build_quality_baselines
 from scoring.batch_scorer import (
     run_batch_scoring,
     apply_llm_cap,
@@ -232,8 +233,16 @@ def run_scoring(
             if r.get("id") != (run_context or {}).get("id")
         ]
         baselines = build_llm_baselines(baseline_runs)
+        quality_baselines = build_quality_baselines(
+            baseline_runs,
+            exclude_run_id=(run_context or {}).get("id"),
+        )
         log_llm_drift_summary(llm_payload, baselines)
-        llm_payload = finalize_llm_usage_payload(llm_payload, baselines)
+        llm_payload = finalize_llm_usage_payload(
+            llm_payload,
+            baselines,
+            quality_baselines=quality_baselines,
+        )
     except Exception as e:
         log.warning("[LLM DRIFT] could not compute drift summary: %s", e)
     update_stage("llm_usage", llm_payload)

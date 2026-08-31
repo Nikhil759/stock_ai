@@ -616,6 +616,9 @@
               </label>
             </div>
             <p class="llm-pricing-note">{{ llm_usage.pricing_note }}</p>
+            {% if not llm_usage.today_has_llm %}
+              <p class="baseline-note">Today's run has not recorded batch scoring yet — showing last 14 days of history.</p>
+            {% endif %}
             {% if llm_usage.baseline and llm_usage.baseline.sample_size %}
               <p class="baseline-note">Baseline: median of last {{ llm_usage.baseline.sample_size }} ingestion run(s) with LLM data</p>
             {% endif %}
@@ -690,6 +693,73 @@
                         {% endfor %}
                       </tbody>
                     </table>
+                  {% endif %}
+                </details>
+
+                <details class="llm-metric-card"{% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %} open{% endif %}>
+                  <summary>
+                    <span class="llm-metric-label">Output quality</span>
+                    <span class="llm-metric-value" id="llm-quality-clean">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
+                        {{ '%.0f'|format(llm_usage.quality_summary.clean_pct) }}% clean
+                      {% else %}
+                        —
+                      {% endif %}
+                    </span>
+                    <span id="llm-quality-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.has_data %}display:none{% endif %}">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
+                        {{ llm_usage.quality_summary.symbols_clean }}/{{ llm_usage.quality_summary.total_symbols }} symbols
+                        · {{ llm_usage.quality_summary.batches_clean }}/{{ llm_usage.quality_summary.total_batches }} batches
+                      {% endif %}
+                    </span>
+                    <span id="llm-quality-grounding" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.has_data %}display:none{% endif %}">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
+                        {% if llm_usage.quality_summary.grounding.metrics_cited %}
+                          {{ llm_usage.quality_summary.grounding.metrics_matched }}/{{ llm_usage.quality_summary.grounding.metrics_cited }} cited facts matched
+                        {% else %}
+                          no explicit metrics cited
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                    <span id="llm-quality-categories" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
+                        {{ llm_usage.quality_summary.by_category.facts }} facts
+                        · {{ llm_usage.quality_summary.by_category.rules }} rules
+                        · {{ llm_usage.quality_summary.by_category.patterns }} patterns
+                      {% endif %}
+                    </span>
+                    <span id="llm-quality-severity" class="drift-badge {{ llm_usage.quality_summary.severity if llm_usage.quality_summary else 'ok' }}" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
+                        {{ llm_usage.quality_summary.flag_count }} flag{% if llm_usage.quality_summary.flag_count != 1 %}s{% endif %}
+                      {% endif %}
+                    </span>
+                  </summary>
+                  {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
+                    <table class="llm-split-table">
+                      <thead><tr><th>Strategy</th><th>Symbols</th><th>Clean</th><th>Facts</th><th>Rules</th><th>Patterns</th><th>Batches</th></tr></thead>
+                      <tbody id="llm-quality-split-tbody">
+                        {% for name in ['value', 'winners', 'box', 'dip'] %}
+                          {% set qs = llm_usage.quality_summary.by_strategy.get(name) %}
+                          {% if qs %}
+                            <tr>
+                              <td>{{ name }}</td>
+                              <td>{{ qs.symbols_clean }}/{{ qs.total_symbols }}</td>
+                              <td>{% if qs.clean_pct is not none %}{{ '%.0f'|format(qs.clean_pct) }}%{% else %}—{% endif %}</td>
+                              <td>{{ qs.by_category.facts }}</td>
+                              <td>{{ qs.by_category.rules }}</td>
+                              <td>{{ qs.by_category.patterns }}</td>
+                              <td>{{ qs.batches_clean }}/{{ qs.total_batches }}</td>
+                            </tr>
+                          {% endif %}
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                    <p class="drift-debug-sub" style="margin:10px 0 0;font-size:11px;line-height:1.45">
+                      Checks per symbol: fact grounding vs dossier, verdict/rule consistency, batch pattern outliers.
+                      Grounding % applies only when the model cites explicit metrics (RSI, P/E, etc.).
+                    </p>
+                  {% else %}
+                    <p class="drift-debug-sub" style="margin:0;font-size:12px">No output quality data for this period — re-run ingestion after the quality checker is deployed.</p>
                   {% endif %}
                 </details>
               </div>
@@ -823,12 +893,13 @@
                       <th>Status</th>
                       <th class="col-drift">Payload<br>drift</th>
                       <th class="col-drift">Latency<br>drift</th>
+                      <th class="col-drift">Quality</th>
                     </tr>
                   </thead>
                   <tbody>
                     {% for b in llm_usage.batches %}
                       <tr
-                        class="llm-batch-row llm-batch-debug-row{% if b.drift.severity == 'alert' %} drift-alert{% elif b.drift.severity == 'warn' %} drift-warn{% endif %}"
+                        class="llm-batch-row llm-batch-debug-row{% if b.drift.severity == 'alert' or (b.output_quality.severity == 'alert') %} drift-alert{% elif b.drift.severity == 'warn' or (b.output_quality.severity == 'warn') %} drift-warn{% endif %}"
                         data-run-id="{{ b.run_id or '' }}"
                         data-strategy="{{ b.strategy }}"
                         data-batch="{{ b.batch }}"
@@ -854,6 +925,13 @@
                           {% if b.drift.latency.delta_pct is not none %}
                             <span class="drift-badge {{ b.drift.latency.severity }}">{{ format_delta_pct(b.drift.latency.delta_pct) }}</span>
                           {% else %}—{% endif %}
+                        </td>
+                        <td class="col-drift">
+                          {% if b.output_quality.flag_count %}
+                            <span class="drift-badge {{ b.output_quality.severity or 'warn' }}" title="{{ b.output_quality.symbols_flagged }} symbol(s) flagged">{{ b.output_quality.flag_count }} flags</span>
+                          {% else %}
+                            <span class="drift-badge ok">ok</span>
+                          {% endif %}
                         </td>
                       </tr>
                     {% endfor %}
@@ -883,7 +961,7 @@
             {% endif %}
           </div>
         {% else %}
-          <p class="empty">No LLM usage recorded yet for today — run batch scoring to populate token stats.</p>
+          <p class="empty">No LLM usage in the last 14 days — run batch scoring to populate token stats.</p>
         {% endif %}
       </section>
 
@@ -1312,6 +1390,201 @@
         return { totals: totals, strategies: strategies };
       }
 
+      const PATTERN_FLAG_CODES = {
+        batch_all_buy: 1,
+        batch_all_skip: 1,
+        batch_flat_conviction: 1,
+        conviction_vs_baseline: 1,
+        buy_rate_vs_baseline: 1,
+      };
+
+      function categorizeQualityFlag(code) {
+        if (!code) return 'rules';
+        if (code.indexOf('grounding_') === 0) return 'facts';
+        if (PATTERN_FLAG_CODES[code]) return 'patterns';
+        return 'rules';
+      }
+
+      function emptyCategoryCounts() {
+        return { facts: 0, rules: 0, patterns: 0 };
+      }
+
+      function countQualityFlags(quality) {
+        const counts = emptyCategoryCounts();
+        if (!quality || typeof quality !== 'object') return counts;
+        (quality.batch_flags || []).concat(quality.outliers || []).forEach(function (f) {
+          counts[categorizeQualityFlag(f.code)] += 1;
+        });
+        (quality.stocks || []).forEach(function (stock) {
+          (stock.flags || []).forEach(function (f) {
+            counts[categorizeQualityFlag(f.code)] += 1;
+          });
+        });
+        return counts;
+      }
+
+      function aggregateQualitySummary(batches) {
+        const summary = {
+          has_data: false,
+          total_symbols: 0,
+          symbols_flagged: 0,
+          symbols_clean: 0,
+          clean_pct: null,
+          total_batches: 0,
+          batches_with_flags: 0,
+          batches_clean: 0,
+          flag_count: 0,
+          severity: 'ok',
+          by_category: emptyCategoryCounts(),
+          grounding: { metrics_cited: 0, metrics_matched: 0, match_pct: null },
+          by_strategy: {},
+        };
+        const sevRank = { ok: 0, warn: 1, alert: 2 };
+
+        batches.forEach(function (b) {
+          const q = b.output_quality;
+          if (!q || typeof q !== 'object') return;
+
+          let symN = parseInt(b.symbol_count, 10) || 0;
+          if (!symN && b.symbols) {
+            symN = String(b.symbols).split(',').filter(function (s) { return s.trim(); }).length;
+          }
+          if (!symN && q.stocks && q.stocks.length) symN = q.stocks.length;
+          if (!symN) return;
+
+          summary.has_data = true;
+          summary.total_batches += 1;
+          summary.total_symbols += symN;
+
+          const symFlagged = parseInt(q.symbols_flagged, 10) || 0;
+          summary.symbols_flagged += symFlagged;
+
+          const batchFlags = parseInt(q.flag_count, 10) || 0;
+          summary.flag_count += batchFlags;
+          if (batchFlags > 0) summary.batches_with_flags += 1;
+
+          const sev = q.severity || 'ok';
+          if ((sevRank[sev] || 0) > (sevRank[summary.severity] || 0)) summary.severity = sev;
+
+          const cats = countQualityFlags(q);
+          Object.keys(cats).forEach(function (k) {
+            summary.by_category[k] += cats[k];
+          });
+
+          (q.stocks || []).forEach(function (stock) {
+            const g = stock.grounding || {};
+            summary.grounding.metrics_cited += parseInt(g.metrics_cited, 10) || 0;
+            summary.grounding.metrics_matched += parseInt(g.metrics_matched, 10) || 0;
+          });
+
+          const strat = b.strategy || '?';
+          if (!summary.by_strategy[strat]) {
+            summary.by_strategy[strat] = {
+              total_symbols: 0,
+              symbols_flagged: 0,
+              total_batches: 0,
+              batches_with_flags: 0,
+              by_category: emptyCategoryCounts(),
+            };
+          }
+          const sb = summary.by_strategy[strat];
+          sb.total_symbols += symN;
+          sb.symbols_flagged += symFlagged;
+          sb.total_batches += 1;
+          if (batchFlags > 0) sb.batches_with_flags += 1;
+          Object.keys(cats).forEach(function (k) {
+            sb.by_category[k] += cats[k];
+          });
+        });
+
+        summary.symbols_clean = Math.max(0, summary.total_symbols - summary.symbols_flagged);
+        summary.batches_clean = Math.max(0, summary.total_batches - summary.batches_with_flags);
+        if (summary.total_symbols) {
+          summary.clean_pct = Math.round(summary.symbols_clean / summary.total_symbols * 1000) / 10;
+        }
+        if (summary.grounding.metrics_cited) {
+          summary.grounding.match_pct = Math.round(
+            summary.grounding.metrics_matched / summary.grounding.metrics_cited * 1000
+          ) / 10;
+        }
+
+        Object.keys(summary.by_strategy).forEach(function (name) {
+          const sb = summary.by_strategy[name];
+          sb.symbols_clean = Math.max(0, sb.total_symbols - sb.symbols_flagged);
+          sb.batches_clean = Math.max(0, sb.total_batches - sb.batches_with_flags);
+          sb.clean_pct = sb.total_symbols
+            ? Math.round(sb.symbols_clean / sb.total_symbols * 1000) / 10
+            : null;
+        });
+
+        return summary;
+      }
+
+      function updateQualityCard(quality) {
+        const cleanEl = document.getElementById('llm-quality-clean');
+        if (!cleanEl) return;
+
+        if (!quality || !quality.has_data) {
+          cleanEl.textContent = '—';
+          setVisible('llm-quality-meta', false);
+          setVisible('llm-quality-grounding', false);
+          setVisible('llm-quality-categories', false);
+          setVisible('llm-quality-severity', false);
+          renderStrategyRows('llm-quality-split-tbody', function () { return ''; }, []);
+          return;
+        }
+
+        cleanEl.textContent = (quality.clean_pct != null ? Math.round(quality.clean_pct) : '—') + '% clean';
+
+        setText(
+          'llm-quality-meta',
+          quality.symbols_clean + '/' + quality.total_symbols + ' symbols · ' +
+          quality.batches_clean + '/' + quality.total_batches + ' batches'
+        );
+        setVisible('llm-quality-meta', true);
+
+        if (quality.grounding.metrics_cited) {
+          setText(
+            'llm-quality-grounding',
+            quality.grounding.metrics_matched + '/' + quality.grounding.metrics_cited + ' cited facts matched'
+          );
+        } else {
+          setText('llm-quality-grounding', 'no explicit metrics cited');
+        }
+        setVisible('llm-quality-grounding', true);
+
+        if (quality.flag_count) {
+          setText(
+            'llm-quality-categories',
+            quality.by_category.facts + ' facts · ' +
+            quality.by_category.rules + ' rules · ' +
+            quality.by_category.patterns + ' patterns'
+          );
+          setVisible('llm-quality-categories', true);
+          const sevEl = document.getElementById('llm-quality-severity');
+          if (sevEl) {
+            sevEl.style.display = '';
+            sevEl.textContent = quality.flag_count + ' flag' + (quality.flag_count === 1 ? '' : 's');
+            sevEl.className = 'drift-badge ' + (quality.severity || 'warn');
+          }
+        } else {
+          setVisible('llm-quality-categories', false);
+          setVisible('llm-quality-severity', false);
+        }
+
+        const order = ['value', 'winners', 'box', 'dip'];
+        const strategyRows = order.filter(function (n) { return quality.by_strategy[n]; }).map(function (n) {
+          return { name: n, data: quality.by_strategy[n] };
+        });
+        renderStrategyRows('llm-quality-split-tbody', function (row) {
+          const qs = row.data;
+          return '<tr><td>' + row.name + '</td><td>' + qs.symbols_clean + '/' + qs.total_symbols + '</td><td>' +
+            (qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—') + '</td><td>' +
+            qs.by_category.facts + '</td><td>' + qs.by_category.rules + '</td><td>' +
+            qs.by_category.patterns + '</td><td>' + qs.batches_clean + '/' + qs.total_batches + '</td></tr>';
+        }, strategyRows);
+      }
+
       function setText(id, text) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
@@ -1348,6 +1621,8 @@
         const totals = agg.totals;
         const strategies = agg.strategies;
         const showDrift = String(days) === '1';
+
+        updateQualityCard(aggregateQualitySummary(filtered));
 
         document.querySelectorAll('.llm-period-drift').forEach(function (el) {
           el.style.display = showDrift ? '' : 'none';
@@ -1662,6 +1937,32 @@
         }).join('');
       }
 
+      function renderQuality(quality) {
+        if (!quality || !quality.flag_count) {
+          return '<div class="drift-debug-section"><h4>Output quality</h4><p class="drift-debug-sub">No quality flags on this batch.</p></div>';
+        }
+        let html = '<div class="drift-debug-section"><h4>Output quality</h4>';
+        (quality.batch_flags || []).forEach(function (f) {
+          html += '<p><span class="drift-badge ' + esc(f.severity || 'warn') + '">' +
+            esc(f.code) + '</span> ' + esc(f.message) + '</p>';
+        });
+        (quality.outliers || []).forEach(function (f) {
+          html += '<p><span class="drift-badge ' + esc(f.severity || 'warn') + '">' +
+            esc(f.code) + '</span> ' + esc(f.message) + '</p>';
+        });
+        (quality.stocks || []).forEach(function (s) {
+          if (!s.flags || !s.flags.length) return;
+          html += '<p><strong>' + esc(s.symbol) + '</strong> (' + esc(s.verdict) + ', ' + esc(s.conviction) + ')</p><ul>';
+          s.flags.forEach(function (f) {
+            html += '<li><span class="drift-badge ' + esc(f.severity || 'warn') + '">' +
+              esc(f.code) + '</span> ' + esc(f.message) + '</li>';
+          });
+          html += '</ul>';
+        });
+        html += '</div>';
+        return html;
+      }
+
       function renderAnalysis(analysis, breakdown) {
         let html = '';
         html += '<div class="drift-debug-section"><h4>Payload breakdown (chars by section)</h4>' +
@@ -1712,9 +2013,12 @@
         const report = data.drift_report || {};
         const analysis = data.analysis || {};
         const llmIo = data.llm_io || {};
+        const quality = data.output_quality || {};
 
         let html = '<div class="drift-debug-grid">';
         html += statBlock('Payload tok/sym', data.payload_tokens_per_symbol);
+        html += statBlock('Quality flags', quality.flag_count != null ? quality.flag_count : '—');
+        html += statBlock('Quality severity', quality.severity || 'ok');
         html += statBlock('Payload drift', fmtPct(payloadDrift.delta_pct));
         html += statBlock('Baseline median', payloadDrift.baseline_median);
         html += statBlock('Z-score', payloadDrift.z_score);
@@ -1733,7 +2037,7 @@
         html += '</div>';
 
         html += '<div class="drift-debug-panel active" data-panel="analysis">' +
-          renderAnalysis(analysis, data.payload_breakdown) + '</div>';
+          renderQuality(quality) + renderAnalysis(analysis, data.payload_breakdown) + '</div>';
         html += '<div class="drift-debug-panel" data-panel="input">';
         if (llmIo.system_prompt_chars) {
           html += '<p class="drift-debug-sub">System prompt ~' + esc(llmIo.system_prompt_chars) +

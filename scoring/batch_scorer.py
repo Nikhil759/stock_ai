@@ -22,6 +22,7 @@ from typing import Any, Literal, NamedTuple
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ValidationError
 
+from scoring.output_quality import evaluate_batch_output
 from scoring.payload_trim import (
     extract_shared_market_context,
     extract_stock_sector_context,
@@ -448,6 +449,20 @@ def _score_one_batch(
             for s in symbols
         ]
 
+    output_quality = evaluate_batch_output(
+        strategy,
+        batch,
+        scores,
+        winners_proxy_note_fn=_winners_proxy_note,
+    )
+    if output_quality.get("flag_count", 0) > 0:
+        print(
+            f"[BATCH SCORING] {strategy.capitalize()}: batch {batch_label} "
+            f"quality {output_quality.get('severity')} — "
+            f"{output_quality.get('flag_count')} flag(s), "
+            f"{output_quality.get('symbols_flagged')} symbol(s)"
+        )
+
     if usage is not None:
         usage.record_batch(
             strategy=strategy,
@@ -460,6 +475,7 @@ def _score_one_batch(
             payload_chars=payload_chars,
             system_prompt_chars=system_prompt_chars,
             payload_breakdown=payload_breakdown,
+            output_quality=output_quality,
             llm_io={
                 "user_content": payload,
                 "response_text": last_response_text or "",
