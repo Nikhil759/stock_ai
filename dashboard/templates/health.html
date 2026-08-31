@@ -509,6 +509,22 @@
       background:var(--wolf-mist);border:1px solid var(--line);border-radius:10px;
       padding:10px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word;
     }
+    .quality-flag-link{
+      cursor:pointer;text-decoration:underline;text-decoration-color:rgba(191,91,45,0.35);
+      text-underline-offset:2px;
+    }
+    .quality-flag-link:hover{color:var(--clay)}
+    .quality-period-note{
+      font-size:12px;color:var(--ink2);margin:0 0 10px;line-height:1.45;
+    }
+    .quality-flags-table{width:100%;border-collapse:collapse;font-size:11.5px}
+    .quality-flags-table th,.quality-flags-table td{
+      padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;
+    }
+    .quality-flags-table th{font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink2)}
+    .quality-flags-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+    .quality-flags-filters label{font-size:12px;color:var(--ink2)}
+    .quality-flags-filters select{font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--line2)}
     .baseline-note{font-size:11px;color:var(--ink2);margin-top:8px}
   </style>
 </head>
@@ -706,9 +722,14 @@
                         —
                       {% endif %}
                     </span>
+                    <span id="llm-quality-grounding-pct" class="drift-badge ok" style="font-weight:600;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.grounding.metrics_cited %}display:none{% endif %}">
+                      {% if llm_usage.quality_summary and llm_usage.quality_summary.grounding.metrics_cited %}
+                        {{ '%.0f'|format(llm_usage.quality_summary.grounding.match_pct) }}% grounding
+                      {% endif %}
+                    </span>
                     <span id="llm-quality-meta" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.has_data %}display:none{% endif %}">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
-                        {{ llm_usage.quality_summary.symbols_clean }}/{{ llm_usage.quality_summary.total_symbols }} symbols
+                        {{ llm_usage.quality_summary.symbols_clean }}/{{ llm_usage.quality_summary.total_symbols }} symbol scores
                         · {{ llm_usage.quality_summary.batches_clean }}/{{ llm_usage.quality_summary.total_batches }} batches
                       {% endif %}
                     </span>
@@ -721,22 +742,30 @@
                         {% endif %}
                       {% endif %}
                     </span>
-                    <span id="llm-quality-categories" class="drift-badge ok" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}">
+                    <span id="llm-quality-categories" class="drift-badge ok quality-flag-link" style="font-weight:500;color:var(--ink2);background:transparent;border:none;padding:0;{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}" title="Click to view all flags">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
                         {{ llm_usage.quality_summary.by_category.facts }} facts
                         · {{ llm_usage.quality_summary.by_category.rules }} rules
                         · {{ llm_usage.quality_summary.by_category.patterns }} patterns
                       {% endif %}
                     </span>
-                    <span id="llm-quality-severity" class="drift-badge {{ llm_usage.quality_summary.severity if llm_usage.quality_summary else 'ok' }}" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}">
+                    <span id="llm-quality-severity" class="drift-badge quality-flag-link {{ llm_usage.quality_summary.severity if llm_usage.quality_summary else 'ok' }}" style="{% if not llm_usage.quality_summary or not llm_usage.quality_summary.flag_count %}display:none{% endif %}" title="Click to view all flags">
                       {% if llm_usage.quality_summary and llm_usage.quality_summary.flag_count %}
                         {{ llm_usage.quality_summary.flag_count }} flag{% if llm_usage.quality_summary.flag_count != 1 %}s{% endif %}
                       {% endif %}
                     </span>
                   </summary>
                   {% if llm_usage.quality_summary and llm_usage.quality_summary.has_data %}
+                    <p class="quality-period-note" id="llm-quality-period">
+                      Last 14 days · {{ llm_usage.quality_summary.run_count }} ingestion run(s)
+                      · {{ llm_usage.quality_summary.total_batches }} batch(es)
+                      · {{ llm_usage.quality_summary.total_symbols }} symbol scores
+                      {% if llm_usage.quality_summary.unique_symbols %}
+                        ({{ llm_usage.quality_summary.unique_symbols }} unique tickers)
+                      {% endif %}
+                    </p>
                     <table class="llm-split-table">
-                      <thead><tr><th>Strategy</th><th>Symbols</th><th>Clean</th><th>Facts</th><th>Rules</th><th>Patterns</th><th>Batches</th></tr></thead>
+                      <thead><tr><th>Strategy</th><th>Symbol scores</th><th>Clean</th><th>Grounding</th><th>Facts</th><th>Rules</th><th>Patterns</th><th>Batches</th></tr></thead>
                       <tbody id="llm-quality-split-tbody">
                         {% for name in ['value', 'winners', 'box', 'dip'] %}
                           {% set qs = llm_usage.quality_summary.by_strategy.get(name) %}
@@ -745,9 +774,16 @@
                               <td>{{ name }}</td>
                               <td>{{ qs.symbols_clean }}/{{ qs.total_symbols }}</td>
                               <td>{% if qs.clean_pct is not none %}{{ '%.0f'|format(qs.clean_pct) }}%{% else %}—{% endif %}</td>
-                              <td>{{ qs.by_category.facts }}</td>
-                              <td>{{ qs.by_category.rules }}</td>
-                              <td>{{ qs.by_category.patterns }}</td>
+                              <td>
+                                {% if qs.grounding and qs.grounding.metrics_cited %}
+                                  {{ '%.0f'|format(qs.grounding.match_pct) }}%
+                                {% else %}
+                                  —
+                                {% endif %}
+                              </td>
+                              <td>{% if qs.by_category.facts %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="facts">{{ qs.by_category.facts }}</span>{% else %}0{% endif %}</td>
+                              <td>{% if qs.by_category.rules %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="rules">{{ qs.by_category.rules }}</span>{% else %}0{% endif %}</td>
+                              <td>{% if qs.by_category.patterns %}<span class="quality-flag-link" data-quality-filter-strategy="{{ name }}" data-quality-filter-category="patterns">{{ qs.by_category.patterns }}</span>{% else %}0{% endif %}</td>
                               <td>{{ qs.batches_clean }}/{{ qs.total_batches }}</td>
                             </tr>
                           {% endif %}
@@ -955,6 +991,20 @@
                   </div>
                   <div class="drift-debug-body" id="drift-debug-body">
                     <p class="drift-debug-empty">Loading…</p>
+                  </div>
+                </div>
+              </div>
+              <div class="drift-debug-backdrop" id="quality-flags-backdrop" aria-hidden="true">
+                <div class="drift-debug-modal" role="dialog" aria-labelledby="quality-flags-title">
+                  <div class="drift-debug-head">
+                    <div>
+                      <h3 id="quality-flags-title">Quality flags</h3>
+                      <div class="drift-debug-sub" id="quality-flags-sub">Why symbols or batches were flagged.</div>
+                    </div>
+                    <button type="button" class="drift-debug-close" id="quality-flags-close" aria-label="Close">×</button>
+                  </div>
+                  <div class="drift-debug-body" id="quality-flags-body">
+                    <p class="drift-debug-empty">No flags in this view.</p>
                   </div>
                 </div>
               </div>
@@ -1423,9 +1473,18 @@
         return counts;
       }
 
+      function periodLabel(days) {
+        const d = String(days);
+        if (d === '1') return 'Today';
+        if (!d || d === '14') return 'Last 14 days';
+        return 'Last ' + d + ' days';
+      }
+
       function aggregateQualitySummary(batches) {
         const summary = {
           has_data: false,
+          run_count: 0,
+          unique_symbols: 0,
           total_symbols: 0,
           symbols_flagged: 0,
           symbols_clean: 0,
@@ -1440,6 +1499,8 @@
           by_strategy: {},
         };
         const sevRank = { ok: 0, warn: 1, alert: 2 };
+        const runIds = new Set();
+        const uniqueSymbols = new Set();
 
         batches.forEach(function (b) {
           const q = b.output_quality;
@@ -1455,6 +1516,18 @@
           summary.has_data = true;
           summary.total_batches += 1;
           summary.total_symbols += symN;
+
+          if (b.run_id) runIds.add(String(b.run_id));
+          if (b.symbol_list && b.symbol_list.length) {
+            b.symbol_list.forEach(function (sym) {
+              if (sym) uniqueSymbols.add(String(sym).toUpperCase());
+            });
+          } else if (b.symbols) {
+            String(b.symbols).split(',').forEach(function (sym) {
+              sym = sym.trim();
+              if (sym) uniqueSymbols.add(sym.toUpperCase());
+            });
+          }
 
           const symFlagged = parseInt(q.symbols_flagged, 10) || 0;
           summary.symbols_flagged += symFlagged;
@@ -1485,6 +1558,8 @@
               total_batches: 0,
               batches_with_flags: 0,
               by_category: emptyCategoryCounts(),
+              metrics_cited: 0,
+              metrics_matched: 0,
             };
           }
           const sb = summary.by_strategy[strat];
@@ -1495,8 +1570,15 @@
           Object.keys(cats).forEach(function (k) {
             sb.by_category[k] += cats[k];
           });
+          (q.stocks || []).forEach(function (stock) {
+            const g = stock.grounding || {};
+            sb.metrics_cited += parseInt(g.metrics_cited, 10) || 0;
+            sb.metrics_matched += parseInt(g.metrics_matched, 10) || 0;
+          });
         });
 
+        summary.run_count = runIds.size;
+        summary.unique_symbols = uniqueSymbols.size;
         summary.symbols_clean = Math.max(0, summary.total_symbols - summary.symbols_flagged);
         summary.batches_clean = Math.max(0, summary.total_batches - summary.batches_with_flags);
         if (summary.total_symbols) {
@@ -1515,12 +1597,163 @@
           sb.clean_pct = sb.total_symbols
             ? Math.round(sb.symbols_clean / sb.total_symbols * 1000) / 10
             : null;
+          sb.grounding = {
+            metrics_cited: sb.metrics_cited || 0,
+            metrics_matched: sb.metrics_matched || 0,
+            match_pct: sb.metrics_cited
+              ? Math.round(sb.metrics_matched / sb.metrics_cited * 1000) / 10
+              : null,
+          };
         });
 
         return summary;
       }
 
-      function updateQualityCard(quality) {
+      let qualityFilteredBatches = [];
+
+      function collectQualityFlagEntries(batches, filter) {
+        const entries = [];
+        const stratFilter = filter && filter.strategy ? filter.strategy : '';
+        const catFilter = filter && filter.category ? filter.category : '';
+
+        batches.forEach(function (b) {
+          const q = b.output_quality;
+          if (!q || typeof q !== 'object') return;
+          if (stratFilter && b.strategy !== stratFilter) return;
+
+          function pushEntry(entry) {
+            if (catFilter && entry.category !== catFilter) return;
+            entries.push(entry);
+          }
+
+          (q.batch_flags || []).forEach(function (f) {
+            pushEntry({
+              run_date: b.run_date || '',
+              run_at: b.run_at_short || b.run_at || '',
+              strategy: b.strategy || '?',
+              batch: b.batch || '?',
+              run_id: b.run_id || '',
+              symbol: '—',
+              verdict: '—',
+              conviction: '—',
+              code: f.code || '',
+              message: f.message || '',
+              severity: f.severity || 'warn',
+              category: categorizeQualityFlag(f.code || ''),
+            });
+          });
+          (q.outliers || []).forEach(function (f) {
+            pushEntry({
+              run_date: b.run_date || '',
+              run_at: b.run_at_short || b.run_at || '',
+              strategy: b.strategy || '?',
+              batch: b.batch || '?',
+              run_id: b.run_id || '',
+              symbol: '—',
+              verdict: '—',
+              conviction: '—',
+              code: f.code || '',
+              message: f.message || '',
+              severity: f.severity || 'warn',
+              category: categorizeQualityFlag(f.code || ''),
+            });
+          });
+          (q.stocks || []).forEach(function (stock) {
+            (stock.flags || []).forEach(function (f) {
+              pushEntry({
+                run_date: b.run_date || '',
+                run_at: b.run_at_short || b.run_at || '',
+                strategy: b.strategy || '?',
+                batch: b.batch || '?',
+                run_id: b.run_id || '',
+                symbol: stock.symbol || '—',
+                verdict: stock.verdict || '—',
+                conviction: stock.conviction != null ? stock.conviction : '—',
+                code: f.code || '',
+                message: f.message || '',
+                severity: f.severity || 'warn',
+                category: categorizeQualityFlag(f.code || ''),
+              });
+            });
+          });
+        });
+        return entries;
+      }
+
+      function renderQualityFlagsTable(entries) {
+        if (!entries.length) {
+          return '<p class="drift-debug-empty">No flags match this filter.</p>';
+        }
+        let html = '<table class="quality-flags-table"><thead><tr>' +
+          '<th>When</th><th>Strategy</th><th>Batch</th><th>Symbol</th><th>Code</th><th>Message</th>' +
+          '</tr></thead><tbody>';
+        entries.forEach(function (e) {
+          html += '<tr><td>' + esc(e.run_at || e.run_date) + '</td><td>' + esc(e.strategy) +
+            '</td><td>' + esc(e.batch) + '</td><td>' + esc(e.symbol) +
+            '</td><td><span class="drift-badge ' + esc(e.severity || 'warn') + '">' + esc(e.code) +
+            '</span></td><td>' + esc(e.message) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        return html;
+      }
+
+      function openQualityFlagsModal(filter) {
+        const backdrop = document.getElementById('quality-flags-backdrop');
+        const bodyEl = document.getElementById('quality-flags-body');
+        const subEl = document.getElementById('quality-flags-sub');
+        if (!backdrop || !bodyEl) return;
+
+        filter = filter || {};
+        backdrop.classList.add('open');
+
+        bodyEl.innerHTML =
+          '<div class="quality-flags-filters">' +
+          '<label>Strategy <select id="quality-flags-strategy"><option value="">All</option>' +
+          ['value', 'winners', 'box', 'dip'].map(function (s) {
+            return '<option value="' + s + '"' + (filter.strategy === s ? ' selected' : '') + '>' + s + '</option>';
+          }).join('') + '</select></label>' +
+          '<label>Category <select id="quality-flags-category"><option value="">All</option>' +
+          ['facts', 'rules', 'patterns'].map(function (c) {
+            return '<option value="' + c + '"' + (filter.category === c ? ' selected' : '') + '>' + c + '</option>';
+          }).join('') + '</select></label>' +
+          '</div><div id="quality-flags-table-wrap"></div>';
+
+        const stratSel = document.getElementById('quality-flags-strategy');
+        const catSel = document.getElementById('quality-flags-category');
+        const tableWrap = document.getElementById('quality-flags-table-wrap');
+
+        function applyFilters() {
+          const active = {
+            strategy: stratSel ? stratSel.value : '',
+            category: catSel ? catSel.value : '',
+          };
+          const entries = collectQualityFlagEntries(qualityFilteredBatches, active);
+          const parts = [];
+          if (active.strategy) parts.push(active.strategy);
+          if (active.category) parts.push(active.category);
+          subEl.textContent = parts.length
+            ? parts.join(' · ') + ' · ' + entries.length + ' flag(s)'
+            : entries.length + ' flag(s) in the selected period';
+          if (tableWrap) tableWrap.innerHTML = renderQualityFlagsTable(entries);
+        }
+
+        if (stratSel) stratSel.onchange = applyFilters;
+        if (catSel) catSel.onchange = applyFilters;
+        applyFilters();
+      }
+
+      function closeQualityFlagsModal() {
+        const backdrop = document.getElementById('quality-flags-backdrop');
+        if (backdrop) backdrop.classList.remove('open');
+      }
+
+      function qualityFlagCell(count, strategy, category) {
+        if (!count) return '0';
+        return '<span class="quality-flag-link" data-quality-filter-strategy="' + esc(strategy) +
+          '" data-quality-filter-category="' + esc(category) + '">' + count + '</span>';
+      }
+
+      function updateQualityCard(quality, days) {
         const cleanEl = document.getElementById('llm-quality-clean');
         if (!cleanEl) return;
 
@@ -1528,27 +1761,45 @@
           cleanEl.textContent = '—';
           setVisible('llm-quality-meta', false);
           setVisible('llm-quality-grounding', false);
+          setVisible('llm-quality-grounding-pct', false);
           setVisible('llm-quality-categories', false);
           setVisible('llm-quality-severity', false);
+          setText('llm-quality-period', '');
           renderStrategyRows('llm-quality-split-tbody', function () { return ''; }, []);
           return;
         }
 
         cleanEl.textContent = (quality.clean_pct != null ? Math.round(quality.clean_pct) : '—') + '% clean';
 
+        const periodEl = document.getElementById('llm-quality-period');
+        if (periodEl) {
+          let periodText = periodLabel(days) + ' · ' + quality.run_count + ' ingestion run(s)' +
+            ' · ' + quality.total_batches + ' batch(es) · ' + quality.total_symbols + ' symbol scores';
+          if (quality.unique_symbols) {
+            periodText += ' (' + quality.unique_symbols + ' unique tickers)';
+          }
+          periodEl.textContent = periodText;
+        }
+
         setText(
           'llm-quality-meta',
-          quality.symbols_clean + '/' + quality.total_symbols + ' symbols · ' +
+          quality.symbols_clean + '/' + quality.total_symbols + ' symbol scores · ' +
           quality.batches_clean + '/' + quality.total_batches + ' batches'
         );
         setVisible('llm-quality-meta', true);
 
+        const groundingPctEl = document.getElementById('llm-quality-grounding-pct');
         if (quality.grounding.metrics_cited) {
+          if (groundingPctEl) {
+            groundingPctEl.style.display = '';
+            groundingPctEl.textContent = Math.round(quality.grounding.match_pct) + '% grounding';
+          }
           setText(
             'llm-quality-grounding',
             quality.grounding.metrics_matched + '/' + quality.grounding.metrics_cited + ' cited facts matched'
           );
         } else {
+          setVisible('llm-quality-grounding-pct', false);
           setText('llm-quality-grounding', 'no explicit metrics cited');
         }
         setVisible('llm-quality-grounding', true);
@@ -1565,7 +1816,7 @@
           if (sevEl) {
             sevEl.style.display = '';
             sevEl.textContent = quality.flag_count + ' flag' + (quality.flag_count === 1 ? '' : 's');
-            sevEl.className = 'drift-badge ' + (quality.severity || 'warn');
+            sevEl.className = 'drift-badge quality-flag-link ' + (quality.severity || 'warn');
           }
         } else {
           setVisible('llm-quality-categories', false);
@@ -1578,10 +1829,14 @@
         });
         renderStrategyRows('llm-quality-split-tbody', function (row) {
           const qs = row.data;
+          const g = qs.grounding || {};
+          const groundingCell = g.metrics_cited ? Math.round(g.match_pct) + '%' : '—';
           return '<tr><td>' + row.name + '</td><td>' + qs.symbols_clean + '/' + qs.total_symbols + '</td><td>' +
-            (qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—') + '</td><td>' +
-            qs.by_category.facts + '</td><td>' + qs.by_category.rules + '</td><td>' +
-            qs.by_category.patterns + '</td><td>' + qs.batches_clean + '/' + qs.total_batches + '</td></tr>';
+            (qs.clean_pct != null ? Math.round(qs.clean_pct) + '%' : '—') + '</td><td>' + groundingCell + '</td><td>' +
+            qualityFlagCell(qs.by_category.facts, row.name, 'facts') + '</td><td>' +
+            qualityFlagCell(qs.by_category.rules, row.name, 'rules') + '</td><td>' +
+            qualityFlagCell(qs.by_category.patterns, row.name, 'patterns') + '</td><td>' +
+            qs.batches_clean + '/' + qs.total_batches + '</td></tr>';
         }, strategyRows);
       }
 
@@ -1622,7 +1877,8 @@
         const strategies = agg.strategies;
         const showDrift = String(days) === '1';
 
-        updateQualityCard(aggregateQualitySummary(filtered));
+        updateQualityCard(aggregateQualitySummary(filtered), days);
+        qualityFilteredBatches = filtered;
 
         document.querySelectorAll('.llm-period-drift').forEach(function (el) {
           el.style.display = showDrift ? '' : 'none';
@@ -1838,7 +2094,31 @@
         applyPeriodChange();
       } else if (batchMetrics.length) {
         updateLlmMetrics('14');
+        qualityFilteredBatches = batchMetrics;
       }
+
+      document.addEventListener('click', function (ev) {
+        const link = ev.target.closest('.quality-flag-link');
+        if (!link) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        openQualityFlagsModal({
+          strategy: link.getAttribute('data-quality-filter-strategy') || '',
+          category: link.getAttribute('data-quality-filter-category') || '',
+        });
+      });
+
+      const qualityFlagsBackdrop = document.getElementById('quality-flags-backdrop');
+      const qualityFlagsClose = document.getElementById('quality-flags-close');
+      if (qualityFlagsClose) qualityFlagsClose.addEventListener('click', closeQualityFlagsModal);
+      if (qualityFlagsBackdrop) {
+        qualityFlagsBackdrop.addEventListener('click', function (ev) {
+          if (ev.target === qualityFlagsBackdrop) closeQualityFlagsModal();
+        });
+      }
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') closeQualityFlagsModal();
+      });
 
       if (strategySelect && batchSelect && rows.length) {
         strategySelect.addEventListener('change', function () {

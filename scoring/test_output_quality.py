@@ -79,6 +79,8 @@ def test_build_quality_summary_rollup():
         {
             "strategy": "dip",
             "symbol_count": 2,
+            "run_id": "run-1",
+            "symbols": ["A", "B"],
             "output_quality": {
                 "flag_count": 1,
                 "symbols_flagged": 1,
@@ -104,6 +106,8 @@ def test_build_quality_summary_rollup():
         {
             "strategy": "value",
             "symbol_count": 2,
+            "run_id": "run-2",
+            "symbols": ["C", "D"],
             "output_quality": {
                 "flag_count": 0,
                 "symbols_flagged": 0,
@@ -119,6 +123,8 @@ def test_build_quality_summary_rollup():
     ]
     summary = build_quality_summary(batches)
     assert summary["has_data"] is True
+    assert summary["run_count"] == 2
+    assert summary["unique_symbols"] == 4
     assert summary["total_symbols"] == 4
     assert summary["symbols_clean"] == 3
     assert summary["clean_pct"] == 75.0
@@ -127,6 +133,7 @@ def test_build_quality_summary_rollup():
     assert summary["grounding"]["metrics_matched"] == 1
     assert summary["grounding"]["match_pct"] == 50.0
     assert summary["by_strategy"]["dip"]["clean_pct"] == 50.0
+    assert summary["by_strategy"]["dip"]["grounding"]["match_pct"] == 50.0
 
 
 if __name__ == "__main__":

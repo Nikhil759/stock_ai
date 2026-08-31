@@ -539,6 +539,18 @@ def _count_flags_in_quality(q: dict[str, Any]) -> dict[str, int]:
     return counts
 
 
+def _batch_symbol_list(batch: dict[str, Any]) -> list[str]:
+    raw = batch.get("symbol_list")
+    if isinstance(raw, list) and raw:
+        return [str(s).upper() for s in raw if s]
+    raw = batch.get("symbols")
+    if isinstance(raw, list):
+        return [str(s).upper() for s in raw if s]
+    if isinstance(raw, str) and raw.strip():
+        return [s.strip().upper() for s in raw.split(",") if s.strip()]
+    return []
+
+
 def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
     """Roll up per-batch output_quality blocks into run-level (or period-level) metrics."""
     total_symbols = 0
@@ -551,6 +563,8 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
     metrics_matched = 0
     max_severity: Severity = "ok"
     by_strategy: dict[str, dict[str, Any]] = {}
+    run_ids: set[str] = set()
+    unique_symbols: set[str] = set()
 
     for batch in batches or []:
         if not isinstance(batch, dict):
@@ -568,6 +582,16 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
 
         total_batches += 1
         total_symbols += sym_n
+
+        run_id = str(batch.get("run_id") or "").strip()
+        if run_id:
+            run_ids.add(run_id)
+        for sym in _batch_symbol_list(batch):
+            unique_symbols.add(sym)
+        if not _batch_symbol_list(batch):
+            for stock in q.get("stocks") or []:
+                if isinstance(stock, dict) and stock.get("symbol"):
+                    unique_symbols.add(str(stock["symbol"]).upper())
 
         batch_symbols_flagged = int(q.get("symbols_flagged", 0) or 0)
         symbols_flagged += batch_symbols_flagged
@@ -600,6 +624,8 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
                     "total_batches": 0,
                     "batches_with_flags": 0,
                     "by_category": _empty_category_counts(),
+                    "metrics_cited": 0,
+                    "metrics_matched": 0,
                 },
             )
             sb["total_symbols"] += sym_n
@@ -609,6 +635,12 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
                 sb["batches_with_flags"] += 1
             for key, val in cats.items():
                 sb["by_category"][key] += val
+            for stock in q.get("stocks") or []:
+                if not isinstance(stock, dict):
+                    continue
+                grounding = stock.get("grounding") if isinstance(stock.get("grounding"), dict) else {}
+                sb["metrics_cited"] += int(grounding.get("metrics_cited", 0) or 0)
+                sb["metrics_matched"] += int(grounding.get("metrics_matched", 0) or 0)
 
     symbols_clean = max(0, total_symbols - symbols_flagged)
     clean_pct = round(symbols_clean / total_symbols * 100, 1) if total_symbols else None
@@ -621,15 +653,24 @@ def build_quality_summary(batches: list[dict[str, Any]]) -> dict[str, Any]:
         sym_total = int(sb["total_symbols"])
         sym_flagged = int(sb["symbols_flagged"])
         sym_clean = max(0, sym_total - sym_flagged)
+        strat_cited = int(sb.get("metrics_cited", 0) or 0)
+        strat_matched = int(sb.get("metrics_matched", 0) or 0)
         strategy_rows[strat] = {
             **sb,
             "symbols_clean": sym_clean,
             "clean_pct": round(sym_clean / sym_total * 100, 1) if sym_total else None,
             "batches_clean": max(0, int(sb["total_batches"]) - int(sb["batches_with_flags"])),
+            "grounding": {
+                "metrics_cited": strat_cited,
+                "metrics_matched": strat_matched,
+                "match_pct": round(strat_matched / strat_cited * 100, 1) if strat_cited else None,
+            },
         }
 
     return {
         "has_data": total_batches > 0,
+        "run_count": len(run_ids),
+        "unique_symbols": len(unique_symbols),
         "total_symbols": total_symbols,
         "symbols_flagged": symbols_flagged,
         "symbols_clean": symbols_clean,
