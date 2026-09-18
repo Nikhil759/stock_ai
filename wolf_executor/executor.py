@@ -109,6 +109,7 @@ def _persist_sell(
     *,
     mode: str,
     linked_run_id: int | None,
+    kite_order_id: str | None = None,
 ) -> None:
     repo.record_trade(
         wolf_id,
@@ -117,6 +118,7 @@ def _persist_sell(
         quantity,
         price,
         mode=mode,
+        kite_order_id=kite_order_id,
         linked_run_id=linked_run_id,
     )
     repo.reduce_holding_quantity(wolf_id, symbol, quantity)
@@ -137,6 +139,8 @@ def _persist_buy(
     mode: str,
     linked_run_id: int | None,
     holdings: dict[str, dict],
+    kite_order_id: str | None = None,
+    order_status: str = "complete",
 ) -> None:
     sym = symbol.upper()
     existing = holdings.get(sym)
@@ -158,7 +162,9 @@ def _persist_buy(
         quantity,
         price,
         mode=mode,
+        kite_order_id=kite_order_id,
         linked_run_id=linked_run_id,
+        order_status=order_status,
     )
     repo.upsert_holding(
         wolf_id,
@@ -189,8 +195,12 @@ def run_wolf_executor(
     linked_run_id: int | None = None,
 ) -> dict[str, Any]:
     """Execute sells then buys with deterministic guardrails (paper or real stub)."""
+    if mode == "live":
+        mode = "real"
     if mode not in ("paper", "real"):
-        raise ValueError(f"mode must be 'paper' or 'real', got {mode!r}")
+        raise ValueError(
+            f"mode must be 'paper', 'live', or 'real', got {mode!r}"
+        )
 
     cash, holdings_map, g = _load_state(
         wolf_id, cash_available, holdings, guardrails
@@ -234,34 +244,41 @@ def run_wolf_executor(
             continue
         value = round(qty * price, 2)
 
-        if mode == "real" and not dry_run:
-            place_kite_order(
-                wolf_id=wolf_id,
-                symbol=sym,
-                action="SELL",
-                quantity=qty,
-                price=price,
-            )
-
-        if mode == "paper" and not dry_run:
-            _persist_sell(
-                wolf_id,
-                sym,
-                qty,
-                price,
-                mode=mode,
-                linked_run_id=linked_run_id,
-            )
-            cash, holdings_map, _ = _load_state(
-                wolf_id, None, None, guardrails
-            )
-        else:
+        if dry_run:
             cash = round(cash + value, 2)
             remaining = held["quantity"] - qty
             if remaining <= 0:
                 holdings_map.pop(sym, None)
             else:
                 held["quantity"] = remaining
+        else:
+            db_mode = "live" if mode == "real" else "paper"
+            try:
+                kite_order_id = None
+                if mode == "real":
+                    kite_order_id = place_kite_order(
+                        wolf_id=wolf_id,
+                        symbol=sym,
+                        action="SELL",
+                        quantity=qty,
+                        price=price,
+                    )
+                _persist_sell(
+                    wolf_id,
+                    sym,
+                    qty,
+                    price,
+                    mode=db_mode,
+                    linked_run_id=linked_run_id,
+                    kite_order_id=kite_order_id,
+                )
+                cash, holdings_map, _ = _load_state(
+                    wolf_id, None, None, guardrails
+                )
+            except (RuntimeError, ValueError) as exc:
+                log.warning("[EXECUTOR] sell failed %s: %s", sym, exc)
+                actions_rejected.append({"symbol": sym, "reason": str(exc)})
+                continue
 
         actions_taken.append(
             {
@@ -370,31 +387,7 @@ def run_wolf_executor(
         stop_loss = buy.get("stop_loss")
         stop_placed = stop_loss is not None and float(stop_loss) > 0
 
-        if mode == "real" and not dry_run:
-            place_kite_order(
-                wolf_id=wolf_id,
-                symbol=sym,
-                action="BUY",
-                quantity=qty,
-                price=price,
-            )
-
-        if mode == "paper" and not dry_run:
-            _persist_buy(
-                wolf_id,
-                sym,
-                qty,
-                price,
-                target=float(target) if target is not None else None,
-                stop_loss=float(stop_loss) if stop_loss is not None else None,
-                mode=mode,
-                linked_run_id=linked_run_id,
-                holdings=holdings_map,
-            )
-            cash, holdings_map, _ = _load_state(
-                wolf_id, None, None, guardrails
-            )
-        else:
+        if dry_run:
             cash = round(cash - cost, 2)
             existing = holdings_map.get(sym)
             if existing and existing["quantity"] > 0:
@@ -416,6 +409,39 @@ def run_wolf_executor(
                     "sell_target": float(target or 0),
                     "stop_loss": float(stop_loss or 0),
                 }
+        else:
+            db_mode = "live" if mode == "real" else "paper"
+            try:
+                kite_order_id = None
+                if mode == "real":
+                    kite_order_id = place_kite_order(
+                        wolf_id=wolf_id,
+                        symbol=sym,
+                        action="BUY",
+                        quantity=qty,
+                        price=price,
+                    )
+                buy_order_status = "pending" if db_mode == "live" else "complete"
+                _persist_buy(
+                    wolf_id,
+                    sym,
+                    qty,
+                    price,
+                    target=float(target) if target is not None else None,
+                    stop_loss=float(stop_loss) if stop_loss is not None else None,
+                    mode=db_mode,
+                    linked_run_id=linked_run_id,
+                    holdings=holdings_map,
+                    kite_order_id=kite_order_id,
+                    order_status=buy_order_status,
+                )
+                cash, holdings_map, _ = _load_state(
+                    wolf_id, None, None, guardrails
+                )
+            except (RuntimeError, ValueError) as exc:
+                log.warning("[EXECUTOR] buy failed %s: %s", sym, exc)
+                actions_rejected.append({"symbol": sym, "reason": str(exc)})
+                continue
 
         actions_taken.append(
             {

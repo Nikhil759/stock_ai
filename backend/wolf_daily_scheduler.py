@@ -35,7 +35,7 @@ def _run_daily_job() -> None:
         log.info("starting supabase daily fund manager for all active wolves")
         from deploy.daily_review_wolf import run_daily_review_all_wolves
 
-        run_daily_review_all_wolves()
+        run_daily_review_all_wolves(wolf_mode="paper")
         log.info("supabase daily fund manager finished")
     except Exception:
         log.exception("supabase daily fund manager failed")

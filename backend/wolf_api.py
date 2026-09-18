@@ -210,6 +210,7 @@ def wolf_to_bot(
         "dayStartPortfolioValue": None,
         "dayStartDate": None,
         "wolfId": wolf_id,
+        "executionMode": str(wolf.get("mode") or "paper"),
     }
 
 
@@ -256,6 +257,8 @@ def holdings_to_trades(
         ltp = prices.get(sym) or entry
         buy = buy_by_sym.get(sym, {})
         trade_id = buy.get("trade_id") or h.get("holding_id")
+        order_status = str(buy.get("order_status") or "complete")
+        ui_status = "pending" if order_status == "pending" else "open"
         out.append(
             {
                 "id": trade_id,
@@ -272,7 +275,45 @@ def holdings_to_trades(
                 "exitPrice": None,
                 "exitDate": None,
                 "exitReason": None,
-                "status": "open",
+                "status": ui_status,
+                "orderStatus": order_status,
+                "kiteOrderId": buy.get("kite_order_id"),
+                "source": "wolf_executor",
+                "pickReport": None,
+            }
+        )
+
+    held_syms = {str(h["symbol"]).upper() for h in held if h.get("status") == "open"}
+    for t in trades_ledger:
+        if t.get("action") != "BUY":
+            continue
+        if str(t.get("order_status") or "complete") != "pending":
+            continue
+        sym = str(t.get("symbol", "")).upper()
+        if sym in held_syms:
+            continue
+        qty = int(t.get("quantity") or 0)
+        entry = float(t.get("price") or 0)
+        ltp = prices.get(sym) or entry
+        out.append(
+            {
+                "id": t.get("trade_id"),
+                "botId": wolf_id,
+                "ticker": sym,
+                "name": sym,
+                "sector": "—",
+                "qty": qty,
+                "entry": entry,
+                "ltp": ltp,
+                "target": 0,
+                "stopLoss": 0,
+                "entryDate": _fmt_entry_date(t.get("executed_at")),
+                "exitPrice": None,
+                "exitDate": None,
+                "exitReason": None,
+                "status": "pending",
+                "orderStatus": "pending",
+                "kiteOrderId": t.get("kite_order_id"),
                 "source": "wolf_executor",
                 "pickReport": None,
             }
@@ -436,8 +477,14 @@ def list_bots_for_user(
     user_id: UUID,
     *,
     include_terminated: bool = False,
+    execution_workspace: str | None = None,
 ) -> list[dict[str, Any]]:
-    wolves = repo.list_wolves_for_user(user_id)
+    ws = (
+        repo.normalize_execution_workspace(execution_workspace)
+        if execution_workspace is not None
+        else repo.get_execution_workspace(user_id)
+    )
+    wolves = repo.list_wolves_for_user(user_id, execution_mode=ws)
     if not include_terminated:
         wolves = [w for w in wolves if w.get("status") != "closed"]
     symbols: list[str] = []
@@ -453,9 +500,21 @@ def list_bots_for_user(
     ]
 
 
-def get_bot_for_user(user_id: UUID, wolf_id: str) -> dict[str, Any] | None:
+def get_bot_for_user(
+    user_id: UUID,
+    wolf_id: str,
+    *,
+    execution_workspace: str | None = None,
+) -> dict[str, Any] | None:
     wolf = repo.get_wolf_for_user(wolf_id, user_id)
     if not wolf:
+        return None
+    ws = (
+        repo.normalize_execution_workspace(execution_workspace)
+        if execution_workspace is not None
+        else repo.get_execution_workspace(user_id)
+    )
+    if repo.normalize_execution_workspace(wolf.get("mode")) != ws:
         return None
     holdings = repo.list_holdings_for_wolf(wolf_id, status="open")
     ltps = _fetch_ltps([str(h["symbol"]).upper() for h in holdings])

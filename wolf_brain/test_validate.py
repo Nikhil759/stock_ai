@@ -82,6 +82,61 @@ def test_trim_over_cash() -> None:
     print("  ok trim_over_cash")
 
 
+def test_tight_tactical_stop_allowed() -> None:
+    """Dip-style stops tighter than stop_loss_pct guardrail must not be dropped."""
+    g = normalize_guardrails({"stop_loss_pct": 15, "min_trade_value": 1000})
+    raw = DeployBrainOutput(
+        birth_intent="test",
+        picks=[
+            BrainPick(
+                symbol="LUPIN",
+                quantity=5,
+                buy_price=2000,
+                target=2100,
+                stop_loss=1920,  # 4% below buy
+                conviction=80,
+                reasoning="dip tactical stop",
+            ),
+        ],
+    )
+    out = validate_deploy_output(
+        raw,
+        cash_available=20000,
+        guardrails=g,
+        shortlist_symbols={"LUPIN"},
+    )
+    _assert(len(out.picks) == 1, "expected tight stop pick kept")
+    _assert(out.picks[0].stop_loss == 1920, "expected tactical stop unchanged")
+    print("  ok tight_tactical_stop_allowed")
+
+
+def test_wide_stop_clamped_to_guardrail() -> None:
+    g = normalize_guardrails({"stop_loss_pct": 15, "min_trade_value": 1000})
+    raw = DeployBrainOutput(
+        birth_intent="test",
+        picks=[
+            BrainPick(
+                symbol="ITC",
+                quantity=10,
+                buy_price=400,
+                target=480,
+                stop_loss=300,  # 25% below buy — wider than 15% guardrail
+                conviction=80,
+                reasoning="too wide stop",
+            ),
+        ],
+    )
+    out = validate_deploy_output(
+        raw,
+        cash_available=10000,
+        guardrails=g,
+        shortlist_symbols={"ITC"},
+    )
+    _assert(len(out.picks) == 1, "expected pick kept with clamped stop")
+    _assert(out.picks[0].stop_loss == 340.0, "expected stop clamped to 15%")
+    print("  ok wide_stop_clamped_to_guardrail")
+
+
 def test_inverted_target_stop() -> None:
     g = normalize_guardrails({"stop_loss_pct": 15, "min_trade_value": 1000})
     raw = DeployBrainOutput(
@@ -143,6 +198,8 @@ def main() -> None:
     print("[WOLF BRAIN] validate tests")
     test_trim_over_cash()
     test_min_trade_value()
+    test_tight_tactical_stop_allowed()
+    test_wide_stop_clamped_to_guardrail()
     test_inverted_target_stop()
     test_daily_default_hold()
     print("all passed")

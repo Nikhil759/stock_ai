@@ -78,14 +78,17 @@ def _validate_price_geometry(
 
     stop_pct = guardrails["stop_loss_pct"]
     actual_stop_pct = (buy - stop) / buy * 100
-    if actual_stop_pct < stop_pct * 0.5 or actual_stop_pct > stop_pct * 2.0:
-        log.warning(
-            "[WOLF BRAIN] dropped %s: stop %.1f%% below buy vs guardrail %.1f%%",
+    # Tactical stops tighter than stop_loss_pct are allowed (e.g. dip strategy).
+    # Guardrail is a ceiling — clamp only when the brain proposes a wider stop.
+    if actual_stop_pct > stop_pct + 0.01:
+        clamped_stop = round(buy * (1 - stop_pct / 100), 2)
+        log.info(
+            "[WOLF BRAIN] clamped %s stop from %.1f%% to guardrail %.1f%%",
             sym,
             actual_stop_pct,
             stop_pct,
         )
-        return None
+        pick = pick.model_copy(update={"stop_loss": clamped_stop})
 
     return pick
 

@@ -140,8 +140,8 @@
   .install-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);cursor:pointer;background:var(--panel);color:var(--ink2);font-size:12.5px;font-weight:600;padding:0 12px;height:37px;border-radius:10px;white-space:nowrap}
   .install-btn:hover{box-shadow:inset 0 0 0 99px var(--wolf-glow);color:var(--ink)}
   .install-label{display:inline}
-  .auth-login-btn{background:var(--clay)!important;color:#fff!important;border-color:var(--clay)!important;box-shadow:0 2px 8px rgba(191,91,45,0.22)}
-  .auth-login-btn:hover{color:#fff!important;box-shadow:inset 0 0 0 99px rgba(255,255,255,0.12),0 2px 8px rgba(191,91,45,0.22)}
+  .auth-login-btn{background:var(--clay)!important;color:#fff!important;border-color:var(--clay)!important}
+  .auth-login-btn:hover{color:#fff!important}
   .auth-menu-wrap{position:relative}
   .auth-profile-btn{
     display:flex;align-items:center;gap:7px;height:37px;padding:3px 10px 3px 3px;
@@ -171,6 +171,58 @@
   }
   .auth-menu-item:hover{background:var(--wolf-tint)}
   .auth-menu-item-danger{color:var(--red)}
+  .execution-toggle{
+    display:flex;align-items:center;gap:2px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;flex:none;
+  }
+  .execution-toggle-btn{
+    border:none;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;
+    letter-spacing:0.05em;text-transform:uppercase;padding:7px 11px;border-radius:7px;
+    background:transparent;color:var(--ink2);white-space:nowrap;transition:background 0.15s ease,color 0.15s ease,box-shadow 0.15s ease;
+  }
+  .execution-toggle-btn.active{background:var(--clay);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,0.12)}
+  .execution-toggle-btn:disabled{opacity:0.55;cursor:not-allowed}
+  .app-root{
+    --paper:#FAF6EE;--panel:#FFFEFA;--ink:#26211A;--ink2:#6F685A;
+    --line:#E9E1D0;--line2:#DBD1BC;--green:#3E7A52;--red:#B04938;
+    --mono:'Geist Mono',ui-monospace,'SF Mono',monospace;
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+    background-color:var(--paper);
+    background-attachment:fixed;
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color 0.3s ease,background-image 0.35s ease;
+  }
+  .app-root.theme-paper{
+    --clay:#BF5B2D;--wolf-fur:#E8792F;--wolf-tint:#FBF2E5;--wolf-glow:rgba(216,118,50,0.16);--wolf-mist:#F4EBDB;
+    --header-bg:rgba(250,246,238,0.85);--accent-shadow:rgba(191,91,45,0.28);--dash-border:#E2C9A9;
+    background-image:radial-gradient(1100px 480px at 88% -12%,rgba(226,124,55,0.05),transparent 60%),radial-gradient(900px 460px at -8% 4%,rgba(101,124,88,0.045),transparent 55%);
+  }
+  .app-root.theme-live{
+    --clay:#5B4FCF;--wolf-fur:#6B5CE7;--wolf-tint:#EEEAFB;--wolf-glow:rgba(91,79,207,0.18);--wolf-mist:#E8E4F8;
+    --header-bg:rgba(238,234,251,0.88);--accent-shadow:rgba(91,79,207,0.32);--dash-border:#C9C0E8;
+    background-image:radial-gradient(1100px 480px at 88% -12%,rgba(91,79,207,0.08),transparent 60%),radial-gradient(900px 460px at -8% 4%,rgba(79,107,245,0.06),transparent 55%);
+  }
+  .app-header{background:var(--header-bg)!important}
+  .auth-login-btn{box-shadow:0 2px 8px var(--accent-shadow)!important}
+  .auth-login-btn:hover{box-shadow:inset 0 0 0 99px rgba(255,255,255,0.12),0 2px 8px var(--accent-shadow)!important}
+  .workspace-switch-overlay{
+    position:fixed;inset:0;z-index:120;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(38,33,26,0.38);backdrop-filter:blur(6px);
+    animation:modal-in 0.18s ease;
+  }
+  .workspace-switch-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:28px 32px;min-width:min(92vw,320px);text-align:center;
+    box-shadow:0 18px 50px rgba(38,33,26,0.16);
+  }
+  .workspace-switch-spinner{
+    width:44px;height:44px;margin:0 auto 16px;border-radius:50%;
+    border:3px solid var(--line2);border-top-color:var(--clay);
+    animation:spin 0.85s linear infinite;
+  }
   .auth-menu-item-danger:hover{background:rgba(176,73,56,0.08)}
   .auth-menu-note{padding:8px 11px;font-size:12px;color:var(--ink2);font-style:italic;line-height:1.4}
   @media (max-width:520px){.install-label{display:none}}
@@ -182,6 +234,7 @@
     .app-header-brand .brand-text{display:none}
     .app-header-tools{display:flex;align-items:center;gap:6px;flex:none}
     .app-header-tools .bot-select{max-width:110px;min-width:0!important}
+    .execution-toggle-btn{padding:6px 8px!important;font-size:10px!important}
     .app-nav{flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap!important}
     .app-nav::-webkit-scrollbar{display:none}
     .app-nav-btn{flex:1 0 auto;padding:8px 11px!important;font-size:12px!important}
@@ -241,15 +294,28 @@
   }
 </style>
 </helmet>
-<div class="app-root" style="--paper:#FAF6EE;--panel:#FFFEFA;--ink:#26211A;--ink2:#6F685A;--line:#E9E1D0;--line2:#DBD1BC;--clay:#BF5B2D;--green:#3E7A52;--red:#B04938;--wolf-fur:#E8792F;--wolf-tint:#FBF2E5;--wolf-glow:rgba(216,118,50,0.16);--wolf-mist:#F4EBDB;--mono:'Geist Mono',ui-monospace,'SF Mono',monospace;font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);background-image:radial-gradient(1100px 480px at 88% -12%,rgba(226,124,55,0.05),transparent 60%),radial-gradient(900px 460px at -8% 4%,rgba(101,124,88,0.045),transparent 55%);background-attachment:fixed;color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
+<div id="app-root" class="{{ appRootClass }}">
 
-  <header class="app-header" style="position:sticky;top:0;z-index:30;background:rgba(250,246,238,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+  <sc-if value="{{ workspaceSwitchLoading }}" hint-placeholder-val="{{ false }}">
+    <div class="workspace-switch-overlay" aria-live="polite" aria-busy="true">
+      <div class="workspace-switch-card">
+        <div class="workspace-switch-spinner"></div>
+        <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:var(--ink);">{{ workspaceSwitchTitle }}</p>
+        <p style="margin:0;font-size:13px;color:var(--ink2);line-height:1.45;">{{ workspaceSwitchHint }}</p>
+      </div>
+    </div>
+  </sc-if>
+
+  <header class="app-header" style="position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
     <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:nowrap;">
       <button onClick="{{ goto.home }}" class="app-header-brand" title="Go to dashboard" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;flex:none;background:none;border:none;cursor:pointer;padding:0;font:inherit;color:inherit;text-align:left;">
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28" style="filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2));">
         <span class="brand-text" style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
-        <span class="brand-text" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;padding:2px 7px;border-radius:999px;flex:none;">PAPER</span>
       </button>
+      <div class="execution-toggle" title="Switch between paper and live trading workspaces">
+        <button class="execution-toggle-btn {{ execPaperActiveClass }}" onClick="{{ setExecutionPaper }}" {{ execToggleDisabledAttr }} title="Paper workspace — simulated trades">Paper</button>
+        <button class="execution-toggle-btn {{ execLiveActiveClass }}" onClick="{{ setExecutionLive }}" {{ execToggleDisabledAttr }} title="Live workspace — real Zerodha orders">Live</button>
+      </div>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
         <button class="app-nav-btn" onClick="{{ goto.setup }}" style="{{ nav.setup }}"><i class="ti ti-rocket" style="font-size:15px;"></i>Deploy</button>
@@ -322,8 +388,23 @@
   </div>
   </sc-if>
 
+  <!-- Live workspace preview (non-allowlisted users) -->
+  <sc-if value="{{ showLiveComingSoon }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:720px;margin:0 auto;padding:clamp(40px,8vw,72px) clamp(16px,4vw,32px);">
+    <div style="text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(32px,6vw,48px) clamp(24px,5vw,40px);box-shadow:0 12px 40px rgba(38,33,26,0.06);">
+      <div style="width:64px;height:64px;margin:0 auto 18px;border-radius:16px;background:var(--clay-bg);display:flex;align-items:center;justify-content:center;">
+        <i class="ti ti-bolt" style="font-size:30px;color:var(--clay);"></i>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 10px;">Live workspace</p>
+      <h1 style="font-size:clamp(24px,4vw,30px);font-weight:800;letter-spacing:-0.024em;margin:0 0 12px;">Coming soon</h1>
+      <p style="color:var(--ink2);margin:0 auto 28px;font-size:15px;line-height:1.55;max-width:42ch;">Real Zerodha order execution is in private beta. Paper mode is fully available — deploy Wolves, track holdings, and run the full strategy pipeline with simulated trades.</p>
+      <button onClick="{{ setExecutionPaper }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:12px 22px;border-radius:10px;">Back to Paper</button>
+    </div>
+  </main>
+  </sc-if>
+
   <!-- ===================== HOME ===================== -->
-  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <sc-if value="{{ isHomeVisible }}" hint-placeholder-val="{{ true }}">
   <main class="app-main" style="max-width:900px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
     <sc-if value="{{ configLoaded }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 15px;margin-bottom:20px;">
@@ -395,7 +476,7 @@
       <div style="text-align:center;padding:60px 24px;background:radial-gradient(circle at 50% 28%,var(--wolf-tint),var(--panel) 68%);border:1px dashed #E2C9A9;border-radius:16px;">
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-xl" width="72" height="72" style="margin:0 auto;filter:drop-shadow(0 4px 10px rgba(160,85,35,0.18));">
         <h2 style="font-size:22px;font-weight:700;margin:16px 0 8px;">No Wolves deployed yet</h2>
-        <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">Pick a strategy, set an allocation pool, and deploy your first paper-trading Wolf.</p>
+        <p style="color:var(--ink2);margin:0 0 22px;max-width:40ch;margin-left:auto;margin-right:auto;">{{ emptyHomeHint }}</p>
         <sc-if value="{{ authNotLoggedIn }}" hint-placeholder-val="{{ true }}">
           <a href="{{ authLoginUrl }}" style="display:inline-block;background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:600;padding:13px 22px;border-radius:11px;text-decoration:none;">Log in to deploy your first Wolf</a>
         </sc-if>
@@ -463,7 +544,7 @@
   </sc-if>
 
   <!-- ===================== SETUP / DEPLOY ===================== -->
-  <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
+  <sc-if value="{{ isSetupVisible }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:800px;margin:0 auto;padding:clamp(26px,5vw,52px) clamp(16px,4vw,32px);">
     <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;">Step 1 of 3 — Strategy</p>
     <h1 style="font-size:clamp(25px,4vw,33px);font-weight:800;letter-spacing:-0.024em;margin:0 0 7px;">Deploy a new Wolf</h1>
@@ -565,7 +646,7 @@
             <div style="width:36px;height:36px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;"><img src="/wolf_logo.png" alt="" class="wolf-icon" width="24" height="24"></div>
             <span style="font-weight:650;font-size:15px;">Autonomous</span>
           </div>
-          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">Wolf manages paper trades within your rules and budget.</p>
+          <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.45;">{{ deployAutoHint }}</p>
           <sc-if value="{{ deployModeAuto }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-1px;border:2px solid var(--clay);border-radius:14px;pointer-events:none;background:rgba(232,121,47,0.05);box-shadow:0 0 0 3px var(--wolf-glow);"></div></sc-if>
         </button>
       </div>
@@ -657,7 +738,7 @@
   </sc-if>
 
   <!-- ===================== SHORTLIST ===================== -->
-  <sc-if value="{{ isShortlist }}" hint-placeholder-val="{{ false }}">
+  <sc-if value="{{ isShortlistVisible }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
     <sc-if value="{{ noActiveBot }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:60px 20px;">
@@ -840,7 +921,7 @@
   </sc-if>
 
   <!-- ===================== TRACKER ===================== -->
-  <sc-if value="{{ isTracker }}" hint-placeholder-val="{{ false }}">
+  <sc-if value="{{ isTrackerVisible }}" hint-placeholder-val="{{ false }}">
   <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
     <sc-if value="{{ bootLoading }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;">
@@ -982,8 +1063,8 @@
     <sc-if value="{{ trackerEmpty }}" hint-placeholder-val="{{ false }}">
       <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;margin-bottom:14px;">
         <i class="ti ti-report-money" style="font-size:36px;color:var(--ink2);"></i>
-        <h2 style="font-size:20px;font-weight:700;margin:14px 0 6px;">No paper trades yet</h2>
-        <p style="color:var(--ink2);margin:0 0 20px;">Deploy picks will show up here once the Wolf executes trades.</p>
+        <h2 style="font-size:20px;font-weight:700;margin:14px 0 6px;">{{ trackerEmptyTitle }}</h2>
+        <p style="color:var(--ink2);margin:0 0 20px;">{{ trackerEmptyHint }}</p>
         <button onClick="{{ goto.home }}" style="background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:10px;">Go to dashboard</button>
       </div>
     </sc-if>
@@ -1007,7 +1088,7 @@
             <div class="trade-block" style="min-width:150px;">
               <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-family:var(--mono);font-weight:600;font-size:15px;">{{ t.ticker }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--green);background:#E2EAD8;padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ t.status }}</span>
+                <span style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:{{ t.statusCol }};background:{{ t.statusBg }};padding:2px 7px;border-radius:999px;text-transform:uppercase;">{{ t.statusLabel }}</span>
               </div>
               <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.name }}</div>
               <div style="font-size:12px;color:var(--ink2);margin-top:3px;">{{ t.qty }} shares · bought {{ t.entryDate }}</div>
@@ -1206,6 +1287,9 @@ class Component extends DCLogic {
       screen: urlView?.screen || (props.startScreen === 'activity' ? 'tracker' : (props.startScreen ?? 'home')),
       trackerTab: urlView?.trackerTab || (props.startScreen === 'activity' ? 'activity' : 'holdings'),
       workspaceId,
+      executionWorkspace: (typeof window !== 'undefined' && localStorage.getItem('wc_execution_workspace') === 'live') ? 'live' : 'paper',
+      liveWorkspaceEnabled: false,
+      executionWorkspaceLoading: false,
       activeBotId: urlView?.activeBotId || null,
       bots: [],
       activeBot: null,
@@ -1275,9 +1359,137 @@ class Component extends DCLogic {
       const elapsed = Date.now() - (this._lastAutoPriceRefresh || 0);
       if (elapsed >= this._PRICE_REFRESH_MS) this._autoRefreshPrices();
     };
-    if (typeof window !== 'undefined') this._initPwa();
+    if (typeof window !== 'undefined') {
+      this._initPwa();
+      this._applyExecutionTheme(this.state.executionWorkspace);
+    }
     this._loadAuthSession();
     this._loadAll().finally(() => this._startPriceAutoRefresh());
+  }
+
+  _applyExecutionTheme(mode){
+    if (typeof document === 'undefined') return;
+    const live = mode === 'live';
+    const root = document.getElementById('app-root') || document.querySelector('.app-root');
+    if (root) {
+      root.classList.remove('theme-paper', 'theme-live');
+      root.classList.add(live ? 'theme-live' : 'theme-paper');
+    }
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', live ? '#5B4FCF' : '#BF5B2D');
+    try { localStorage.setItem('wc_execution_workspace', live ? 'live' : 'paper'); } catch (_) { /* ignore */ }
+  }
+
+  _liveWorkspaceEnabled(){
+    return !!this.state.liveWorkspaceEnabled;
+  }
+
+  _isLivePreview(){
+    return this.state.executionWorkspace === 'live' && !this._liveWorkspaceEnabled();
+  }
+
+  async setExecutionWorkspace(next){
+    const target = next === 'live' ? 'live' : 'paper';
+    if (target === this.state.executionWorkspace || this.state.executionWorkspaceLoading) return;
+
+    if (target === 'live' && !this._liveWorkspaceEnabled()) {
+      this.setState({
+        executionWorkspace: 'live',
+        activeBotId: null,
+        activeBot: null,
+        bots: [],
+        trades: [],
+        pending: [],
+        actionLog: [],
+        dailyNote: null,
+        selectedBotIds: [],
+        botActionMsg: '',
+        bulkActionMsg: '',
+      });
+      this._applyExecutionTheme('live');
+      return;
+    }
+
+    if (target === 'paper' && this._isLivePreview()) {
+      this.setState({
+        executionWorkspace: 'paper',
+        activeBotId: null,
+        activeBot: null,
+        trades: [],
+        pending: [],
+        actionLog: [],
+        dailyNote: null,
+        selectedBotIds: [],
+        botActionMsg: '',
+        bulkActionMsg: '',
+      });
+      this._applyExecutionTheme('paper');
+      if (this.state.authLoggedIn) {
+        this.setState({ executionWorkspaceLoading: true });
+        try {
+          const { activeBotId } = await this._loadBots();
+          if (activeBotId) await this._loadBotData(activeBotId);
+        } catch (e) {
+          console.error('setExecutionWorkspace paper restore failed:', e);
+        } finally {
+          this.setState({ executionWorkspaceLoading: false });
+        }
+      }
+      return;
+    }
+
+    if (target === 'live' && this._liveWorkspaceEnabled()) {
+      const ok = confirm(
+        'Switch to LIVE workspace?\n\n' +
+        '• New Wolves will use real Zerodha orders and real money\n' +
+        '• Paper Wolves will be hidden until you switch back\n\n' +
+        'Continue?'
+      );
+      if (!ok) return;
+    }
+    if (!this.state.authLoggedIn) {
+      this.setState({ executionWorkspace: target });
+      this._applyExecutionTheme(target);
+      return;
+    }
+    const prevWorkspace = this.state.executionWorkspace;
+    this.setState({
+      executionWorkspaceLoading: true,
+      executionWorkspace: target,
+      activeBotId: null,
+      activeBot: null,
+      trades: [],
+      pending: [],
+      actionLog: [],
+      dailyNote: null,
+      selectedBotIds: [],
+      botActionMsg: '',
+      bulkActionMsg: '',
+    });
+    this._applyExecutionTheme(target);
+    try {
+      const res = await this._fetch(this._api('/api/user/workspace'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ execution_workspace: target }),
+      });
+      if (!res.ok) throw new Error('workspace update failed');
+      const data = await res.json();
+      const ws = data.executionWorkspace === 'live' ? 'live' : 'paper';
+      this.setState({
+        executionWorkspace: ws,
+        liveWorkspaceEnabled: Boolean(data.liveWorkspaceEnabled),
+      });
+      this._applyExecutionTheme(ws);
+      const { activeBotId } = await this._loadBots();
+      if (activeBotId) await this._loadBotData(activeBotId);
+    } catch (e) {
+      console.error('setExecutionWorkspace failed:', e);
+      this.setState({ executionWorkspace: prevWorkspace });
+      this._applyExecutionTheme(prevWorkspace);
+      alert('Could not switch workspace. Try again.');
+    } finally {
+      this.setState({ executionWorkspaceLoading: false });
+    }
   }
 
   async _loadAuthSession(){
@@ -1296,6 +1508,9 @@ class Component extends DCLogic {
         authLoggedIn: loggedIn,
         authAuthorized: authorized,
       });
+      if (loggedIn) {
+        try { await this._loadBots(); } catch (e) { console.error('post-login bot load failed:', e); }
+      }
     } catch {
       /* keep login button visible — defaults already show it */
     }
@@ -1768,15 +1983,25 @@ class Component extends DCLogic {
 
   async _loadBots(){
     const res = await this._fetch(this._api('/api/bots'));
-    const bots = res.ok ? (await res.json()).bots : [];
+    const data = res.ok ? await res.json() : {};
+    const bots = data.bots || [];
+    const liveWorkspaceEnabled = Boolean(data.liveWorkspaceEnabled);
+    const serverWs = data.executionWorkspace === 'live' ? 'live' : 'paper';
+    let executionWorkspace = serverWs;
+    if (!liveWorkspaceEnabled && this.state.executionWorkspace === 'live') {
+      executionWorkspace = 'live';
+    } else if (!liveWorkspaceEnabled) {
+      executionWorkspace = 'paper';
+    }
     let activeBotId = this.state.activeBotId;
     if (!activeBotId && bots.length) activeBotId = bots[0].id;
     if (activeBotId && !bots.find(b => b.id === activeBotId)) activeBotId = bots[0]?.id ?? null;
     const activeBot = bots.find(b => b.id === activeBotId) || null;
     const validIds = new Set(bots.filter(b => b.status !== 'terminated').map(b => b.id));
     const selectedBotIds = (this.state.selectedBotIds || []).filter(id => validIds.has(id));
-    this.setState({ bots, activeBotId, activeBot, selectedBotIds });
-    return { bots, activeBotId, activeBot };
+    this.setState({ bots, activeBotId, activeBot, selectedBotIds, executionWorkspace, liveWorkspaceEnabled });
+    this._applyExecutionTheme(executionWorkspace);
+    return { bots, activeBotId, activeBot, executionWorkspace, liveWorkspaceEnabled };
   }
 
   async _loadBotData(botId){
@@ -1902,12 +2127,20 @@ class Component extends DCLogic {
 
   _formatRefreshMsg(data){
     if (data.message) return data.message;
+    const parts = [];
+    const orders = data.orders || {};
+    if (orders.filled?.length) parts.push(`${orders.filled.length} order(s) filled`);
+    if (orders.still_pending?.length) parts.push(`${orders.still_pending.length} still pending`);
+    if (orders.rejected?.length) parts.push(`${orders.rejected.length} rejected`);
+    if (orders.cancelled?.length) parts.push(`${orders.cancelled.length} cancelled`);
     if ((data.checked || 0) > 0) {
-      const parts = [`Updated ${data.updated?.length ?? 0} position(s)`];
+      parts.push(`Updated ${data.updated?.length ?? 0} position(s)`);
       if (data.closed?.length) parts.push(`${data.closed.length} sold (target/stop hit)`);
       if (data.failed?.length) parts.push(`${data.failed.length} could not fetch`);
-      return parts.join(' · ');
+    } else if (parts.length) {
+      parts.push('order status synced');
     }
+    if (parts.length) return parts.join(' · ');
     return 'Prices refreshed.';
   }
 
@@ -2339,12 +2572,12 @@ class Component extends DCLogic {
       this.setState({ min_trade_value: Math.max(1000, Math.min(500000, n)) });
     };
 
-    const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
+    const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px var(--accent-shadow)':'') + ';';
     const nav = {
       home: navStyle(s.screen==='home'), setup:navStyle(s.screen==='setup'),
       tracker: navStyle(s.screen==='tracker'),
     };
-    const trackerTabBtnStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 14px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px rgba(191,91,45,0.28)':'') + ';';
+    const trackerTabBtnStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 14px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px var(--accent-shadow)':'') + ';';
     const trackerTabHoldings = s.trackerTab === 'holdings';
     const trackerTabActivity = s.trackerTab === 'activity';
     const togStyle = a => 'display:flex;align-items:center;gap:6px;border:none;cursor:pointer;font-size:12.5px;font-weight:550;padding:6px 11px;border-radius:7px;background:' + (a?'var(--ink)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + ';';
@@ -2378,18 +2611,23 @@ class Component extends DCLogic {
     const setupLvlB = s.deployLevel === 'B';
     const setupLvlC = s.deployLevel === 'C';
 
-    const openTrades = s.trades.filter(t => t.status === 'open');
+    const openTrades = s.trades.filter(t => t.status === 'open' || t.status === 'pending');
     const trades = openTrades.map(t => {
+      const isPending = t.status === 'pending';
       const invested = t.qty * t.entry, value = t.qty * t.ltp, pnl = value - invested;
       const pct = invested ? pnl / invested * 100 : 0;
-      const prog = Math.max(3, Math.min(100, (t.ltp - t.entry) / (t.target - t.entry) * 100));
-      const targetPct = t.entry ? (t.target - t.entry) / t.entry * 100 : 0;
-      const row = { ...t, investedFmt: fmt(invested), valueFmt: fmt(value),
-        entryFmt: '₹' + t.entry.toFixed(2), ltpFmt: '₹' + t.ltp.toFixed(2),
-        targetFmt: '₹' + Math.round(t.target).toLocaleString('en-IN') + ' (' + (targetPct >= 0 ? '+' : '−') + Math.abs(targetPct).toFixed(1) + '%)',
+      const prog = isPending || !t.target ? 0 : Math.max(3, Math.min(100, (t.ltp - t.entry) / (t.target - t.entry) * 100));
+      const targetPct = t.entry && t.target ? (t.target - t.entry) / t.entry * 100 : 0;
+      const row = { ...t, investedFmt: fmt(invested), valueFmt: isPending ? '—' : fmt(value),
+        entryFmt: '₹' + t.entry.toFixed(2), ltpFmt: isPending ? '—' : '₹' + t.ltp.toFixed(2),
+        targetFmt: isPending || !t.target ? '—' : '₹' + Math.round(t.target).toLocaleString('en-IN') + ' (' + (targetPct >= 0 ? '+' : '−') + Math.abs(targetPct).toFixed(1) + '%)',
         stopFmt: '₹' + (t.stopLoss || 0).toFixed(2),
-        pnlFmt: signed(pnl), pctFmt: (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%',
-        pnlCol: pnl>=0 ? 'var(--green)' : 'var(--red)', prog: prog.toFixed(0) + '%' };
+        pnlFmt: isPending ? '—' : signed(pnl), pctFmt: isPending ? '' : (pnl>=0?'+':'−') + Math.abs(pct).toFixed(2) + '%',
+        pnlCol: isPending ? 'var(--ink2)' : (pnl>=0 ? 'var(--green)' : 'var(--red)'),
+        prog: isPending ? '0%' : prog.toFixed(0) + '%',
+        statusLabel: isPending ? 'Pending' : 'Open',
+        statusCol: isPending ? 'var(--clay)' : 'var(--green)',
+        statusBg: isPending ? 'var(--clay-bg)' : '#E2EAD8' };
       row.onViewReport = () => this.openTradeReport(t);
       return row;
     });
@@ -2622,8 +2860,52 @@ class Component extends DCLogic {
     else if (nq?.above_200dma === false) niftyMetaParts.push('Below 200-DMA');
     const niftyMeta = niftyMetaParts.join(' · ');
 
+    const execLive = s.executionWorkspace === 'live';
+    const liveWorkspaceEnabled = !!s.liveWorkspaceEnabled;
+    const showLiveComingSoon = execLive && !liveWorkspaceEnabled;
+    const showAppContent = !showLiveComingSoon;
+    const isHomeVisible = s.screen === 'home' && showAppContent;
+    const isSetupVisible = s.screen === 'setup' && showAppContent;
+    const isShortlistVisible = s.screen === 'shortlist' && showAppContent;
+    const isTrackerVisible = s.screen === 'tracker' && showAppContent;
+    const emptyHomeHint = execLive
+      ? 'Pick a strategy, set an allocation pool, and deploy your first live-trading Wolf (real Zerodha orders).'
+      : 'Pick a strategy, set an allocation pool, and deploy your first paper-trading Wolf.';
+    const deployAutoHint = execLive
+      ? 'Wolf places real Zerodha orders within your rules and budget.'
+      : 'Wolf manages paper trades within your rules and budget.';
+    const trackerEmptyTitle = execLive ? 'No live trades yet' : 'No paper trades yet';
+    const trackerEmptyHint = 'Deploy picks will show up here once the Wolf executes trades.';
+    const workspaceSwitchLoading = !!s.executionWorkspaceLoading;
+    const workspaceSwitchTitle = execLive ? 'Switching to Live' : 'Switching to Paper';
+    const workspaceSwitchHint = execLive
+      ? 'Loading your live Wolves and Zerodha workspace…'
+      : 'Loading your paper-trading Wolves…';
+
     return {
       ...this._authUrls(),
+      appRootClass: 'app-root theme-' + (execLive ? 'live' : 'paper'),
+      workspaceSwitchLoading,
+      workspaceSwitchTitle,
+      workspaceSwitchHint,
+      execPaperActiveClass: execLive ? '' : 'active',
+      execLiveActiveClass: execLive ? 'active' : '',
+      execToggleDisabledAttr: s.executionWorkspaceLoading ? 'disabled' : '',
+      setExecutionPaper: () => this.setExecutionWorkspace('paper'),
+      setExecutionLive: () => this.setExecutionWorkspace('live'),
+      executionWorkspace: s.executionWorkspace,
+      isLiveWorkspace: execLive,
+      liveWorkspaceEnabled,
+      showLiveComingSoon,
+      showAppContent,
+      isHomeVisible,
+      isSetupVisible,
+      isShortlistVisible,
+      isTrackerVisible,
+      emptyHomeHint,
+      deployAutoHint,
+      trackerEmptyTitle,
+      trackerEmptyHint,
       authEmail: s.authEmail, authInitial: s.authInitial,
       authLoggedIn, authNotLoggedIn: !authLoggedIn,
       authAuthorized, authNotAuthorized: authLoggedIn && !authAuthorized,

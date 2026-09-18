@@ -23,6 +23,7 @@ CREATE TABLE users (
     id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     kite_user_id    TEXT UNIQUE,              -- Zerodha client ID, set once linked
     name            TEXT,
+    execution_workspace TEXT NOT NULL DEFAULT 'paper' CHECK (execution_workspace IN ('paper','live')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     is_active       BOOLEAN NOT NULL DEFAULT true
 );
@@ -115,8 +116,8 @@ CREATE TABLE wolves (
 
 CREATE INDEX idx_wolves_user ON wolves(user_id);
 
--- Name only needs to be unique within a user's own bots, not globally
-ALTER TABLE wolves ADD CONSTRAINT uq_wolves_user_name UNIQUE (user_id, wolf_name);
+-- Name unique per user within each execution pool (paper vs live)
+ALTER TABLE wolves ADD CONSTRAINT uq_wolves_user_name_mode UNIQUE (user_id, wolf_name, mode);
 
 -- Strategy-lock for life is a confirmed, permanent rule (not just
 -- an app-level convention) — enforce it at the database level so
@@ -171,6 +172,8 @@ CREATE TABLE trades (
     quantity        INTEGER NOT NULL,
     price           NUMERIC(12,2) NOT NULL,
     kite_order_id   TEXT,                     -- null for paper trades
+    order_status    TEXT NOT NULL DEFAULT 'complete'
+                    CHECK (order_status IN ('pending','complete','rejected','cancelled')),
     mode            TEXT NOT NULL DEFAULT 'paper' CHECK (mode IN ('paper','live')),
     executed_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     linked_run_id   INTEGER                   -- FK to selection_runs, set below

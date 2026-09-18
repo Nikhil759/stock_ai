@@ -31,7 +31,8 @@ from deploy.deploy_wolf import (
 )
 import wolf_api
 from db import repository as repo
-from dashboard.auth_router import session_user_id
+from dashboard.auth_router import session_user_id, _session_email
+from live_workspace import effective_execution_workspace, live_workspace_allowed
 
 UI_FILE = ROOT / "Trading Bot.dc.html"
 log = logging.getLogger(__name__)
@@ -80,6 +81,10 @@ class DeployRequest(BaseModel):
     min_trade_value: float = Field(10000, ge=1000, le=500000)
     name: str | None = None
     run_screen: bool = True
+
+
+class ExecutionWorkspaceUpdate(BaseModel):
+    execution_workspace: Literal["paper", "live"]
 
 
 class BotUpdate(BaseModel):
@@ -165,6 +170,20 @@ def _require_user(request: Request, x_user_id: str | None = None) -> UUID:
     return uid
 
 
+def _live_workspace_enabled(request: Request) -> bool:
+    return live_workspace_allowed(_session_email(request))
+
+
+def _execution_workspace_for_user(request: Request, user_id: UUID) -> str:
+    """Effective workspace for API data — never live unless allowlisted."""
+    stored = repo.get_execution_workspace(user_id)
+    email = _session_email(request)
+    ws = effective_execution_workspace(stored, email)
+    if stored == "live" and ws == "paper":
+        repo.set_execution_workspace(user_id, "paper")
+    return ws
+
+
 def _get_wolf_or_404(wolf_id: str, user_id: UUID) -> dict:
     b = wolf_api.get_bot_for_user(user_id, wolf_id)
     if not b:
@@ -190,6 +209,47 @@ def nifty_quote():
     return quote
 
 
+# --- Execution workspace (paper / live) ---
+
+
+@app.get("/api/user/workspace")
+def get_execution_workspace(
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    execution_workspace = _execution_workspace_for_user(request, user_id)
+    return {
+        "executionWorkspace": execution_workspace,
+        "liveWorkspaceEnabled": _live_workspace_enabled(request),
+        "workspaceId": ws,
+    }
+
+
+@app.put("/api/user/workspace")
+def set_execution_workspace(
+    body: ExecutionWorkspaceUpdate,
+    request: Request,
+    ws: str = Depends(require_workspace),
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+):
+    user_id = _require_user(request, x_user_id)
+    if body.execution_workspace == "live" and not _live_workspace_enabled(request):
+        raise HTTPException(
+            status_code=403,
+            detail="Live trading workspace is not available for this account yet.",
+        )
+    execution_workspace = repo.set_execution_workspace(
+        user_id, body.execution_workspace
+    )
+    return {
+        "executionWorkspace": execution_workspace,
+        "liveWorkspaceEnabled": _live_workspace_enabled(request),
+        "workspaceId": ws,
+    }
+
+
 # --- Bots (Supabase) ---
 
 @app.get("/api/bots")
@@ -201,12 +261,22 @@ def list_bots(
 ):
     user_id = _resolve_user(request, x_user_id)
     if not user_id:
-        return {"bots": [], "workspaceId": ws}
+        return {
+            "bots": [],
+            "executionWorkspace": "paper",
+            "liveWorkspaceEnabled": False,
+            "workspaceId": ws,
+        }
+    execution_workspace = _execution_workspace_for_user(request, user_id)
     bots = wolf_api.list_bots_for_user(
-        user_id, include_terminated=include_terminated
+        user_id,
+        include_terminated=include_terminated,
+        execution_workspace=execution_workspace,
     )
     return {
         "bots": [_bot_response(b) for b in bots],
+        "executionWorkspace": execution_workspace,
+        "liveWorkspaceEnabled": _live_workspace_enabled(request),
         "workspaceId": ws,
     }
 
@@ -249,6 +319,7 @@ def deploy_bot(
             budget=req.allocation,
             guardrails=guardrails,
             wolf_name=req.name,
+            execution_mode=_execution_workspace_for_user(request, user_id),
         )
         screen_result = build_deploy_screen_response(
             wolf_result,

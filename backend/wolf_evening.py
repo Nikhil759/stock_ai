@@ -9,6 +9,7 @@ from typing import Any, Literal
 from db import repository as repo
 import wolf_api
 from wolf_executor import run_wolf_executor
+from wolf_executor.mode_util import executor_mode_from_wolf
 
 log = logging.getLogger(__name__)
 
@@ -97,6 +98,12 @@ def run_wolf_exit_check(
     if wolf is None:
         return {"error": "Wolf not found"}
 
+    orders: dict[str, Any] = {}
+    if str(wolf.get("mode") or "paper") == "live" and not dry_run:
+        from backend.kite_order_reconcile import reconcile_live_orders_for_wolf
+
+        orders = reconcile_live_orders_for_wolf(wolf_id)
+
     if wolf.get("status") == "closed":
         return {
             "skipped": True,
@@ -113,7 +120,12 @@ def run_wolf_exit_check(
             "message": "Paused — no price checks or exits.",
         }
 
-    holdings = repo.list_open_holdings(wolf_id)
+    pending_symbols = repo.pending_live_buy_symbols(wolf_id)
+    holdings = [
+        h
+        for h in repo.list_open_holdings(wolf_id)
+        if str(h.get("symbol", "")).upper() not in pending_symbols
+    ]
     if not holdings:
         if not dry_run and log_profile == "eod":
             _log_eod_intent(wolf_id, [], [], [])
@@ -123,6 +135,7 @@ def run_wolf_exit_check(
             "closed": [],
             "updated": [],
             "failed": [],
+            "orders": orders,
         }
 
     symbols = [str(h["symbol"]).upper() for h in holdings if h.get("symbol")]
@@ -163,7 +176,7 @@ def run_wolf_exit_check(
         else:
             updated.append({"ticker": sym, "ltp": ltp})
 
-    mode = str(wolf.get("mode") or "paper")
+    mode = executor_mode_from_wolf(str(wolf.get("mode") or "paper"))
     executor_result: dict[str, Any] | None = None
     if sells:
         executor_result = run_wolf_executor(
@@ -192,6 +205,7 @@ def run_wolf_exit_check(
         "portfolioValue": portfolio,
         "executor": executor_result,
         "dry_run": dry_run,
+        "orders": orders,
     }
 
 
@@ -213,9 +227,13 @@ def run_wolf_price_refresh(
     return run_wolf_exit_check(wolf_id, dry_run=dry_run, log_profile="refresh")
 
 
-def run_evening_all_wolves(*, dry_run: bool = False) -> list[dict[str, Any]]:
-    """Evening job for every active Supabase wolf."""
-    wolves = repo.list_active_wolves()
+def run_evening_all_wolves(
+    *,
+    dry_run: bool = False,
+    wolf_mode: str | None = None,
+) -> list[dict[str, Any]]:
+    """Evening job for active Supabase wolves (optional paper/live filter)."""
+    wolves = repo.list_active_wolves(mode=wolf_mode)
     if not wolves:
         log.info("no active wolves for evening job")
         return []

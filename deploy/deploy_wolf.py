@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from cache.shortlist_cache import load_shortlist_resolved
 from deploy.enrich_shortlist import enrich_shortlist_with_dossiers
@@ -17,6 +18,8 @@ from db import repository as repo
 from db.repository import RUN_TYPE_BIRTH
 from wolf_brain import run_wolf_brain
 from wolf_executor import run_wolf_executor
+from wolf_executor.kite_stub import live_orders_allowed
+from wolf_executor.mode_util import executor_mode_from_wolf
 
 log = logging.getLogger(__name__)
 
@@ -197,6 +200,7 @@ def deploy_new_wolf(
     budget: int | float,
     guardrails: dict[str, float],
     wolf_name: str | None = None,
+    execution_mode: str | None = None,
     as_of: date | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
@@ -229,8 +233,12 @@ def deploy_new_wolf(
 
     market_context = _market_context()
 
+    wolf_mode = repo.normalize_execution_workspace(
+        execution_mode if execution_mode is not None else repo.get_execution_workspace(user_id)
+    )
+
     wolf_id = repo.allocate_wolf_id()
-    name = wolf_name or repo.assign_default_wolf_name(user_id)
+    name = wolf_name or repo.assign_default_wolf_name(user_id, mode=wolf_mode)
     budget_f = float(budget)
 
     wolf = repo.create_wolf(
@@ -240,6 +248,7 @@ def deploy_new_wolf(
         strategy_code=strategy_code,
         budget_initial=budget_f,
         guardrails=guardrails,
+        mode=wolf_mode,
     )
     log.info(
         "[DEPLOY] created wolf %s strategy=%s budget=₹%.0f shortlist=%d",
@@ -270,17 +279,44 @@ def deploy_new_wolf(
     )
     run_id = int(selection_run["run_id"])
 
-    executor = run_wolf_executor(
-        wolf_id,
-        "paper",
-        sells=[],
-        buys=_brain_buys(brain.get("picks") or []),
-        cash_available=budget_f,
-        holdings=[],
-        guardrails=guardrails,
-        dry_run=dry_run,
-        linked_run_id=run_id,
+    defer_live_orders = (
+        wolf_mode == "live" and not dry_run and not live_orders_allowed()
     )
+    if defer_live_orders:
+        executor = {
+            "wolf_id": wolf_id,
+            "executed_at": datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(
+                timespec="seconds"
+            ),
+            "actions_taken": [],
+            "actions_rejected": [],
+            "cash_before": budget_f,
+            "cash_after": budget_f,
+            "portfolio_value_before": budget_f,
+            "portfolio_value_after": budget_f,
+            "guardrail_checks": {},
+            "summary": (
+                "Live birth orders deferred — the Mac execution agent will "
+                "place Zerodha orders at the next live trading run."
+            ),
+            "deferred_live_birth": True,
+        }
+        log.info(
+            "[DEPLOY] deferred live executor for %s (no Kite session on this host)",
+            wolf_id,
+        )
+    else:
+        executor = run_wolf_executor(
+            wolf_id,
+            executor_mode_from_wolf(wolf_mode),
+            sells=[],
+            buys=_brain_buys(brain.get("picks") or []),
+            cash_available=budget_f,
+            holdings=[],
+            guardrails=guardrails,
+            dry_run=dry_run,
+            linked_run_id=run_id,
+        )
 
     repo.patch_selection_run_gate_results(run_id, executor)
 
@@ -305,4 +341,72 @@ def deploy_new_wolf(
         "shortlist_count": len(shortlist),
         "market_context": market_context,
     }
+
+
+def complete_deferred_live_birth(
+    wolf_id: str,
+    *,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Execute birth buys for a live wolf that was deployed without local Kite access."""
+    wolf = repo.get_wolf(wolf_id)
+    if not wolf:
+        return {"wolf_id": wolf_id, "skipped": True, "reason": "wolf not found"}
+    if repo.normalize_execution_workspace(wolf.get("mode")) != "live":
+        return {"wolf_id": wolf_id, "skipped": True, "reason": "not a live wolf"}
+    if repo.list_open_holdings(wolf_id):
+        return {"wolf_id": wolf_id, "skipped": True, "reason": "already has holdings"}
+
+    selection_run = repo.get_latest_selection_run_for_wolf(
+        wolf_id, RUN_TYPE_BIRTH
+    )
+    if not selection_run:
+        return {"wolf_id": wolf_id, "skipped": True, "reason": "no birth run"}
+
+    picks = selection_run.get("final_picks_json") or []
+    if isinstance(picks, str):
+        picks = json.loads(picks)
+    buys = _brain_buys(picks if isinstance(picks, list) else [])
+    if not buys:
+        return {"wolf_id": wolf_id, "skipped": True, "reason": "no birth picks"}
+
+    run_id = int(selection_run["run_id"])
+    guardrails = wolf.get("guardrails") or {}
+    budget_f = float(wolf.get("budget_initial") or 0)
+
+    executor = run_wolf_executor(
+        wolf_id,
+        "real",
+        sells=[],
+        buys=buys,
+        cash_available=budget_f,
+        holdings=[],
+        guardrails=guardrails,
+        dry_run=dry_run,
+        linked_run_id=run_id,
+    )
+    if not dry_run:
+        repo.patch_selection_run_gate_results(run_id, executor)
+
+    log.info(
+        "[DEPLOY] completed deferred live birth for %s — %s",
+        wolf_id,
+        executor.get("summary", ""),
+    )
+    return {"wolf_id": wolf_id, "executor": executor}
+
+
+def complete_all_deferred_live_births(*, dry_run: bool = False) -> list[dict[str, Any]]:
+    """Birth-order catch-up for active live wolves with no holdings yet."""
+    results: list[dict[str, Any]] = []
+    for wolf in repo.list_active_wolves(mode="live"):
+        wolf_id = wolf["wolf_id"]
+        if repo.list_open_holdings(wolf_id):
+            continue
+        try:
+            results.append(complete_deferred_live_birth(wolf_id, dry_run=dry_run))
+        except Exception as exc:
+            log.exception("[DEPLOY] deferred live birth failed for %s", wolf_id)
+            results.append({"wolf_id": wolf_id, "error": str(exc)})
+    return results
 

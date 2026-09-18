@@ -17,6 +17,8 @@ Row = dict[str, Any]
 RUN_TYPE_BIRTH = "birth"
 RUN_TYPE_DAILY_REVIEW = "daily_review"
 VALID_RUN_TYPES = frozenset({RUN_TYPE_BIRTH, RUN_TYPE_DAILY_REVIEW})
+VALID_EXECUTION_WORKSPACES = frozenset({"paper", "live"})
+VALID_WOLF_MODES = frozenset({"paper", "live"})
 
 
 def _row(result: Any) -> Row | None:
@@ -81,6 +83,39 @@ def get_user_by_email(email: str) -> Row | None:
             return _row(cur.fetchone())
 
 
+def normalize_execution_workspace(value: str | None) -> str:
+    mode = (value or "paper").strip().lower()
+    return mode if mode in VALID_EXECUTION_WORKSPACES else "paper"
+
+
+def get_execution_workspace(user_id: UUID) -> str:
+    """User's active paper/live UI workspace."""
+    user = get_user(user_id)
+    if not user:
+        return "paper"
+    return normalize_execution_workspace(user.get("execution_workspace"))
+
+
+def set_execution_workspace(user_id: UUID, workspace: str) -> str:
+    ws = normalize_execution_workspace(workspace)
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE users
+                SET execution_workspace = %s
+                WHERE id = %s
+                RETURNING execution_workspace
+                """,
+                (ws, str(user_id)),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError(f"user not found: {user_id}")
+        conn.commit()
+    return ws
+
+
 def ensure_user_from_auth_email(email: str) -> Row | None:
     """Create public.users from auth.users if the signup trigger did not run."""
     normalized = email.strip().lower()
@@ -120,7 +155,10 @@ def create_wolf(
     strategy_code: str,
     budget_initial: Decimal | float | int,
     guardrails: dict,
+    *,
+    mode: str = "paper",
 ) -> Row:
+    wolf_mode = normalize_execution_workspace(mode)
     budget = Decimal(str(budget_initial))
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -130,7 +168,7 @@ def create_wolf(
                     wolf_id, user_id, wolf_name, strategy_code,
                     budget_initial, budget_available, mode, status, guardrails
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, 'paper', 'active', %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', %s)
                 RETURNING *
                 """,
                 (
@@ -140,6 +178,7 @@ def create_wolf(
                     strategy_code,
                     budget,
                     budget,
+                    wolf_mode,
                     Json(guardrails),
                 ),
             )
@@ -250,41 +289,72 @@ def list_trades_for_wolf(wolf_id: str) -> list[Row]:
             return _rows(cur.fetchall())
 
 
-def list_wolves_for_user(user_id: UUID) -> list[Row]:
+def list_wolves_for_user(
+    user_id: UUID,
+    *,
+    execution_mode: str | None = None,
+) -> list[Row]:
+    mode_filter = (
+        normalize_execution_workspace(execution_mode)
+        if execution_mode is not None
+        else None
+    )
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT * FROM wolves
-                WHERE user_id = %s
-                ORDER BY created_at
-                """,
-                (str(user_id),),
-            )
+            if mode_filter is None:
+                cur.execute(
+                    """
+                    SELECT * FROM wolves
+                    WHERE user_id = %s
+                    ORDER BY created_at
+                    """,
+                    (str(user_id),),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT * FROM wolves
+                    WHERE user_id = %s AND mode = %s
+                    ORDER BY created_at
+                    """,
+                    (str(user_id), mode_filter),
+                )
             return _rows(cur.fetchall())
 
 
-def list_active_wolves() -> list[Row]:
-    """Wolves eligible for evening auto-exit (active only; paused/closed skipped)."""
+def list_active_wolves(*, mode: str | None = None) -> list[Row]:
+    """Wolves eligible for cron jobs (active only; paused/closed skipped)."""
+    mode_filter = normalize_execution_workspace(mode) if mode is not None else None
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT * FROM wolves
-                WHERE status = 'active'
-                ORDER BY created_at
-                """
-            )
+            if mode_filter is not None:
+                cur.execute(
+                    """
+                    SELECT * FROM wolves
+                    WHERE status = 'active' AND mode = %s
+                    ORDER BY created_at
+                    """,
+                    (mode_filter,),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT * FROM wolves
+                    WHERE status = 'active'
+                    ORDER BY created_at
+                    """
+                )
             return _rows(cur.fetchall())
 
 
-def assign_default_wolf_name(user_id: UUID) -> str:
+def assign_default_wolf_name(user_id: UUID, *, mode: str = "paper") -> str:
     """Next unused name from wolf_name_pool by sort_order; wrap with Roman suffix past pool size."""
+    wolf_mode = normalize_execution_workspace(mode)
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "SELECT COUNT(*) AS n FROM wolves WHERE user_id = %s",
-                (str(user_id),),
+                "SELECT COUNT(*) AS n FROM wolves WHERE user_id = %s AND mode = %s",
+                (str(user_id), wolf_mode),
             )
             count = int(cur.fetchone()["n"])
             cur.execute(
@@ -304,6 +374,9 @@ def assign_default_wolf_name(user_id: UUID) -> str:
     return f"{base} {_to_roman(cycle + 1)}"
 
 
+VALID_ORDER_STATUSES = frozenset({"pending", "complete", "rejected", "cancelled"})
+
+
 def record_trade(
     wolf_id: str,
     symbol: str,
@@ -313,16 +386,20 @@ def record_trade(
     mode: str = "paper",
     kite_order_id: str | None = None,
     linked_run_id: int | None = None,
+    order_status: str = "complete",
 ) -> Row:
+    status = (order_status or "complete").strip().lower()
+    if status not in VALID_ORDER_STATUSES:
+        raise ValueError(f"invalid order_status {order_status!r}")
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
                 INSERT INTO trades (
                     wolf_id, symbol, action, quantity, price,
-                    mode, kite_order_id, linked_run_id
+                    mode, kite_order_id, linked_run_id, order_status
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -334,11 +411,81 @@ def record_trade(
                     mode,
                     kite_order_id,
                     linked_run_id,
+                    status,
                 ),
             )
             row = cur.fetchone()
             assert row is not None
             return dict(row)
+
+
+def update_trade_order(
+    trade_id: int,
+    *,
+    order_status: str,
+    quantity: int | None = None,
+    price: Decimal | float | int | None = None,
+) -> Row:
+    status = order_status.strip().lower()
+    if status not in VALID_ORDER_STATUSES:
+        raise ValueError(f"invalid order_status {order_status!r}")
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE trades
+                SET order_status = %s,
+                    quantity = COALESCE(%s, quantity),
+                    price = COALESCE(%s, price)
+                WHERE trade_id = %s
+                RETURNING *
+                """,
+                (
+                    status,
+                    quantity,
+                    Decimal(str(price)) if price is not None else None,
+                    trade_id,
+                ),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"trade not found: {trade_id}")
+            return dict(row)
+
+
+def list_reconcilable_live_buys(wolf_id: str) -> list[Row]:
+    """Live BUY rows with a Kite order id that may still be open on the exchange."""
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM trades
+                WHERE wolf_id = %s
+                  AND mode = 'live'
+                  AND action = 'BUY'
+                  AND kite_order_id IS NOT NULL
+                  AND order_status = 'pending'
+                ORDER BY trade_id
+                """,
+                (wolf_id,),
+            )
+            return _rows(cur.fetchall())
+
+
+def pending_live_buy_symbols(wolf_id: str) -> set[str]:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT symbol FROM trades
+                WHERE wolf_id = %s
+                  AND mode = 'live'
+                  AND action = 'BUY'
+                  AND order_status = 'pending'
+                """,
+                (wolf_id,),
+            )
+            return {str(r[0]).upper() for r in cur.fetchall()}
 
 
 def upsert_holding(
@@ -622,6 +769,27 @@ def patch_selection_run_gate_results(run_id: int, gate_results: Any) -> Row:
             if not row:
                 raise ValueError(f"selection_run not found: {run_id}")
             return dict(row)
+
+
+def get_latest_selection_run_for_wolf(
+    wolf_id: str,
+    run_type: str,
+) -> Row | None:
+    """Most recent selection run of a type for a wolf (any date)."""
+    if run_type not in VALID_RUN_TYPES:
+        raise ValueError(f"invalid run_type {run_type!r}")
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT * FROM selection_runs
+                WHERE wolf_id = %s AND run_type = %s
+                ORDER BY run_id DESC
+                LIMIT 1
+                """,
+                (wolf_id, run_type),
+            )
+            return _row(cur.fetchone())
 
 
 def get_latest_selection_run(

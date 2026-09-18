@@ -35,7 +35,7 @@ def _run_evening_job() -> None:
         log.info("starting supabase evening job for all active wolves")
         from wolf_evening import run_evening_all_wolves
 
-        run_evening_all_wolves()
+        run_evening_all_wolves(wolf_mode="paper")
         log.info("supabase evening job finished")
     except Exception:
         log.exception("supabase evening job failed")

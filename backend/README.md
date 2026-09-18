@@ -140,6 +140,38 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.wolfcapital.kite-tok
 
 Logs: `/tmp/wolfcapital-kite-token.log`
 
+### Live trading execution (Mac only)
+
+Real Zerodha orders run from your Mac (whitelisted IP). Railway handles paper
+wolves only; live wolves are skipped by the in-process schedulers on Railway.
+
+**One-off test** (from repo root, with today's Kite token synced):
+
+```bash
+export WOLF_LIVE_ORDERS_ENABLED=1
+cd backend
+PYTHONPATH=..:. ../.venv/bin/python -m scripts.run_live_trading_daily --dry-run
+```
+
+**launchd (recommended)** — weekday live jobs after token sync:
+
+```bash
+chmod +x backend/scripts/live_trading_job.sh
+chmod +x backend/scripts/live_trading_evening_job.sh
+cp backend/scripts/com.wolfcapital.live-trading-daily.plist ~/Library/LaunchAgents/
+cp backend/scripts/com.wolfcapital.live-trading-evening.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.wolfcapital.live-trading-daily.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.wolfcapital.live-trading-evening.plist
+```
+
+- `live-trading-daily` — 8:55 AM IST: deferred birth orders + live daily review
+- `live-trading-evening` — 5:00 PM IST: live target/stop exits (AMO after close)
+
+Logs: `/tmp/wolfcapital-live-trading.log`, `/tmp/wolfcapital-live-trading-evening.log`
+
+Live deploy from the web UI creates the wolf + brain on Railway; Zerodha orders
+are placed on the next Mac live job (or run `run_live_trading_daily` manually).
+
 **cron alternative** (if you prefer crontab):
 
 ```cron

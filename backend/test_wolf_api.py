@@ -46,6 +46,7 @@ class TestWolfApiFacade(unittest.TestCase):
         with patch.object(wolf_api, "_fetch_ltps", return_value={"INFY": 1850.0}):
             bot = wolf_to_bot(wolf, holdings=holdings, ltps={"INFY": 1850.0})
         self.assertEqual(bot["id"], "W0001")
+        self.assertEqual(bot["executionMode"], "paper")
         self.assertEqual(bot["strategy"], "value")
         self.assertEqual(bot["status"], "running")
         self.assertEqual(bot["availableCash"], 6400.0)
