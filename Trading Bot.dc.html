@@ -133,8 +133,19 @@
   .bot-card-btn,.trade-card,.level-row,.strategy-grid>div,.strategy-row,.mode-grid>button{transition:border-color 0.15s ease,box-shadow 0.15s ease,background-color 0.15s ease}
   .bot-card-btn:hover,.trade-card:hover,.level-row:hover,.strategy-grid>div:hover,.strategy-row:hover,.mode-grid>button:hover{background-color:var(--wolf-tint)!important;box-shadow:0 2px 12px rgba(160,90,40,0.07)}
   .deploy-footer,.budget-row,.guardrail-row,.page-header,.page-actions,.pending-card,.pending-actions,.footer-row,.banner-row{width:100%;max-width:100%}
-  .pipeline-shortlist-panel{display:grid;gap:16px}
-  .pipeline-strategy-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .pipeline-shortlist-panel{display:grid;gap:12px}
+  .pipeline-strategy-section{background:var(--wolf-mist);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .pipeline-strategy-summary{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+    padding:14px 18px;cursor:pointer;list-style:none;
+  }
+  .pipeline-strategy-summary::-webkit-details-marker{display:none}
+  .pipeline-strategy-summary::after{
+    content:'\ea62';font-family:'tabler-icons' !important;margin-left:auto;
+    color:var(--ink2);font-size:15px;flex:none;
+  }
+  .pipeline-strategy-section[open] .pipeline-strategy-summary::after{content:'\ea61'}
+  .pipeline-strategy-body{padding:0 18px 16px;border-top:1px solid var(--line)}
   .pipeline-strategy-name{font-size:15px;font-weight:700;text-transform:capitalize;color:var(--ink)}
   .pipeline-count-badge{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;border-radius:999px;padding:2px 9px}
   .pipeline-cands-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:10px}
@@ -604,13 +615,14 @@
     <sc-if value="{{ pipelineShortlistReady }}" hint-placeholder-val="{{ true }}">
       <div class="pipeline-shortlist-panel">
         <sc-for list="{{ pipelineStrategySections }}" as="sec" hint-placeholder-count="2">
-          <section style="background:var(--wolf-mist);border:1px solid var(--line);border-radius:14px;padding:16px 18px;">
-            <div class="pipeline-strategy-head">
+          <details class="pipeline-strategy-section">
+            <summary class="pipeline-strategy-summary">
               <span class="pipeline-strategy-name">{{ sec.name }}</span>
               <span class="pipeline-count-badge">{{ sec.countLabel }}</span>
-            </div>
+            </summary>
+            <div class="pipeline-strategy-body">
             <sc-if value="{{ sec.hasCandidates }}" hint-placeholder-val="{{ true }}">
-              <div class="pipeline-cands-grid">
+              <div class="pipeline-cands-grid" style="margin-top:14px;">
                 <sc-for list="{{ sec.candidates }}" as="c" hint-placeholder-count="2">
                   <div class="pipeline-cand-card">
                     <div class="pipeline-cand-top">
@@ -633,12 +645,13 @@
               </div>
             </sc-if>
             <sc-if value="{{ sec.noCandidates }}" hint-placeholder-val="{{ false }}">
-              <p class="pipeline-cand-empty">No candidates passed the {{ sec.name }} funnel + LLM screen today.</p>
+              <p class="pipeline-cand-empty" style="margin-top:14px;">No candidates passed the {{ sec.name }} funnel + LLM screen today.</p>
             </sc-if>
             <div style="margin-top:12px;">
               <button onClick="{{ sec.onDeploy }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:9px;color:var(--ink);"><i class="ti ti-rocket" style="font-size:14px;color:var(--clay);"></i>Deploy {{ sec.name }} Wolf</button>
             </div>
-          </section>
+            </div>
+          </details>
         </sc-for>
       </div>
       <sc-if value="{{ pipelineShortlistEmpty }}" hint-placeholder-val="{{ false }}">
