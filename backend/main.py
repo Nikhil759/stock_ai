@@ -620,6 +620,15 @@ def strategies_list():
     return {"strategies": list_strategies()}
 
 
+@app.get("/api/shortlists/today")
+def shortlists_today(_ws: str = Depends(require_workspace)):
+    """Today's cached shortlists per strategy (morning pipeline)."""
+    from cache.shortlist_cache import load_all_shortlists_today
+
+    day = date.today()
+    return {"date": day.isoformat(), "shortlists": load_all_shortlists_today(day)}
+
+
 @app.get("/api/strategies/{strategy_id}")
 def strategy_detail(strategy_id: str):
     if strategy_id not in VALID_STRATEGIES:

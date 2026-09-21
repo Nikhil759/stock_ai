@@ -14,6 +14,7 @@ from typing import Any
 from data_layer.config import CACHE_DIR
 
 SHORTLIST_DIR = CACHE_DIR / "shortlists"
+SHORTLIST_STRATEGIES = ("value", "winners", "box", "dip")
 
 
 def shortlist_path(strategy: str, as_of: date | str) -> Path:
@@ -110,6 +111,23 @@ def fetch_shortlists_from_cron() -> dict[str, list[dict[str, Any]]]:
     except Exception as exc:
         print(f"[SHORTLIST CACHE] Cron fetch error: {exc}")
         return {}
+
+
+def load_all_shortlists_today(as_of: date | str | None = None) -> dict[str, list[dict[str, Any]]]:
+    """All strategy shortlists for a day — local disk first, cron volume fallback per strategy."""
+    day = as_of or date.today()
+    cron_cache: dict[str, list[dict[str, Any]]] | None = None
+
+    def _cron(name: str) -> list[dict[str, Any]]:
+        nonlocal cron_cache
+        if cron_cache is None:
+            cron_cache = fetch_shortlists_from_cron() or {}
+        return cron_cache.get(name) or []
+
+    out: dict[str, list[dict[str, Any]]] = {}
+    for name in SHORTLIST_STRATEGIES:
+        out[name] = load_shortlist(name, day) or _cron(name) or []
+    return out
 
 
 def load_shortlist_resolved(strategy: str, as_of: date | str) -> list[dict[str, Any]]:

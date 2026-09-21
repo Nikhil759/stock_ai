@@ -133,6 +133,22 @@
   .bot-card-btn,.trade-card,.level-row,.strategy-grid>div,.strategy-row,.mode-grid>button{transition:border-color 0.15s ease,box-shadow 0.15s ease,background-color 0.15s ease}
   .bot-card-btn:hover,.trade-card:hover,.level-row:hover,.strategy-grid>div:hover,.strategy-row:hover,.mode-grid>button:hover{background-color:var(--wolf-tint)!important;box-shadow:0 2px 12px rgba(160,90,40,0.07)}
   .deploy-footer,.budget-row,.guardrail-row,.page-header,.page-actions,.pending-card,.pending-actions,.footer-row,.banner-row{width:100%;max-width:100%}
+  .pipeline-shortlist-panel{display:grid;gap:16px}
+  .pipeline-strategy-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .pipeline-strategy-name{font-size:15px;font-weight:700;text-transform:capitalize;color:var(--ink)}
+  .pipeline-count-badge{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--clay);background:var(--wolf-tint);border:1px solid #EDD3B6;border-radius:999px;padding:2px 9px}
+  .pipeline-cands-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:10px}
+  .pipeline-cand-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+  .pipeline-cand-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .pipeline-cand-sym{font-family:var(--mono);font-weight:700;font-size:14px;color:var(--ink)}
+  .pipeline-verdict{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:2px 8px;border-radius:999px;flex-shrink:0}
+  .pipeline-verdict.buy{color:var(--green);background:rgba(46,125,50,0.12)}
+  .pipeline-verdict.watch{color:var(--clay);background:var(--wolf-tint)}
+  .pipeline-cand-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--ink2)}
+  .pipeline-conviction-track{flex:1;height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin:0 8px}
+  .pipeline-conviction-fill{height:100%;border-radius:999px;background:var(--clay)}
+  .pipeline-conviction-fill.high{background:var(--green)}
+  .pipeline-cand-empty{font-size:12.5px;color:var(--ink2);font-style:italic;background:var(--paper);border:1px dashed var(--line2);border-radius:10px;padding:12px 14px}
   .deploy-summary{min-width:0}
   .mono-val{overflow-wrap:anywhere;word-break:break-word}
   .cand-footer,.cand-actions{width:100%;max-width:100%}
@@ -229,15 +245,25 @@
   .modal-panel{max-width:100%}
   .signal-row{min-width:0}
   @media (max-width:720px){
-    .app-header-inner{flex-wrap:nowrap!important;gap:8px!important}
-    .app-header-brand{margin-right:0!important;flex:none}
+    .app-header-inner{flex-wrap:wrap!important;gap:8px!important;align-items:center!important}
+    .app-header-brand{margin-right:0!important;flex:none;order:1}
     .app-header-brand .brand-text{display:none}
-    .app-header-tools{display:flex;align-items:center;gap:6px;flex:none}
+    .execution-toggle{flex:none;order:2}
+    .app-header-tools{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto!important;order:3}
     .app-header-tools .bot-select{max-width:110px;min-width:0!important}
     .execution-toggle-btn{padding:6px 8px!important;font-size:10px!important}
-    .app-nav{flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap!important}
-    .app-nav::-webkit-scrollbar{display:none}
-    .app-nav-btn{flex:1 0 auto;padding:8px 11px!important;font-size:12px!important}
+    .app-nav{
+      order:4;
+      flex:1 1 100%!important;width:100%!important;max-width:100%!important;
+      overflow-x:visible!important;flex-wrap:nowrap!important;
+      display:flex!important;gap:3px!important;
+    }
+    .app-nav-btn{
+      flex:1 1 0!important;min-width:0!important;
+      justify-content:center!important;
+      padding:8px 6px!important;font-size:11px!important;
+    }
+    .app-nav-btn i{font-size:14px!important}
     .app-main{padding-left:16px!important;padding-right:16px!important;padding-top:22px!important;padding-bottom:28px!important}
     .toolbar-row{flex-direction:column;align-items:stretch!important;gap:12px!important}
     .toolbar-actions{margin-left:0!important;width:100%;justify-content:stretch}
@@ -288,7 +314,8 @@
     .level-row>div{min-width:0}
   }
   @media (max-width:400px){
-    .app-nav-btn{padding:8px 9px!important;font-size:11px!important;gap:5px!important}
+    .app-nav-btn{padding:8px 4px!important;font-size:10.5px!important;gap:4px!important}
+    .app-nav-btn i{font-size:13px!important}
     .stats-grid{grid-template-columns:1fr!important}
     .bot-metrics>div,.trade-metrics>div{flex:1 1 100%}
   }
@@ -307,7 +334,7 @@
   </sc-if>
 
   <header class="app-header" style="position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
-    <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:nowrap;">
+    <div class="app-header-inner" style="max-width:1080px;margin:0 auto;padding:13px clamp(16px,4vw,32px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <button onClick="{{ goto.home }}" class="app-header-brand" title="Go to dashboard" style="display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;flex:none;background:none;border:none;cursor:pointer;padding:0;font:inherit;color:inherit;text-align:left;">
         <img src="/wolf_logo.png" alt="" class="wolf-icon wolf-icon-md" width="28" height="28" style="filter:drop-shadow(0 1px 2px rgba(120,60,20,0.2));">
         <span class="brand-text" style="font-weight:700;font-size:15.5px;letter-spacing:-0.01em;">Wolf Capital</span>
@@ -318,6 +345,7 @@
       </div>
       <nav class="app-nav" style="display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;">
         <button class="app-nav-btn" onClick="{{ goto.home }}" style="{{ nav.home }}"><i class="ti ti-layout-dashboard" style="font-size:15px;"></i>Home</button>
+        <button class="app-nav-btn" onClick="{{ goto.pipelineShortlist }}" style="{{ nav.pipelineShortlist }}"><i class="ti ti-list-check" style="font-size:15px;"></i>Shortlist</button>
         <button class="app-nav-btn" onClick="{{ goto.setup }}" style="{{ nav.setup }}"><i class="ti ti-rocket" style="font-size:15px;"></i>Deploy</button>
         <button class="app-nav-btn" onClick="{{ goto.tracker }}" style="{{ nav.tracker }}"><i class="ti ti-report-money" style="font-size:15px;"></i>Tracker</button>
       </nav>
@@ -539,6 +567,87 @@
           </div>
         </sc-for>
       </div>
+    </sc-if>
+  </main>
+  </sc-if>
+
+  <!-- ===================== PIPELINE SHORTLIST (today) ===================== -->
+  <sc-if value="{{ isPipelineShortlistVisible }}" hint-placeholder-val="{{ false }}">
+  <main class="app-main" style="max-width:1080px;margin:0 auto;padding:clamp(26px,5vw,48px) clamp(16px,4vw,32px);">
+    <div class="page-header" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:8px;">
+      <div>
+        <p style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;">Morning pipeline</p>
+        <h1 style="font-size:clamp(24px,4vw,31px);font-weight:800;letter-spacing:-0.024em;margin:0;">Today's shortlist</h1>
+      </div>
+      <button onClick="{{ refreshPipelineShortlist }}" style="display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;font-weight:550;color:var(--ink2);padding:9px 14px;border-radius:10px;"><i class="ti ti-refresh" style="font-size:15px;"></i>Refresh</button>
+    </div>
+    <div class="meta-row" style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink2);margin-bottom:22px;">
+      <span><i class="ti ti-calendar" style="font-size:14px;vertical-align:-2px;"></i> {{ pipelineShortlistDateLabel }}</span>
+      <span><i class="ti ti-list-check" style="font-size:14px;vertical-align:-2px;color:var(--clay);"></i> <span style="color:var(--ink);font-weight:600;">{{ pipelineShortlistTotal }}</span> candidates across 4 strategies</span>
+    </div>
+
+    <sc-if value="{{ pipelineShortlistLoading }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="skeleton-block" style="height:120px;border-radius:14px;"></div>
+        <div class="skeleton-block" style="height:120px;border-radius:14px;"></div>
+        <div class="skeleton-block" style="height:120px;border-radius:14px;"></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ pipelineShortlistError }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#F3E0D3;border:1px solid #E4C4AC;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:var(--red);font-size:14px;">
+        <i class="ti ti-alert-circle" style="vertical-align:-2px;"></i> {{ pipelineShortlistErrorMsg }}
+        <button onClick="{{ refreshPipelineShortlist }}" style="margin-left:12px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:13px;padding:6px 12px;border-radius:8px;color:var(--ink);">Retry</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ pipelineShortlistReady }}" hint-placeholder-val="{{ true }}">
+      <div class="pipeline-shortlist-panel">
+        <sc-for list="{{ pipelineStrategySections }}" as="sec" hint-placeholder-count="2">
+          <section style="background:var(--wolf-mist);border:1px solid var(--line);border-radius:14px;padding:16px 18px;">
+            <div class="pipeline-strategy-head">
+              <span class="pipeline-strategy-name">{{ sec.name }}</span>
+              <span class="pipeline-count-badge">{{ sec.countLabel }}</span>
+            </div>
+            <sc-if value="{{ sec.hasCandidates }}" hint-placeholder-val="{{ true }}">
+              <div class="pipeline-cands-grid">
+                <sc-for list="{{ sec.candidates }}" as="c" hint-placeholder-count="2">
+                  <div class="pipeline-cand-card">
+                    <div class="pipeline-cand-top">
+                      <span class="pipeline-cand-sym">{{ c.symbol }}<span style="color:var(--ink2);font-weight:400;">.NS</span></span>
+                      <span class="pipeline-verdict {{ c.verdictClass }}">{{ c.verdictLabel }}</span>
+                    </div>
+                    <div class="pipeline-cand-meta">
+                      <span>Conviction {{ c.convictionLabel }}</span>
+                      <span class="pipeline-conviction-track"><span class="pipeline-conviction-fill {{ c.convictionHighClass }}" style="width:{{ c.convictionPct }}%;"></span></span>
+                      <span style="font-family:var(--mono);font-weight:600;color:var(--ink);">{{ c.priceFmt }}</span>
+                    </div>
+                    <sc-if value="{{ c.hasReasoning }}" hint-placeholder-val="{{ false }}">
+                      <details style="font-size:11.5px;line-height:1.5;color:var(--ink2);">
+                        <summary style="cursor:pointer;color:var(--clay);font-weight:600;font-size:11px;list-style:none;">Show reasoning ›</summary>
+                        <p style="margin:6px 0 0;">{{ c.reasoningDisplay }}</p>
+                      </details>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ sec.noCandidates }}" hint-placeholder-val="{{ false }}">
+              <p class="pipeline-cand-empty">No candidates passed the {{ sec.name }} funnel + LLM screen today.</p>
+            </sc-if>
+            <div style="margin-top:12px;">
+              <button onClick="{{ sec.onDeploy }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line2);cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:9px;color:var(--ink);"><i class="ti ti-rocket" style="font-size:14px;color:var(--clay);"></i>Deploy {{ sec.name }} Wolf</button>
+            </div>
+          </section>
+        </sc-for>
+      </div>
+      <sc-if value="{{ pipelineShortlistEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:48px 20px;background:var(--panel);border:1px dashed #E2C9A9;border-radius:14px;margin-top:16px;">
+          <i class="ti ti-clock-pause" style="font-size:36px;color:var(--ink2);"></i>
+          <p style="margin:14px 0 4px;font-weight:600;">Pipeline hasn't run yet today</p>
+          <p style="color:var(--ink2);margin:0;font-size:14px;">Shortlists appear after the morning dossier build and LLM scoring pass.</p>
+        </div>
+      </sc-if>
     </sc-if>
   </main>
   </sc-if>
@@ -1347,6 +1456,10 @@ class Component extends DCLogic {
       lastPriceRefreshMsg: '',
       niftyQuote: null,
       niftyLoading: true,
+      pipelineShortlists: {},
+      pipelineShortlistDate: '',
+      pipelineShortlistLoading: false,
+      pipelineShortlistError: '',
     };
     this._deferredPrompt = null;
     this._iosInstall = false;
@@ -1642,7 +1755,7 @@ class Component extends DCLogic {
   _resolveInitialViewFromUrl(){
     try {
       const params = new URLSearchParams(window.location.search);
-      const validScreens = new Set(['home', 'setup', 'shortlist', 'tracker']);
+      const validScreens = new Set(['home', 'setup', 'shortlist', 'pipelineShortlist', 'tracker']);
       const screenParam = params.get('screen');
       const botParam = (params.get('bot') || '').trim();
       const tabParam = params.get('tab');
@@ -2062,6 +2175,32 @@ class Component extends DCLogic {
       this.setState({ configLoaded: true });
     } catch {
       this.setState({ configLoaded: true, niftyLoading: false });
+    }
+  }
+
+  async _loadPipelineShortlists(){
+    this.setState({ pipelineShortlistLoading: true, pipelineShortlistError: '' });
+    try {
+      const res = await this._fetch(this._api('/api/shortlists/today'));
+      if (!res.ok) {
+        let detail = 'Could not load shortlists';
+        try {
+          const err = await res.json();
+          detail = err.detail || detail;
+        } catch (_) { /* ignore */ }
+        throw new Error(typeof detail === 'string' ? detail : 'Could not load shortlists');
+      }
+      const data = await res.json();
+      this.setState({
+        pipelineShortlists: data.shortlists || {},
+        pipelineShortlistDate: data.date || '',
+        pipelineShortlistLoading: false,
+      });
+    } catch (e) {
+      this.setState({
+        pipelineShortlistLoading: false,
+        pipelineShortlistError: e.message || String(e),
+      });
     }
   }
 
@@ -2516,6 +2655,42 @@ class Component extends DCLogic {
     const fmt = n => '₹' + Math.round(n).toLocaleString('en-IN');
     const signed = n => (n >= 0 ? '+₹' : '−₹') + Math.round(Math.abs(n)).toLocaleString('en-IN');
     const STRAT = { value:{name:'Buy cheap quality'}, winners:{name:'Buy the winners'}, box:{name:'Buy the box breakout'}, dip:{name:'Buy the dip'} };
+    const PIPELINE_STRATEGIES = ['value', 'winners', 'box', 'dip'];
+    const pipelineStrategySections = PIPELINE_STRATEGIES.map(id => {
+      const candidates = ((s.pipelineShortlists || {})[id]) || [];
+      const name = STRAT[id]?.name || id;
+      return {
+        id,
+        name,
+        count: candidates.length,
+        countLabel: candidates.length + ' candidate' + (candidates.length !== 1 ? 's' : ''),
+        hasCandidates: candidates.length > 0,
+        noCandidates: candidates.length === 0,
+        candidates: candidates.map((c, i) => {
+          const reasoning = c.reasoning || '';
+          const truncated = reasoning.length > 600;
+          return {
+            symbol: c.symbol || '—',
+            verdictLabel: c.verdict || '—',
+            verdictClass: c.verdict === 'buy' ? 'buy' : 'watch',
+            convictionLabel: c.conviction != null ? c.conviction : '—',
+            convictionPct: c.conviction != null ? c.conviction : 0,
+            convictionHighClass: c.conviction != null && c.conviction >= 65 ? 'high' : '',
+            priceFmt: c.price ? '₹' + Number(c.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
+            hasReasoning: !!reasoning,
+            reasoningDisplay: truncated ? reasoning.slice(0, 600) + '…' : reasoning,
+            key: id + '-' + (c.symbol || i),
+          };
+        }),
+        onDeploy: () => this.setState({ screen: 'setup', strategy: id }),
+      };
+    });
+    const pipelineShortlistTotal = pipelineStrategySections.reduce((n, sec) => n + sec.count, 0);
+    const pipelineShortlistDateLabel = s.pipelineShortlistDate
+      ? new Date(s.pipelineShortlistDate + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+      : 'Today';
+    const pipelineShortlistReady = !s.pipelineShortlistLoading && !s.pipelineShortlistError;
+    const pipelineShortlistEmpty = pipelineShortlistReady && pipelineShortlistTotal === 0;
     const strategyMeta = this._strategyInfo();
     const strategyCards = ['value', 'winners', 'box', 'dip'].map(id => ({
       id,
@@ -2544,6 +2719,10 @@ class Component extends DCLogic {
       },
       setup: () => this.setState({ screen:'setup', strategy: null, screenError: false }),
       shortlist: () => this.setState({ screen:'shortlist' }),
+      pipelineShortlist: async () => {
+        this.setState({ screen: 'pipelineShortlist' });
+        try { await this._loadPipelineShortlists(); } catch (e) { console.error('pipeline shortlist load failed:', e); }
+      },
       tracker: async () => {
         this.setState({ screen: 'tracker', trackerTab: 'holdings' });
         try { if (s.activeBotId) await this._loadBotData(s.activeBotId); } catch (e) { console.error('loadBotData failed:', e); }
@@ -2574,7 +2753,9 @@ class Component extends DCLogic {
 
     const navStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 13px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px var(--accent-shadow)':'') + ';';
     const nav = {
-      home: navStyle(s.screen==='home'), setup:navStyle(s.screen==='setup'),
+      home: navStyle(s.screen==='home'),
+      pipelineShortlist: navStyle(s.screen==='pipelineShortlist'),
+      setup:navStyle(s.screen==='setup'),
       tracker: navStyle(s.screen==='tracker'),
     };
     const trackerTabBtnStyle = a => 'display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-size:13px;font-weight:550;padding:8px 14px;border-radius:8px;white-space:nowrap;background:' + (a?'var(--clay)':'transparent') + ';color:' + (a?'#fff':'var(--ink2)') + (a?';box-shadow:0 1px 5px var(--accent-shadow)':'') + ';';
@@ -2867,6 +3048,7 @@ class Component extends DCLogic {
     const isHomeVisible = s.screen === 'home' && showAppContent;
     const isSetupVisible = s.screen === 'setup' && showAppContent;
     const isShortlistVisible = s.screen === 'shortlist' && showAppContent;
+    const isPipelineShortlistVisible = s.screen === 'pipelineShortlist' && showAppContent;
     const isTrackerVisible = s.screen === 'tracker' && showAppContent;
     const emptyHomeHint = execLive
       ? 'Pick a strategy, set an allocation pool, and deploy your first live-trading Wolf (real Zerodha orders).'
@@ -2901,6 +3083,7 @@ class Component extends DCLogic {
       isHomeVisible,
       isSetupVisible,
       isShortlistVisible,
+      isPipelineShortlistVisible,
       isTrackerVisible,
       emptyHomeHint,
       deployAutoHint,
@@ -2914,9 +3097,18 @@ class Component extends DCLogic {
       authMenuChevron: s.showAuthMenu ? 'ti ti-chevron-up' : 'ti ti-chevron-down',
       toggleAuthMenu: () => this.toggleAuthMenu(),
       closeAuthMenu: () => this.closeAuthMenu(),
-      isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isTracker:s.screen==='tracker',
+      isHome: s.screen==='home', isSetup:s.screen==='setup', isShortlist:s.screen==='shortlist', isPipelineShortlist:s.screen==='pipelineShortlist', isTracker:s.screen==='tracker',
       isGrid:s.layout==='grid', isList:s.layout==='list',
       nav, tog, on, sel, goto, strategyCards,
+      pipelineStrategySections,
+      pipelineShortlistTotal,
+      pipelineShortlistDateLabel,
+      pipelineShortlistLoading: s.pipelineShortlistLoading,
+      pipelineShortlistError: !!s.pipelineShortlistError,
+      pipelineShortlistErrorMsg: s.pipelineShortlistError,
+      pipelineShortlistReady,
+      pipelineShortlistEmpty,
+      refreshPipelineShortlist: () => this._loadPipelineShortlists(),
       togglePause: () => this.togglePause(), terminateBot: () => this.terminateBot(),
       refreshPrices: () => this.refreshPrices(),
       budget:s.budget, onSlider, onBudgetChange, budgetSliderStyle,
